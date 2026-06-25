@@ -1,0 +1,22 @@
+{
+  "name": "jardiyn",
+  "version": "2.0.0",
+  "description": "JarDIYn by GardenHub — Spatial Garden Intelligence Platform with agentic MCP tool calling",
+  "type": "module",
+  "main": "server.mjs",
+  "scripts": {
+    "start":    "node server.mjs",
+    "dev":      "node --watch server.mjs",
+    "evaluate": "node tests/evaluation.mjs",
+    "test":     "node tests/evaluation.mjs"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "express":           "^4.18.2"
+  },
+  "keywords": ["garden", "AI", "MCP", "agentic", "anthropic", "claude"],
+  "license": "MIT"
+}
