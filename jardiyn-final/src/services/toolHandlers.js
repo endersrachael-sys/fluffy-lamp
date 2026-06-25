@@ -17,7 +17,7 @@
  */
 
 import { TOOL_LABELS } from "./tools.js";
-import { liveGardenZone, liveWeatherForecast, liveSoilData, liveGeocodeZip, LIVE_MODE } from "./liveApis.js";
+import { liveGardenZone, liveWeatherForecast, liveSoilData, liveGeocodeZip, liveFrostAlerts, LIVE_MODE } from "./liveApis.js";
 
 // ─── Resolve coordinates: use lat/lng if present, else geocode the ZIP ────────
 async function resolveCoords(input) {
@@ -373,6 +373,38 @@ export async function handleLookupPlantDatabase(input) {
   };
 }
 
+// ─── Handler: get_frost_alerts ───────────────────────────────────────────────
+/**
+ * Checks NOAA/NWS for active frost & freeze alerts.
+ * Live via api.weather.gov; falls back to a sandbox response.
+ */
+export async function handleGetFrostAlerts(input) {
+  console.log(`[tool] get_frost_alerts called — lat: ${input.latitude}, zip: ${input.zip_code}`);
+
+  // ── Try live NOAA/NWS first (falls back to mock on any failure) ──
+  const coords = await resolveCoords(input);
+  const live = await liveFrostAlerts(coords.latitude, coords.longitude);
+  if (live) { console.log(`[tool] get_frost_alerts → LIVE (risk: ${live.frost_risk})`); return live; }
+
+  // ── Sandbox mock: seasonal frost risk estimate ──
+  const month = new Date().getMonth() + 1;
+  const coldSeason = month <= 3 || month >= 11;
+  return {
+    tool: "get_frost_alerts",
+    label: TOOL_LABELS.get_frost_alerts,
+    frost_risk: coldSeason,
+    active_alerts: coldSeason
+      ? [{ event: "Frost Advisory (estimated)", severity: "Minor",
+           headline: "Seasonal frost risk — verify with local forecast",
+           expires: null }]
+      : [],
+    protection_advice: coldSeason
+      ? "Frost is possible this season. Cover tender plants overnight and water soil before a freeze."
+      : "Low frost risk this time of year for most zones.",
+    provenance: provenance("noaa-nws/sandbox")
+  };
+}
+
 // ─── Master dispatcher ────────────────────────────────────────────────────────
 /**
  * Routes a tool_use block (name + input) to the correct handler.
@@ -393,6 +425,7 @@ export async function dispatchTool(toolName, input) {
       case "get_weather_forecast":  result = await handleGetWeatherForecast(input);  break;
       case "generate_diy_report":   result = await handleGenerateDiyReport(input);   break;
       case "lookup_plant_database": result = await handleLookupPlantDatabase(input); break;
+      case "get_frost_alerts":      result = await handleGetFrostAlerts(input);      break;
       default:
         result = { error: `Unknown tool: ${toolName}`, known_tools: Object.keys(TOOL_LABELS) };
     }

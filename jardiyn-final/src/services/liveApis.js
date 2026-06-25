@@ -206,6 +206,52 @@ export async function liveSoilData(lat, lng) {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────
+// LIVE: NOAA / NWS frost & freeze alerts (api.weather.gov, no key)
+// Docs: https://www.weather.gov/documentation/services-web-api
+// GET /alerts/active?point={lat},{lng}
+// ─────────────────────────────────────────────────────────────────────────
+export async function liveFrostAlerts(lat, lng) {
+  if (!LIVE || lat == null || lng == null) return null;
+  try {
+    const data = await fetchJSON(
+      `https://api.weather.gov/alerts/active?point=${lat},${lng}`,
+      { headers: { "User-Agent": "JarDIYn-GardenApp (contact@gardenhub.example)", "Accept": "application/geo+json" } }
+    );
+    const features = data?.features || [];
+
+    // Filter to cold-related alerts a gardener cares about
+    const coldKeywords = ["frost", "freeze", "cold", "hard freeze", "winter"];
+    const relevant = features.filter(f => {
+      const ev = (f.properties?.event || "").toLowerCase();
+      return coldKeywords.some(k => ev.includes(k));
+    });
+
+    const active_alerts = relevant.map(f => ({
+      event: f.properties.event,
+      severity: f.properties.severity,
+      headline: f.properties.headline,
+      expires: f.properties.expires
+    }));
+
+    return {
+      tool: "get_frost_alerts",
+      source: "NOAA / National Weather Service",
+      mode: "live",
+      frost_risk: active_alerts.length > 0,
+      active_alerts,
+      protection_advice: active_alerts.length > 0
+        ? "Active cold alert in effect. Cover tender plants with frost cloth or bring containers indoors. Water soil before a freeze — moist soil holds heat better than dry."
+        : "No active frost or freeze alerts from NOAA for this location.",
+      total_active_alerts: features.length,
+      provenance: { source: "api.weather.gov", mode: "live", generated_at: new Date().toISOString() }
+    };
+  } catch (err) {
+    console.warn(`[live:frost] fallback to mock — ${err.message}`);
+    return null;
+  }
+}
+
 export const LIVE_MODE = LIVE;
 
 // ─────────────────────────────────────────────────────────────────────────

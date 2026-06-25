@@ -37,7 +37,8 @@ node server.mjs               # open http://localhost:3000
 2. **Deploy on Render:**
    - Go to [dashboard.render.com](https://dashboard.render.com) → **New** → **Web Service**
    - Connect your GitHub repo
-   - Render auto-detects `render.yaml`. Confirm:
+   - Render auto-detects `render.yaml`. **Confirm these settings:**
+     - **Root Directory: `jardiyn-final`** ← set this manually if Render doesn't pick it up
      - Build Command: `npm install`
      - Start Command: `npm start`
    - Under **Environment**, add:
@@ -103,7 +104,22 @@ If you see tool badges appearing and disappearing based on the question, the age
 
 ---
 
-## What the grader will check, and where it is
+## ✅ Pre-Deploy Checklist
+
+Before you click "Deploy" on Render, run through this locally:
+
+- [ ] `npm install` — all deps resolve without errors
+- [ ] `node verify.mjs` — see "READY TO DEPLOY" (22 checks pass)
+- [ ] `npm start` → open `http://localhost:3000`
+- [ ] Click "When to prune hostas?" → see "no tools — direct answer" (proves Req 7)
+- [ ] Click "Yellow spots and bugs" → see `identify_plant` badge (proves Req 6)
+- [ ] Click "Find plants" → watch badges appear (proves Req 5+7)
+- [ ] Refresh page → see conversation history restored (persistence works)
+- [ ] Sidebar: fill in ZIP, click "Watering check" → weather recommendation appears (grounding works)
+- [ ] No console errors; no `undefined` values in responses
+- [ ] Git history: `git log --oneline | head -10` shows meaningful commits (Req 8)
+
+If all pass: you're ready to push to GitHub and deploy on Render.
 
 | Rubric item | Where to look | Quick proof |
 |-------------|---------------|-------------|

@@ -122,7 +122,7 @@ export async function runGardenAgent(
     // This is where Requirement 5 is satisfied: JARDIYN_TOOLS passed in `tools`
     const response = await anthropic.messages.create({
       model: "claude-sonnet-4-6",
-      max_tokens: 1024,
+      max_tokens: 2048,               // Headroom for full reports without truncation
       system: buildSystemPrompt(gardenProfile),
       tools: JARDIYN_TOOLS,           // REQ 5: formal tool definitions exposed to model
       messages
@@ -197,6 +197,28 @@ export async function runGardenAgent(
       messages.push({ role: "user", content: toolResults });
 
       // Loop continues — back to Step 1
+      continue;
+    }
+
+    // ── Step 4: Any other stop_reason (max_tokens, pause_turn, etc.) ──────
+    // The response was truncated or stopped for a non-tool reason. Return
+    // whatever text we have rather than silently looping and burning rounds.
+    {
+      const partialText = response.content
+        .filter(b => b.type === "text")
+        .map(b => b.text)
+        .join("\n");
+
+      if (traceLog) console.log(`[agent:done] stopped on "${response.stop_reason}" after ${rounds} round(s).`);
+
+      return {
+        response: partialText || "I wasn't able to complete that response. Please try rephrasing your question.",
+        toolsUsed,
+        trace,
+        rounds,
+        sessionId,
+        stop_reason: response.stop_reason
+      };
     }
   }
 

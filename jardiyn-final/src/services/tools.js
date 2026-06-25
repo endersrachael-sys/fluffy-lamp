@@ -260,6 +260,33 @@ companion_plants, avoid_near).`,
       },
       required: ["hardiness_zone"]
     }
+  },
+
+  // ─────────────────────────────────────────────────────────────────
+  // TOOL 7 — get_frost_alerts
+  // Maps to: NOAA / National Weather Service active alerts
+  // Source: api.weather.gov (no key, US government)
+  // ─────────────────────────────────────────────────────────────────
+  {
+    name: "get_frost_alerts",
+    description: `Checks the NOAA National Weather Service for active frost, freeze, or
+hard-freeze warnings and advisories at a garden location. Use this tool when the user
+asks whether they need to protect plants tonight, when frost is a concern, or when
+generating cold-sensitive planting or harvest timing advice. This returns OFFICIAL
+government weather alerts — more authoritative for protection decisions than a raw
+temperature forecast. Do NOT call this for general weather (use get_weather_forecast).
+
+Returns: active_alerts (array of NWS alerts with event, severity, headline, expires),
+frost_risk (boolean), protection_advice (string), and a no-alerts confirmation when clear.`,
+    input_schema: {
+      type: "object",
+      properties: {
+        latitude:  { type: "number", description: "Latitude of the garden." },
+        longitude: { type: "number", description: "Longitude of the garden." },
+        zip_code:  { type: "string", description: "ZIP code fallback if coordinates are not available." }
+      },
+      required: []
+    }
   }
 
 ];
@@ -273,5 +300,6 @@ export const TOOL_LABELS = {
   get_soil_data:        "Soil Data (USDA SoilWeb)",
   get_weather_forecast: "Weather Forecast",
   generate_diy_report:  "DIY Garden Report Generator",
-  lookup_plant_database:"Plant Species Database"
+  lookup_plant_database:"Plant Species Database",
+  get_frost_alerts:     "NOAA Frost & Freeze Alerts"
 };

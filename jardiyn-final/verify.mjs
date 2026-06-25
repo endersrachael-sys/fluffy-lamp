@@ -19,7 +19,7 @@ console.log(`\n${B}JarDIYn — Pre-Deploy Verification${X}\n`);
 // 1. Tool definitions load and are well-formed
 console.log("Tool definitions (Req 5):");
 const { JARDIYN_TOOLS } = await import("./src/services/tools.js");
-check("6 tools defined", JARDIYN_TOOLS.length === 6);
+check("7 tools defined", JARDIYN_TOOLS.length === 7);
 JARDIYN_TOOLS.forEach(t => {
   const valid = t.name && t.description && t.input_schema?.type === "object";
   check(`${t.name} has name + description + input_schema`, valid);

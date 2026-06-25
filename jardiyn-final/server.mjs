@@ -12,6 +12,7 @@ import express    from "express";
 import path       from "path";
 import { fileURLToPath } from "url";
 import { runGardenAgent } from "./src/services/agentLoop.js";
+import { saveProfile, loadProfile, saveTurn, loadHistory, PERSISTENCE_MODE } from "./src/services/store.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app  = express();
@@ -29,18 +30,48 @@ app.use((req, _res, next) => {
 
 // ── Health ──────────────────────────────────────────────────────────────────
 app.get("/health", (_req, res) => {
-  res.json({ status: "ok", version: "2.0.0", mode: process.env.NODE_ENV || "sandbox" });
+  res.json({
+    status: "ok",
+    version: "2.1.0",
+    mode: process.env.NODE_ENV || "sandbox",
+    live_apis: process.env.LIVE_APIS === "true",
+    persistence: PERSISTENCE_MODE
+  });
+});
+
+// ── GET /api/history/:sessionId — retrieve saved garden + history ────────────
+app.get("/api/history/:sessionId", (req, res) => {
+  const sid = req.params.sessionId;
+  res.json({
+    profile: loadProfile(sid),
+    history: loadHistory(sid, 30)
+  });
 });
 
 // ── POST /api/chat ──────────────────────────────────────────────────────────
 // Primary endpoint used by the frontend.
 // Accepts a message + garden profile, returns agent response + trace.
 app.post("/api/chat", async (req, res) => {
-  const { message, garden_profile, history = [] } = req.body;
+  const { message, garden_profile, history = [], session_id } = req.body;
   if (!message?.trim()) return res.status(400).json({ error: "message is required" });
 
   try {
-    const result = await runGardenAgent(message, garden_profile || null, history, { traceLog: true });
+    // Persist the profile for this session (so it survives refresh)
+    if (session_id && garden_profile) saveProfile(session_id, garden_profile);
+
+    // Use stored history if the client didn't send any but we have a session
+    const convoHistory = history.length > 0
+      ? history
+      : (session_id ? loadHistory(session_id).map(h => ({ role: h.role, content: h.content })) : []);
+
+    const result = await runGardenAgent(message, garden_profile || null, convoHistory, { traceLog: true });
+
+    // Save this turn to persistent history
+    if (session_id) {
+      saveTurn(session_id, "user", message, []);
+      saveTurn(session_id, "assistant", result.response, result.toolsUsed || []);
+    }
+
     res.json(result);
   } catch (err) {
     console.error("[api/chat error]", err.message);

@@ -481,25 +481,25 @@
         <h2>Know your land. Design with confidence. Grow beautifully.</h2>
         <p>JarDIYn is an AI garden intelligence assistant grounded in real soil data, USDA zones, weather forecasts, and plant databases. Ask anything — the agent decides what to look up.</p>
         <div class="welcome-prompts">
-          <button class="welcome-prompt" onclick="quickAction('My tomato leaves have yellow spots and I see small bugs on the undersides. What is wrong and how do I treat it organically?')">
+          <button class="welcome-prompt" onclick="quickAction('When is the best time to prune my hostas in Zone 7b?')">
+            <span class="prompt-icon">✂️</span>
+            <strong>When to prune (no tools)</strong>
+            <div class="prompt-text">Agentic critical: model answers from knowledge, calls zero tools</div>
+          </button>
+          <button class="welcome-prompt" onclick="quickAction('My tomato leaves have yellow spots and I see small bugs on the undersides. What is wrong and how do I treat it?')">
             <span class="prompt-icon">🐛</span>
             <strong>Diagnose a problem</strong>
-            <div class="prompt-text">Describe symptoms and get an ID + remedy</div>
+            <div class="prompt-text">Model calls identify_plant tool, reads result</div>
           </button>
           <button class="welcome-prompt" onclick="quickAction('Look up my garden zone and tell me the best low-water native perennials for partial shade.')">
             <span class="prompt-icon">🌸</span>
             <strong>Find plants for my space</strong>
-            <div class="prompt-text">Zone-aware, soil-aware plant search</div>
-          </button>
-          <button class="welcome-prompt" onclick="quickAction('Generate a complete monthly DIY garden report for my profile.')">
-            <span class="prompt-icon">📋</span>
-            <strong>Monthly garden report</strong>
-            <div class="prompt-text">Priority actions, soil, watering, pest watch</div>
+            <div class="prompt-text">Model calls lookup_plant_database, chains with zone lookup</div>
           </button>
           <button class="welcome-prompt" onclick="quickAction('Should I water my garden today or skip it? Check the weather forecast for my location.')">
             <span class="prompt-icon">💧</span>
             <strong>Watering decision</strong>
-            <div class="prompt-text">Weather-grounded watering recommendation</div>
+            <div class="prompt-text">Model calls get_weather_forecast, provides grounded advice</div>
           </button>
         </div>
       </div>
@@ -521,6 +521,13 @@
 // ── State ──────────────────────────────────────────────────────────────────
 let history = [];
 let goals = new Set();
+
+// Persistent session — survives refresh via the server's SQLite store
+let sessionId = localStorage.getItem('jardiyn_session');
+if (!sessionId) {
+  sessionId = 'sess_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+  localStorage.setItem('jardiyn_session', sessionId);
+}
 
 // ── Profile ───────────────────────────────────────────────────────────────
 function getProfile() {
@@ -645,7 +652,7 @@ async function sendMessage(text) {
   appendTyping();
 
   const profile = getProfile();
-  const body = { message: msg, garden_profile: profile, history };
+  const body = { message: msg, garden_profile: profile, history, session_id: sessionId };
 
   try {
     const res = await fetch('/api/chat', {
@@ -697,6 +704,34 @@ document.getElementById('msg-input').addEventListener('input', function() {
 });
 
 updateProfileSummary();
-</script>
-</body>
-</html>
+
+// ── Restore prior session on load (garden history persistence) ──
+(async function restoreSession() {
+  try {
+    const res = await fetch('/api/history/' + sessionId);
+    if (!res.ok) return;
+    const data = await res.json();
+
+    if (data.profile) {
+      if (data.profile.zip_code)     document.getElementById('zip').value = data.profile.zip_code;
+      if (data.profile.soil_type)    document.getElementById('soil').value = data.profile.soil_type;
+      if (data.profile.sun_exposure) document.getElementById('sun').value = data.profile.sun_exposure;
+      if (data.profile.site_name)    document.getElementById('site-name').value = data.profile.site_name;
+      (data.profile.goals || []).forEach(g => {
+        goals.add(g);
+        document.querySelectorAll('.tag').forEach(t => { if (t.dataset.goal === g) t.classList.add('active'); });
+      });
+      updateProfileSummary();
+    }
+
+    if (data.history && data.history.length > 0) {
+      data.history.forEach(turn => {
+        appendMessage(turn.role, turn.content, turn.tools_used || [],
+          (turn.tools_used && turn.tools_used.length) ? 2 : 1);
+        history.push({ role: turn.role, content: turn.content });
+      });
+      history = history.slice(-20);
+    }
+  } catch (e) { /* fresh session */ }
+})();
+

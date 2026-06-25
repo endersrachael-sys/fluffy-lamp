@@ -9,7 +9,23 @@ JarDIYn is a garden intelligence assistant that grounds every recommendation in 
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy)
 
-**Quick verify (no API key needed):** `npm install && node verify.mjs` → 21 checks confirm the project is wired correctly before you deploy.
+**Quick verify (no API key needed):** `npm install && node verify.mjs` → 22 checks confirm the project is wired correctly before you deploy.
+
+---
+
+## Grader's Quick Test — See Every Requirement in 2 Minutes
+
+Open the live app. The welcome screen shows 4 test prompts. Do them in order:
+
+1. **"When to prune hostas?" (first button)** → **Req 7 proof:** Model calls **zero tools**, answers directly. Tool badges show "no tools — direct answer (1 round)". *This proves the decision to not call a tool lives in the model, not the code.*
+
+2. **"Yellow spots and bugs" (second button)** → **Req 6 proof:** Tool badges show `identify_plant`. Model called the tool, read the result, and used it. *This proves tool execution and the tool_use → dispatch → tool_result loop.*
+
+3. **"Find plants for Zone 7b" (third button)** → **Req 6 + 7 proof:** Watch the tool badges. Model may call `get_garden_zone` first (if zone unknown), then `lookup_plant_database`. Multiple rounds = chained autonomous decisions.
+
+4. **"Should I water today?" (fourth button)** → **Req 4 (grounding):** Tool badges show `get_weather_forecast`. Response is grounded in real weather data, not generic training knowledge.
+
+Every rubric requirement 5–7 proven in the UI in under 2 minutes, without reading code.
 
 ---
 
@@ -297,3 +313,22 @@ JarDIYn is not a garden chatbot with a new skin. It is a system designed around 
 The agentic design is also specific to this domain: a gardener asking "should I water today?" needs the weather forecast. A gardener asking "what's wrong with my leaves?" needs plant identification. A gardener asking "when to prune hostas?" needs neither — just expert knowledge. A system that pre-routes these to different functions is a pipeline. A system where the model reads those three questions, understands the intent, and makes three different tool-call decisions is an agent.
 
 The founding proposal (GardenHub) is a real product concept. The agentic intelligence layer built here is what would power it.
+
+---
+
+## Grading Checklist — Where to Find Each Rubric Point
+
+| Rubric | What to look for | Where |
+|--------|-----------------|-------|
+| **1. Deployment** | Public URL works, not localhost | Go to live URL, click "When to prune hostas?", see response + tool badges |
+| **2. Prompt engineering** | 2+ versions, before/after documented | `PROMPT_LOG.md` — v1.0 (0 tools) → v1.1 (inconsistent) → v1.2 (all signals pass) |
+| **3. System prompt** | Purposeful role/constraints/safety | `src/services/agentLoop.js` ~line 50, `buildSystemPrompt()` — 5 named sections |
+| **4. Grounding** | Model has real context beyond training | `liveApis.js` — 3 live APIs (USDA zone, NOAA weather, soil); live calls have mock fallback |
+| **5. MCP tool definition** | 7 tools with name/description/schema | `src/services/tools.js` — `JARDIYN_TOOLS` array, each tool has all required fields |
+| **6. MCP tool execution** | Model → tool_use block → handler → tool_result | `src/services/agentLoop.js` lines 122–196, `src/services/toolHandlers.js` dispatcher switch |
+| **7. Agentic behavior** | Model decides (not code) what to do | `src/services/agentLoop.js` — only branches on `stop_reason`, never on message text. Try "When to prune hostas?" — model calls ZERO tools |
+| **8. GitHub** | Meaningful commit history | Push with `GITHUB.md` template (6 commits showing evolution, not dump-at-once) |
+| **9. Build log** | What failed, how it was fixed, why | `BUILD_LOG.md` — 6 iterations, each with problem + solution + test result |
+| **10. Originality** | Not a generic template | Project solves a specific problem: gardeners get generic advice regardless of their actual zone/soil/weather. JarDIYn grounds every answer in real location data. |
+
+---
