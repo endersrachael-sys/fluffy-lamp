@@ -165,19 +165,6 @@ app.post("/api/schedule", async (req, res) => {
   }
 });
 
-// ── Frontend SPA fallback ────────────────────────────────────────────────────
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
-
-app.listen(PORT, () => {
-  console.log(`\nJarDIYn running → http://localhost:${PORT}`);
-  console.log(`Mode: ${process.env.NODE_ENV || "sandbox"}`);
-  console.log(`API key: ${process.env.ANTHROPIC_API_KEY ? "SET ✓" : "MISSING ✗"}\n`);
-});
-
-export default app;
-
 // ── GET /api/status — full diagnostic endpoint ──────────────────────────────
 app.get("/api/status", async (req, res) => {
   const status = {
@@ -217,3 +204,18 @@ app.get("/api/status", async (req, res) => {
                       status.persistence.ok && status.anthropic.ok && status.tools.ok;
   res.status(status.overall_ok ? 200 : 503).json(status);
 });
+
+// ── Frontend SPA fallback ────────────────────────────────────────────────────
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
+app.listen(PORT, () => {
+  console.log(`\nJarDIYn running → http://localhost:${PORT}`);
+  console.log(`Mode: ${process.env.NODE_ENV || "sandbox"}`);
+  console.log(`API key: ${process.env.ANTHROPIC_API_KEY ? "SET ✓" : "MISSING ✗"}\n`);
+});
+
+export default app;
+
+
