@@ -17,7 +17,7 @@
  */
 
 import { TOOL_LABELS } from "./tools.js";
-import { liveGardenZone, liveWeatherForecast, liveSoilData, liveGeocodeZip, liveFrostAlerts, LIVE_MODE } from "./liveApis.js";
+import { liveGardenZone, liveWeatherForecast, liveSoilData, liveGeocodeZip, liveFrostAlerts, livePollenForecast, liveOpenFarmCrop, liveINaturalistTaxa, liveWikipediaPlant, liveHistoricalWeather, LIVE_MODE } from "./liveApis.js";
 
 // ─── Resolve coordinates: use lat/lng if present, else geocode the ZIP ────────
 async function resolveCoords(input) {
@@ -307,71 +307,97 @@ ${month >= 7 && month <= 9 ? "- Harvest regularly to encourage production\n- Beg
  *   with zone, sun, water filter params.
  */
 export async function handleLookupPlantDatabase(input) {
-  console.log(`[tool] lookup_plant_database called — zone: ${input.hardiness_zone}, type: ${input.plant_type}`);
+  console.log(`[tool] lookup_plant_database called — zone: ${input.hardiness_zone}, query: ${input.search_query}`);
 
+  // ── Try OpenFarm for specific crop queries ──────────────────────────────
+  const searchTerm = input.search_query || input.plant_type || "vegetables";
+  if (LIVE_MODE && searchTerm) {
+    try {
+      const farm = await liveOpenFarmCrop(searchTerm);
+      if (farm) {
+        // Also get iNaturalist species confirmation
+        const taxon = await liveINaturalistTaxa(farm.name);
+        // Get Wikipedia summary for the top result
+        const wiki = taxon?.matches?.[0]
+          ? await liveWikipediaPlant(taxon.matches[0].name)
+          : null;
+
+        console.log(`[tool] lookup_plant_database → LIVE (OpenFarm + iNaturalist)`);
+        return {
+          tool: "lookup_plant_database",
+          source: "OpenFarm + iNaturalist",
+          mode: "live",
+          search_term: searchTerm,
+          zone_filter: input.hardiness_zone,
+          primary_result: {
+            name:               farm.name,
+            description:        farm.description,
+            sun_requirements:   farm.sun_requirements,
+            water_requirements: farm.water_requirements,
+            sowing_method:      farm.sowing_method,
+            height:             farm.height,
+            tags:               farm.tags
+          },
+          species_confirmation: taxon?.top_match || null,
+          observations_count:   taxon?.matches?.[0]?.observations_count || null,
+          care_summary:         wiki?.extract || null,
+          wikipedia_url:        wiki?.url || null,
+          provenance: { source: "openfarm.cc + inaturalist.org", mode: "live", generated_at: new Date().toISOString() }
+        };
+      }
+    } catch (e) {
+      console.warn("[lookup_plant_database] live lookup failed, falling back to local list:", e.message);
+    }
+  }
+
+  // ── Fallback: curated local list ───────────────────────────────────────
+  const zoneNum = parseInt(String(input.hardiness_zone || "7b").replace(/[ab]$/, ""), 10) || 7;
   const allPlants = [
-    { common_name: "Purple Coneflower",    latin_name: "Echinacea purpurea",
-      zone_range: "3-9",  water_needs: "low",    sun_needs: "full_sun",
-      bloom_season: "summer", mature_height_ft: 3,
-      companion_plants: ["Black-eyed Susan", "Bee balm"],
-      avoid_near: [] },
-    { common_name: "Bee Balm",             latin_name: "Monarda didyma",
-      zone_range: "4-9",  water_needs: "medium", sun_needs: "full_sun",
-      bloom_season: "summer", mature_height_ft: 4,
-      companion_plants: ["Coneflower", "Yarrow"],
-      avoid_near: ["Fennel"] },
-    { common_name: "Coral Bells",          latin_name: "Heuchera sanguinea",
-      zone_range: "4-9",  water_needs: "low",    sun_needs: "partial_shade",
-      bloom_season: "spring", mature_height_ft: 1.5,
-      companion_plants: ["Hostas", "Ferns"],
-      avoid_near: [] },
-    { common_name: "Tomato (Bush)",        latin_name: "Solanum lycopersicum",
-      zone_range: "3-11", water_needs: "high",   sun_needs: "full_sun",
-      bloom_season: "summer", mature_height_ft: 3,
-      companion_plants: ["Basil", "Marigold"],
-      avoid_near: ["Fennel", "Brassicas"] },
-    { common_name: "Rosemary",             latin_name: "Salvia rosmarinus",
-      zone_range: "7-11", water_needs: "low",    sun_needs: "full_sun",
-      bloom_season: "spring", mature_height_ft: 4,
-      companion_plants: ["Lavender", "Sage"],
-      avoid_near: ["Cucumbers"] },
-    { common_name: "Oakleaf Hydrangea",    latin_name: "Hydrangea quercifolia",
-      zone_range: "5-9",  water_needs: "medium", sun_needs: "partial_shade",
-      bloom_season: "summer", mature_height_ft: 8,
-      companion_plants: ["Ferns", "Hostas"],
-      avoid_near: [] }
+    { common_name: "Purple Coneflower",    latin_name: "Echinacea purpurea",    zone_range: "3-9",  water_needs: "low",    sun_needs: "full_sun",      bloom_season: "summer", mature_height_ft: 3, companion_plants: ["Black-eyed Susan", "Bee balm"] },
+    { common_name: "Bee Balm",             latin_name: "Monarda didyma",        zone_range: "4-9",  water_needs: "medium", sun_needs: "full_sun",      bloom_season: "summer", mature_height_ft: 4, companion_plants: ["Coneflower", "Yarrow"] },
+    { common_name: "Coral Bells",          latin_name: "Heuchera sanguinea",    zone_range: "4-9",  water_needs: "low",    sun_needs: "partial_shade", bloom_season: "spring", mature_height_ft: 1.5, companion_plants: ["Hostas", "Ferns"] },
+    { common_name: "Tomato (Bush)",        latin_name: "Solanum lycopersicum",  zone_range: "3-11", water_needs: "high",   sun_needs: "full_sun",      bloom_season: "summer", mature_height_ft: 3, companion_plants: ["Basil", "Marigold"] },
+    { common_name: "Rosemary",             latin_name: "Salvia rosmarinus",     zone_range: "7-11", water_needs: "low",    sun_needs: "full_sun",      bloom_season: "spring", mature_height_ft: 4, companion_plants: ["Lavender", "Sage"] },
+    { common_name: "Oakleaf Hydrangea",    latin_name: "Hydrangea quercifolia", zone_range: "5-9",  water_needs: "medium", sun_needs: "partial_shade", bloom_season: "summer", mature_height_ft: 8, companion_plants: ["Hostas", "Ferns"] },
+    { common_name: "Lavender",             latin_name: "Lavandula angustifolia",zone_range: "5-9",  water_needs: "low",    sun_needs: "full_sun",      bloom_season: "summer", mature_height_ft: 2, companion_plants: ["Rosemary", "Sage"] },
+    { common_name: "Black-eyed Susan",     latin_name: "Rudbeckia hirta",       zone_range: "3-9",  water_needs: "low",    sun_needs: "full_sun",      bloom_season: "summer", mature_height_ft: 2, companion_plants: ["Coneflower", "Bee balm"] },
+    { common_name: "Hosta",               latin_name: "Hosta spp.",            zone_range: "3-9",  water_needs: "medium", sun_needs: "partial_shade", bloom_season: "summer", mature_height_ft: 2, companion_plants: ["Ferns", "Astilbe"] },
+    { common_name: "Serviceberry",        latin_name: "Amelanchier canadensis", zone_range: "4-9",  water_needs: "low",    sun_needs: "full_sun",      bloom_season: "spring", mature_height_ft: 20, companion_plants: ["Native grasses"] },
+    { common_name: "Sweet Potato Vine",   latin_name: "Ipomoea batatas",       zone_range: "9-11", water_needs: "medium", sun_needs: "full_sun",      bloom_season: "summer", mature_height_ft: 1, companion_plants: ["Marigold", "Zucchini"] },
+    { common_name: "Basil",              latin_name: "Ocimum basilicum",       zone_range: "2-11", water_needs: "medium", sun_needs: "full_sun",      bloom_season: "summer", mature_height_ft: 2, companion_plants: ["Tomato", "Pepper"] },
   ];
 
-  // Filter by zone (simplified: check if user's zone number falls in range)
-  const userZoneNum = parseInt((input.hardiness_zone || "7b").replace(/[ab]$/, ""), 10);
-  let matches = allPlants.filter(p => {
-    const [minZ, maxZ] = p.zone_range.split("-").map(Number);
-    return userZoneNum >= minZ && userZoneNum <= maxZ;
-  });
+  function zoneInRange(range) {
+    const [lo, hi] = range.split("-").map(Number);
+    return zoneNum >= lo && zoneNum <= hi;
+  }
 
-  if (input.sun_exposure)  matches = matches.filter(p => p.sun_needs === input.sun_exposure);
+  let matches = allPlants.filter(p => zoneInRange(p.zone_range));
+  if (input.sun_exposure)  matches = matches.filter(p => !input.sun_exposure || p.sun_needs === input.sun_exposure || p.sun_needs === "full_sun");
   if (input.water_needs)   matches = matches.filter(p => p.water_needs === input.water_needs);
-  if (input.plant_type === "herb")       matches = matches.filter(p => p.common_name === "Rosemary" || p.latin_name.includes("Salvia"));
-  if (input.plant_type === "vegetable")  matches = matches.filter(p => p.latin_name.includes("Solanum"));
-  if (input.search_query) {
+  if (input.search_query)  {
     const q = input.search_query.toLowerCase();
-    matches = matches.filter(p =>
-      p.common_name.toLowerCase().includes(q) ||
-      p.latin_name.toLowerCase().includes(q) ||
-      p.companion_plants.some(c => c.toLowerCase().includes(q))
-    );
+    const scored = matches.map(p => ({
+      ...p,
+      score: (p.common_name.toLowerCase().includes(q) ? 2 : 0) +
+             (p.companion_plants.some(c => c.toLowerCase().includes(q)) ? 1 : 0)
+    })).sort((a,b) => b.score - a.score);
+    matches = scored.filter(p => p.score > 0).length > 0
+      ? scored.filter(p => p.score > 0)
+      : matches;
   }
 
   return {
     tool: "lookup_plant_database",
-    label: TOOL_LABELS.lookup_plant_database,
-    query: { hardiness_zone: input.hardiness_zone, plant_type: input.plant_type,
-             sun_exposure: input.sun_exposure, water_needs: input.water_needs },
-    matching_plants: matches.slice(0, 10),
+    source: "JarDIYn curated list",
+    mode: "sandbox",
+    zone_filter: input.hardiness_zone,
     result_count: matches.length,
-    provenance: provenance("trefle/sandbox")
+    matching_plants: matches.slice(0, 8),
+    provenance: provenance("plant-db/sandbox")
   };
 }
+
 
 // ─── Handler: get_frost_alerts ───────────────────────────────────────────────
 /**
@@ -413,6 +439,40 @@ export async function handleGetFrostAlerts(input) {
  * Requirement 6: This is the execution layer. The model picks the name;
  * this function runs the real code and returns the result.
  */
+// ─── Handler: get_pollen_forecast ────────────────────────────────────────────
+export async function handleGetPollenForecast(input) {
+  console.log(`[tool] get_pollen_forecast called`);
+  const coords = await resolveCoords(input);
+  const live = await livePollenForecast(coords.latitude, coords.longitude);
+  if (live) { console.log(`[tool:pollen] → LIVE (${live.dominant_level} ${live.dominant_allergen})`); return live; }
+  const month = new Date().getMonth() + 1;
+  const level = (month >= 3 && month <= 6) ? "high" : (month >= 7 && month <= 9) ? "moderate" : "low";
+  return {
+    tool: "get_pollen_forecast", mode: "sandbox",
+    dominant_allergen: month >= 3 && month <= 5 ? "birch" : "grass",
+    dominant_level: level,
+    gardening_advice: level === "high"
+      ? "High pollen season. Wear a mask while gardening and shower after outdoor work."
+      : "Pollen levels are manageable — enjoy your garden!",
+    provenance: provenance("pollen/sandbox")
+  };
+}
+
+// ─── Handler: get_historical_weather ─────────────────────────────────────────
+export async function handleGetHistoricalWeather(input) {
+  console.log(`[tool] get_historical_weather called`);
+  const coords = await resolveCoords(input);
+  const days = input.days || 14;
+  const live = await liveHistoricalWeather(coords.latitude, coords.longitude, days);
+  if (live) { console.log(`[tool:history] → LIVE`); return live; }
+  return {
+    tool: "get_historical_weather", mode: "sandbox", period_days: days,
+    total_rainfall_mm: 28, avg_high_f: 72, rainy_days: 4,
+    soil_moisture_context: "Normal moisture — standard watering schedule appropriate",
+    provenance: provenance("historical-weather/sandbox")
+  };
+}
+
 export async function dispatchTool(toolName, input) {
   const start = Date.now();
   let result;
@@ -426,6 +486,8 @@ export async function dispatchTool(toolName, input) {
       case "generate_diy_report":   result = await handleGenerateDiyReport(input);   break;
       case "lookup_plant_database": result = await handleLookupPlantDatabase(input); break;
       case "get_frost_alerts":      result = await handleGetFrostAlerts(input);      break;
+      case "get_pollen_forecast":   result = await handleGetPollenForecast(input);   break;
+      case "get_historical_weather":result = await handleGetHistoricalWeather(input);break;
       default:
         result = { error: `Unknown tool: ${toolName}`, known_tools: Object.keys(TOOL_LABELS) };
     }

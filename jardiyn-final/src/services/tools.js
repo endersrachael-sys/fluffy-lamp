@@ -288,6 +288,58 @@ frost_risk (boolean), protection_advice (string), and a no-alerts confirmation w
       required: []
     }
   }
+  // ─────────────────────────────────────────────────────────────────────────
+  // TOOL 8 — get_pollen_forecast
+  // Maps to: Open-Meteo Air Quality API (no key)
+  // ─────────────────────────────────────────────────────────────────────────
+  {
+    name: "get_pollen_forecast",
+    description: `Returns today's pollen forecast for a garden location using the Open-Meteo
+Air Quality API. Use this tool when a user mentions allergies, asks about pollen,
+or asks whether it is a good day to work in the garden from an allergy perspective.
+Also useful when generating seasonal care advice in spring (high pollen season).
+Do NOT call this for general weather — use get_weather_forecast for that.
+
+Returns: grass_pollen, birch_pollen, mugwort_pollen levels (none/low/moderate/high/very high),
+dominant allergen today, and specific gardening advice for allergy sufferers.`,
+    input_schema: {
+      type: "object",
+      properties: {
+        latitude:  { type: "number", description: "Garden latitude." },
+        longitude: { type: "number", description: "Garden longitude." },
+        zip_code:  { type: "string", description: "ZIP code if coordinates unavailable." }
+      },
+      required: []
+    }
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // TOOL 9 — get_historical_weather
+  // Maps to: Open-Meteo Historical Archive (no key)
+  // ─────────────────────────────────────────────────────────────────────────
+  {
+    name: "get_historical_weather",
+    description: `Returns recent historical weather data (last 14 days by default) for a garden
+location from the Open-Meteo archive. Use this tool when the user asks questions that
+depend on recent weather context — "has it been dry lately?", "should I water given
+recent rain?", "did we get enough rainfall this month?", or when generating watering
+schedules that need to account for recent precipitation.
+Do NOT call this for future weather — use get_weather_forecast for that.
+
+Returns: total rainfall mm, average high temperature, number of rainy days,
+and a soil moisture context summary for the period.`,
+    input_schema: {
+      type: "object",
+      properties: {
+        latitude:  { type: "number", description: "Garden latitude." },
+        longitude: { type: "number", description: "Garden longitude." },
+        zip_code:  { type: "string", description: "ZIP code if coordinates unavailable." },
+        days:      { type: "number", description: "Number of days to look back (default 14, max 30)." }
+      },
+      required: []
+    }
+  }
+
 
 ];
 
@@ -301,5 +353,7 @@ export const TOOL_LABELS = {
   get_weather_forecast: "Weather Forecast",
   generate_diy_report:  "DIY Garden Report Generator",
   lookup_plant_database:"Plant Species Database",
-  get_frost_alerts:     "NOAA Frost & Freeze Alerts"
+  get_frost_alerts:       "NOAA Frost & Freeze Alerts",
+  get_pollen_forecast:    "Pollen Forecast (Open-Meteo)",
+  get_historical_weather: "Recent Weather History"
 };

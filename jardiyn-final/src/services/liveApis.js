@@ -271,3 +271,215 @@ export async function liveGeocodeZip(zip) {
     return null;
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// LIVE: Open-Meteo Air Quality — Pollen forecast (no key)
+// Provides grass, birch, alder, mugwort, olive pollen levels
+// Docs: https://open-meteo.com/en/docs/air-quality-api
+// ─────────────────────────────────────────────────────────────────────────
+export async function livePollenForecast(lat, lng) {
+  if (!LIVE || lat == null || lng == null) return null;
+  try {
+    const url = `https://air-quality-api.open-meteo.com/v1/air-quality` +
+      `?latitude=${lat}&longitude=${lng}` +
+      `&hourly=grass_pollen,birch_pollen,alder_pollen,mugwort_pollen,olive_pollen` +
+      `&forecast_days=3&timezone=auto`;
+    const data = await fetchJSON(url);
+    if (!data?.hourly?.grass_pollen) return null;
+
+    const h = data.hourly;
+    const times = h.time || [];
+
+    // Get today's max pollen levels
+    const today = new Date().toISOString().slice(0, 10);
+    const todayIdxs = times.reduce((acc, t, i) => {
+      if (t.startsWith(today)) acc.push(i);
+      return acc;
+    }, []);
+
+    const maxOf = (arr) => todayIdxs.length
+      ? Math.max(...todayIdxs.map(i => arr?.[i] || 0))
+      : (arr?.[0] || 0);
+
+    const pollenLevel = (val) =>
+      val === 0 ? "none" : val < 10 ? "low" : val < 50 ? "moderate" : val < 200 ? "high" : "very high";
+
+    const grass   = maxOf(h.grass_pollen);
+    const birch   = maxOf(h.birch_pollen);
+    const mugwort = maxOf(h.mugwort_pollen);
+
+    const dominant = [
+      { name: "grass",   val: grass   },
+      { name: "birch",   val: birch   },
+      { name: "mugwort", val: mugwort },
+    ].sort((a, b) => b.val - a.val)[0];
+
+    return {
+      tool: "pollen_forecast",
+      source: "Open-Meteo Air Quality API",
+      mode: "live",
+      today: {
+        grass_pollen:   { value: grass,   level: pollenLevel(grass)   },
+        birch_pollen:   { value: birch,   level: pollenLevel(birch)   },
+        mugwort_pollen: { value: mugwort, level: pollenLevel(mugwort) },
+      },
+      dominant_allergen: dominant.name,
+      dominant_level:    pollenLevel(dominant.val),
+      gardening_advice: dominant.val > 50
+        ? `High ${dominant.name} pollen today. Gardeners with allergies should wear a mask, garden in the evening, and shower after outdoor work.`
+        : dominant.val > 10
+          ? `Moderate pollen. Consider gardening in the morning or evening when counts are lower.`
+          : "Pollen levels are low — great day to work in the garden.",
+      provenance: { source: "air-quality-api.open-meteo.com", mode: "live", generated_at: new Date().toISOString() }
+    };
+  } catch (err) {
+    console.warn(`[live:pollen] fallback — ${err.message}`);
+    return null;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// LIVE: OpenFarm crop database — companion planting, care guides (no key)
+// Docs: https://openfarm.cc/pages/api
+// GET  https://openfarm.cc/api/v1/crops?filter={name}
+// ─────────────────────────────────────────────────────────────────────────
+export async function liveOpenFarmCrop(cropName) {
+  if (!LIVE || !cropName) return null;
+  try {
+    const query = encodeURIComponent(cropName.toLowerCase().trim());
+    const data  = await fetchJSON(`https://openfarm.cc/api/v1/crops?filter=${query}`);
+    const crops = data?.data || [];
+    if (!crops.length) return null;
+
+    const best = crops[0].attributes;
+    return {
+      tool: "openfarm_crop",
+      source: "OpenFarm (openfarm.cc)",
+      mode: "live",
+      name:              best.name,
+      description:       best.description?.slice(0, 300) || null,
+      sun_requirements:  best.sun_requirements,
+      water_requirements:best.water_requirements,
+      sowing_method:     best.sowing_method,
+      spread:            best.spread,
+      row_spacing:       best.row_spacing,
+      height:            best.height,
+      growing_degree_days: best.growing_degree_days,
+      tags:              (best.tags_array || []).slice(0, 6),
+      provenance: { source: "openfarm.cc/api/v1", mode: "live", generated_at: new Date().toISOString() }
+    };
+  } catch (err) {
+    console.warn(`[live:openfarm] fallback — ${err.message}`);
+    return null;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// LIVE: iNaturalist taxa — species identification & observations (no key)
+// Docs: https://api.inaturalist.org/v1/docs/
+// Best for: confirming plant species, finding native species observations
+// ─────────────────────────────────────────────────────────────────────────
+export async function liveINaturalistTaxa(query) {
+  if (!LIVE || !query) return null;
+  try {
+    const q = encodeURIComponent(query);
+    const data = await fetchJSON(
+      `https://api.inaturalist.org/v1/taxa?q=${q}&rank=species&is_active=true&limit=3`,
+      { headers: { "Accept": "application/json" } }
+    );
+    const results = data?.results || [];
+    if (!results.length) return null;
+
+    return {
+      tool: "inaturalist_taxa",
+      source: "iNaturalist (inaturalist.org)",
+      mode: "live",
+      matches: results.map(r => ({
+        name:              r.name,
+        common_name:       r.preferred_common_name || null,
+        rank:              r.rank,
+        observations_count: r.observations_count,
+        wikipedia_url:     r.wikipedia_url || null,
+        iconic_taxon:      r.iconic_taxon_name
+      })),
+      top_match: results[0]?.preferred_common_name || results[0]?.name,
+      provenance: { source: "api.inaturalist.org/v1", mode: "live", generated_at: new Date().toISOString() }
+    };
+  } catch (err) {
+    console.warn(`[live:inaturalist] fallback — ${err.message}`);
+    return null;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// LIVE: Wikipedia plant summary (no key)
+// Provides authoritative care summaries for any named plant
+// ─────────────────────────────────────────────────────────────────────────
+export async function liveWikipediaPlant(latinName) {
+  if (!LIVE || !latinName) return null;
+  try {
+    const slug = latinName.replace(/ /g, "_");
+    const data = await fetchJSON(
+      `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(slug)}`
+    );
+    if (!data?.extract) return null;
+    return {
+      tool: "wikipedia_plant",
+      source: "Wikipedia",
+      mode: "live",
+      title:   data.title,
+      extract: data.extract.slice(0, 500),
+      url:     data.content_urls?.desktop?.page || null,
+      provenance: { source: "en.wikipedia.org/api/rest_v1", mode: "live", generated_at: new Date().toISOString() }
+    };
+  } catch (err) {
+    console.warn(`[live:wikipedia] fallback — ${err.message}`);
+    return null;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// LIVE: Open-Meteo Historical Weather — last 30 days (no key)
+// Useful for: was it a wet spring? should I have already watered?
+// ─────────────────────────────────────────────────────────────────────────
+export async function liveHistoricalWeather(lat, lng, days = 14) {
+  if (!LIVE || lat == null || lng == null) return null;
+  try {
+    const end   = new Date();
+    const start = new Date(end - days * 86400000);
+    const fmt   = d => d.toISOString().slice(0, 10);
+
+    const url = `https://archive-api.open-meteo.com/v1/archive` +
+      `?latitude=${lat}&longitude=${lng}` +
+      `&start_date=${fmt(start)}&end_date=${fmt(end)}` +
+      `&daily=temperature_2m_max,temperature_2m_min,precipitation_sum` +
+      `&temperature_unit=fahrenheit&timezone=auto`;
+
+    const data = await fetchJSON(url);
+    if (!data?.daily?.time) return null;
+
+    const d = data.daily;
+    const totalRain  = d.precipitation_sum.reduce((a, v) => a + (v || 0), 0);
+    const avgHigh    = d.temperature_2m_max.reduce((a, v) => a + v, 0) / d.time.length;
+    const rainDays   = d.precipitation_sum.filter(v => v > 2).length;
+
+    return {
+      tool: "historical_weather",
+      source: "Open-Meteo Historical Archive",
+      mode: "live",
+      period_days: days,
+      total_rainfall_mm: +totalRain.toFixed(1),
+      avg_high_f:        +avgHigh.toFixed(1),
+      rainy_days:        rainDays,
+      soil_moisture_context: totalRain > 50
+        ? "Well-watered period — soil likely has residual moisture"
+        : totalRain < 10
+          ? "Dry period — soil may need extra attention"
+          : "Normal moisture — standard watering schedule appropriate",
+      provenance: { source: "archive-api.open-meteo.com", mode: "live", generated_at: new Date().toISOString() }
+    };
+  } catch (err) {
+    console.warn(`[live:history] fallback — ${err.message}`);
+    return null;
+  }
+}
