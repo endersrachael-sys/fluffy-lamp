@@ -460,9 +460,24 @@
   .dev-status-item.error  { border-color: #5a2d2d; }
   .dev-status-item.warn   { border-color: #5a4a2d; }
 
+  .mobile-menu-btn {
+    display: none; background: none; border: none;
+    color: var(--cream); font-size: 22px; cursor: pointer; padding: 4px 10px;
+  }
+  .mobile-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5); z-index: 199;
+  }
+  .mobile-overlay.show { display: block; }
   @media (max-width: 700px) {
+    .mobile-menu-btn { display: block; }
     .app { grid-template-columns: 1fr; }
-    .sidebar { display: none; }
+    .sidebar {
+      position: fixed; left: -320px; top: 0; bottom: 0; width: 300px;
+      z-index: 200; transition: left 0.25s ease;
+      box-shadow: 4px 0 20px rgba(0,0,0,0.3);
+    }
+    .sidebar.open { left: 0; }
     .welcome-prompts { grid-template-columns: 1fr; }
   }
 </style>
@@ -472,6 +487,7 @@
 
 <!-- ── HEADER ── -->
 <header class="header">
+  <button class="mobile-menu-btn" onclick="toggleMobileSidebar()">&#9776;</button>
   <div class="header-brand">
     <div class="header-logo"><span>Jar</span>DIYn</div>
     <div class="header-sub">by GardenHub</div>
@@ -533,6 +549,7 @@
   <div class="dev-panel-title" style="margin-top:8px">▶ REQUEST LOG</div>
   <div id="dev-log"></div>
 </div>
+<div class="mobile-overlay" id="mobile-overlay" onclick="toggleMobileSidebar()"></div>
 <div class="app">
 
   <!-- ── SIDEBAR ── -->
@@ -544,7 +561,10 @@
       <label>Site Name</label>
       <input type="text" id="site-name" placeholder="e.g. Backyard Garden" value="My Garden">
       <label>ZIP Code</label>
-      <input type="text" id="zip" placeholder="e.g. 22030" maxlength="5">
+      <div style="display:flex;gap:5px">
+        <input type="text" id="zip" placeholder="e.g. 22030" maxlength="5" style="flex:1">
+        <button onclick="lookupZone()" style="padding:7px 10px;background:var(--green);color:white;border:none;border-radius:4px;cursor:pointer;font-size:11px;white-space:nowrap;font-family:inherit">Look up</button>
+      </div>
       <label>Soil Type</label>
       <select id="soil">
         <option value="">Unknown — look it up</option>
@@ -647,7 +667,9 @@
     <!-- Input bar -->
     <div class="input-bar">
       <textarea id="msg-input" placeholder="Ask anything about your garden…" rows="1" onkeydown="handleKey(event)"></textarea>
-      <button class="send-btn" id="send-btn" onclick="sendMessage()">Send →</button>
+      <label for="img-upload" title="Upload plant photo for diagnosis" style="cursor:pointer;height:44px;padding:0 12px;background:var(--sand);border:1px solid var(--sand);border-radius:6px;font-size:18px;display:flex;align-items:center">&#128247;</label>
+      <input type="file" id="img-upload" accept="image/*" style="display:none" onchange="handleImageUpload(event)">
+      <button class="send-btn" id="send-btn" onclick="window._pendingImage ? sendMessageWithImage() : sendMessage()">Send &#8594;</button>
     </div>
   </main>
 </div>
@@ -1043,12 +1065,92 @@ async function runStatusCheck() {
   }
 }
 
+
+// ── Mobile sidebar ─────────────────────────────────────────────────────────
+function toggleMobileSidebar() {
+  document.querySelector('.sidebar').classList.toggle('open');
+  var o = document.getElementById('mobile-overlay');
+  if (o) o.classList.toggle('show');
+}
+
+// ── ZIP zone lookup ────────────────────────────────────────────────────────
+function lookupZone() {
+  var zip = document.getElementById('zip').value.trim();
+  if (!zip || zip.length < 4) { showError('Please enter a valid ZIP code first.'); return; }
+  quickAction('Look up the USDA hardiness zone for ZIP code ' + zip + '. Give me the zone, frost dates, and top 5 things I can grow there.');
+}
+
+// ── Image upload for plant diagnosis ───────────────────────────────────────
+function handleImageUpload(event) {
+  var file = event.target.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) { showError('Please upload an image file.'); return; }
+  if (file.size > 5242880) { showError('Image too large. Please use an image under 5MB.'); return; }
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    window._pendingImage = { base64: e.target.result.split(',')[1], name: file.name };
+    document.getElementById('msg-input').placeholder = 'Photo ready. Describe the problem or just click Send.';
+    var old = document.getElementById('img-preview');
+    if (old) old.remove();
+    var preview = document.createElement('div');
+    preview.id = 'img-preview';
+    preview.style.cssText = 'padding:8px 24px;background:var(--cream);border-bottom:1px solid var(--sand);display:flex;align-items:center;gap:10px';
+    preview.innerHTML = '<img src="' + e.target.result + '" style="height:52px;border-radius:4px;border:1px solid var(--sand)"><span style="font-size:12px;color:var(--stone)">Photo ready. Describe the problem and send.</span><button onclick="clearImagePreview()" style="margin-left:auto;background:none;border:none;cursor:pointer;color:var(--stone);font-size:16px;font-family:inherit">x</button>';
+    document.querySelector('.input-bar').before(preview);
+    document.getElementById('msg-input').focus();
+  };
+  reader.readAsDataURL(file);
+  event.target.value = '';
+}
+
+function clearImagePreview() {
+  var p = document.getElementById('img-preview');
+  if (p) p.remove();
+  window._pendingImage = null;
+  document.getElementById('msg-input').placeholder = 'Ask anything about your garden...';
+}
+
+async function sendMessageWithImage(text) {
+  if (!window._pendingImage) { sendMessage(text); return; }
+  var input = document.getElementById('msg-input');
+  var msg = text || input.value.trim() || 'What is wrong with this plant?';
+  input.value = '';
+  document.getElementById('send-btn').disabled = true;
+  var imgData = window._pendingImage;
+  clearImagePreview();
+  appendMessage('user', '[Photo] ' + msg);
+  appendTyping();
+  try {
+    var res = await fetch('/api/identify', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ symptom_description: msg, image_base64: imgData.base64, garden_profile: getProfile() })
+    });
+    var data = await res.json();
+    removeTyping();
+    if (!res.ok) { showError(data.error || 'Identification failed'); return; }
+    appendMessage('assistant', data.response, data.toolsUsed || [], data.rounds || 1);
+    history.push({ role: 'user', content: msg });
+    history.push({ role: 'assistant', content: data.response });
+  } catch (err) {
+    removeTyping();
+    showError('Network error: ' + err.message);
+  } finally {
+    document.getElementById('send-btn').disabled = false;
+    document.getElementById('msg-input').focus();
+  }
+}
+
 // Expose to window so inline onclick handlers work
 window.sendMessage   = sendMessage;
 window.quickAction   = quickAction;
 window.handleKey     = handleKey;
 window.toggleGoal    = toggleGoal;
 window.toggleDevPanel = toggleDevPanel;
+window.toggleMobileSidebar = toggleMobileSidebar;
+window.lookupZone = lookupZone;
+window.handleImageUpload = handleImageUpload;
+window.clearImagePreview = clearImagePreview;
+window.sendMessageWithImage = sendMessageWithImage;
 
 runStatusCheck();
 setInterval(runStatusCheck, 60000);
