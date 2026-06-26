@@ -773,81 +773,6 @@ function showError(msg) {
 }
 
 // ── Send message ───────────────────────────────────────────────────────────
-async function sendMessage(text) {
-  const input = document.getElementById('msg-input');
-  const msg = text || input.value.trim();
-  if (!msg) return;
-
-  input.value = '';
-  input.style.height = '';
-  document.getElementById('send-btn').disabled = true;
-  document.getElementById('error-banner').style.display = 'none';
-
-  appendMessage('user', msg);
-  appendTyping();
-  devLog(`→ POST /api/chat: "${msg.slice(0,60)}"`, 'api');
-
-  const profile = getProfile();
-  const body = { message: msg, garden_profile: profile, history, session_id: sessionId };
-
-  try {
-    const res = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-    const data = await res.json();
-    removeTyping();
-
-    if (!res.ok) {
-      const errMsg = data.error || 'Server error — check that ANTHROPIC_API_KEY is set.';
-      showError(errMsg);
-      devLog(`✗ Error ${res.status}: ${errMsg}`, 'error');
-      if (data.detail) devLog(`  Detail: ${data.detail}`, 'error');
-      return;
-    }
-
-    appendMessage('assistant', data.response, data.toolsUsed || [], data.rounds || 1);
-    const toolStr = data.toolsUsed?.length ? data.toolsUsed.join(', ') : 'none';
-    devLog(`← Response: ${data.rounds} round(s) | tools: [${toolStr}]`, 'tool');
-    if (data.toolsUsed?.length === 0)
-      devLog('  ↳ Model answered directly — no tools called (PS-02 agentic proof)', 'info');
-
-    // Maintain conversation history for multi-turn
-    history.push({ role: 'user', content: msg });
-    history.push({ role: 'assistant', content: data.response });
-    // Keep last 10 turns to avoid context overflow
-    if (history.length > 20) history = history.slice(-20);
-
-  } catch (err) {
-    removeTyping();
-    showError('Network error: ' + err.message);
-  } finally {
-    document.getElementById('send-btn').disabled = false;
-    input.focus();
-  }
-}
-
-function quickAction(text) {
-  document.getElementById('msg-input').value = text;
-  sendMessage(text);
-}
-
-function handleKey(e) {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    sendMessage();
-  }
-}
-
-// Auto-resize textarea
-document.getElementById('msg-input').addEventListener('input', function() {
-  this.style.height = '';
-  this.style.height = Math.min(this.scrollHeight, 120) + 'px';
-});
-
-updateProfileSummary();
-
 // ══════════════════════════════════════════════════════════════
 // DEVELOPER PANEL + STATUS BAR
 // ══════════════════════════════════════════════════════════════
@@ -946,6 +871,83 @@ const _origSend = sendMessage;
 window._devWrapSend = function(text) {
   devLog(`→ Sending: "${(text || document.getElementById('msg-input')?.value || '').slice(0,60)}"`, 'api');
 };
+
+
+
+async function sendMessage(text) {
+  const input = document.getElementById('msg-input');
+  const msg = text || input.value.trim();
+  if (!msg) return;
+
+  input.value = '';
+  input.style.height = '';
+  document.getElementById('send-btn').disabled = true;
+  document.getElementById('error-banner').style.display = 'none';
+
+  appendMessage('user', msg);
+  appendTyping();
+  devLog(`→ POST /api/chat: "${msg.slice(0,60)}"`, 'api');
+
+  const profile = getProfile();
+  const body = { message: msg, garden_profile: profile, history, session_id: sessionId };
+
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    removeTyping();
+
+    if (!res.ok) {
+      const errMsg = data.error || 'Server error — check that ANTHROPIC_API_KEY is set.';
+      showError(errMsg);
+      devLog(`✗ Error ${res.status}: ${errMsg}`, 'error');
+      if (data.detail) devLog(`  Detail: ${data.detail}`, 'error');
+      return;
+    }
+
+    appendMessage('assistant', data.response, data.toolsUsed || [], data.rounds || 1);
+    const toolStr = data.toolsUsed?.length ? data.toolsUsed.join(', ') : 'none';
+    devLog(`← Response: ${data.rounds} round(s) | tools: [${toolStr}]`, 'tool');
+    if (data.toolsUsed?.length === 0)
+      devLog('  ↳ Model answered directly — no tools called (PS-02 agentic proof)', 'info');
+
+    // Maintain conversation history for multi-turn
+    history.push({ role: 'user', content: msg });
+    history.push({ role: 'assistant', content: data.response });
+    // Keep last 10 turns to avoid context overflow
+    if (history.length > 20) history = history.slice(-20);
+
+  } catch (err) {
+    removeTyping();
+    showError('Network error: ' + err.message);
+  } finally {
+    document.getElementById('send-btn').disabled = false;
+    input.focus();
+  }
+}
+
+function quickAction(text) {
+  document.getElementById('msg-input').value = text;
+  sendMessage(text);
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+// Auto-resize textarea
+document.getElementById('msg-input').addEventListener('input', function() {
+  this.style.height = '';
+  this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+});
+
+updateProfileSummary();
 
 runStatusCheck();
 setInterval(runStatusCheck, 60000);

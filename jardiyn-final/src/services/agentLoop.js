@@ -43,7 +43,7 @@ function buildSystemPrompt(gardenProfile) {
 ## Active Garden Profile
 - Site: ${gardenProfile.site_name || "unnamed garden"}
 - Zone: ${gardenProfile.hardiness_zone || "unknown"}
-- ZIP Code: ${gardenProfile.zip_code || "not provided — ask the user or they can type it in the sidebar"}
+- ZIP Code: ${gardenProfile.zip_code || "not set — ask the user for their ZIP so you can look up their zone"}
 - Soil: ${gardenProfile.soil_type || "unknown — use get_soil_data to look up"}
 - Sun: ${gardenProfile.sun_exposure || "not specified"}
 - Goals: ${(gardenProfile.goals || []).join(", ") || "not specified"}
