@@ -287,7 +287,7 @@ frost_risk (boolean), protection_advice (string), and a no-alerts confirmation w
       },
       required: []
     }
-  }
+  },
   // ─────────────────────────────────────────────────────────────────────────
   // TOOL 8 — get_pollen_forecast
   // Maps to: Open-Meteo Air Quality API (no key)
