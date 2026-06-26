@@ -143,3 +143,24 @@ Low-confidence results (< 0.6) are flagged for human review.
 4. **Safety rules need their own named section.** Buried in paragraphs they get ignored. A `## Trust and safety rules` header creates a mental boundary the model respects.
 
 5. **Return type in description prevents hallucination about tool outputs.** Specifying "Returns: confidence (0–1), candidates[]" means the model references actual returned fields rather than inventing them.
+
+## Final Prompt Engineering Reflection
+
+The prompt strategy evolved from general garden-answer generation toward a more constrained agentic assistant pattern.
+
+Earlier prompt direction:
+- Answer garden questions directly.
+- Provide helpful plant-care advice.
+- Keep responses beginner-friendly.
+
+Final prompt direction:
+- Define JarDIYn as a garden intelligence assistant.
+- Keep advice safe, practical, and beginner-friendly.
+- Use tools when the model needs grounded context.
+- Do not call tools unnecessarily.
+- Explain recommendations using returned tool results.
+- Avoid overclaiming diagnosis certainty.
+- Provide practical next steps.
+
+Reason for change:
+The draft feedback made it clear that a final capstone system needed to show agentic behavior, not only polished responses. The final prompt strategy therefore focuses on giving the model tool definitions and letting it decide whether to call tools, which tool to call, and when to stop.

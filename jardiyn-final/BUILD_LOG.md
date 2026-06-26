@@ -150,3 +150,21 @@ The spatial capture pipeline (ARKit → depth map → scene graph → JSON expor
 
 **Priority 5 — Auth and cloud persistence:**
 Current state is ephemeral (browser session only). Production requires user accounts (Apple Sign In or magic link), server-side garden profile storage in PostgreSQL, and session management.
+
+## Final Rubric Alignment Pass
+
+Before final submission, I reviewed the project against the full Project 3 rubric. The main focus was confirming that JarDIYn is not just a prompt-response chatbot, but an agentic AI system where the model decides whether to use tools.
+
+Confirmed evidence:
+
+- The project defines seven JarDIYn tools with names, descriptions, and input schemas.
+- The backend exposes the tools to Claude.
+- Claude can decide to call tools.
+- Claude can decide not to call a tool when a direct answer is enough.
+- Claude can chain multiple tools across rounds.
+- The backend executes selected tools and returns the result.
+- The final answer uses tool results.
+- The evaluation suite tests tool definition, tool execution, and agentic behavior.
+- The project includes deployment configuration, prompt logs, build logs, and final documentation.
+
+The most important evaluation proof is the contrast between PS-02 and PS-07. PS-02 proves the model can choose no tool, while PS-07 proves the model can chain multiple tools. This directly addresses the instructor feedback that the final project must show model-decided behavior rather than hardcoded routing.
