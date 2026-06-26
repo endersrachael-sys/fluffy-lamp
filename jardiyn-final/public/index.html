@@ -742,3 +742,27 @@ updateProfileSummary();
   } catch (e) { /* fresh session */ }
 })();
 
+
+
+<script id="jardiyn-browser-bridge-v5">
+/* JARDIYN_BROWSER_BRIDGE_v5
+   Makes inline onclick/onkeydown handlers work on Render. */
+window.addEventListener("DOMContentLoaded", function () {
+  try {
+    if (typeof sendMessage === "function") {
+      window.sendMessage = sendMessage;
+    }
+    if (typeof handleKey === "function") {
+      window.handleKey = handleKey;
+    }
+
+    console.log("JARDIYN_BROWSER_BRIDGE_v5 loaded", {
+      sendMessage: typeof window.sendMessage,
+      handleKey: typeof window.handleKey
+    });
+  } catch (err) {
+    console.error("JARDIYN_BROWSER_BRIDGE_v5 failed", err);
+  }
+});
+</script>
+
