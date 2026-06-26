@@ -48,6 +48,14 @@ function buildSystemPrompt(gardenProfile) {
 - Sun: ${gardenProfile.sun_exposure || "not specified"}
 - Goals: ${(gardenProfile.goals || []).join(", ") || "not specified"}
 - Plants: ${(gardenProfile.plant_inventory || []).map(p => p.common_name).join(", ") || "none recorded"}
+- Experience: ${gardenProfile.experience_level || "unspecified"}
+- Budget: ${gardenProfile.budget || "unspecified"}
+- Maintenance tolerance: ${gardenProfile.maintenance_tolerance || "unspecified"}
+- Water access: ${gardenProfile.water_access || "garden hose assumed"}
+- Drainage: ${gardenProfile.drainage || "unknown — ask if relevant"}
+- Pest pressure: ${gardenProfile.pest_pressure || "unspecified"}
+- Known problems: ${gardenProfile.known_problems || "none reported"}
+- Past failures: ${gardenProfile.past_failures || "none reported"}
 `
     : "\n## Active Garden Profile\nNo profile loaded. Ask the user for their zip code or location to look up zone and soil data.\n";
 
@@ -184,6 +192,17 @@ export async function runGardenAgent(
         // REQ 6: Dispatch to handler — model's choice, our execution
         const result = await dispatchTool(block.name, block.input);
         toolsUsed.push(block.name);
+
+        // Capture provenance for frontend trace display
+        const mode   = result?.mode || result?.provenance?.mode || "unknown";
+        const source = result?.source || result?.provenance?.source || null;
+        trace.push({
+          step: "tool_execution",
+          tool: block.name,
+          mode,
+          source,
+          ok: !result?.error
+        });
 
         // REQ 6: Return tool_result back to the model
         toolResults.push({
