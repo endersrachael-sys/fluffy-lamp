@@ -2,8 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>JarDIYn by GardenHub — Spatial Garden Intelligence</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌿</text></svg>">
 <style>
   :root {
     --green-dark:  #1e3d18;
@@ -23,7 +27,7 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
-    font-family: -apple-system, 'Segoe UI', sans-serif;
+    font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
     background: var(--cream);
     color: var(--ink);
     min-height: 100vh;
@@ -487,7 +491,7 @@
 
 <!-- ── HEADER ── -->
 <header class="header">
-  <button class="mobile-menu-btn" onclick="toggleMobileSidebar()">&#9776;</button>
+  <button class="mobile-menu-btn" onclick="toggleMobileSidebar()" aria-label="Open garden profile sidebar" aria-expanded="false">&#9776;</button>
   <div class="header-brand">
     <div class="header-logo"><span>Jar</span>DIYn</div>
     <div class="header-sub">by GardenHub</div>
@@ -596,6 +600,7 @@
     <div class="sidebar-section">
       <div class="sidebar-title">📋 Active Profile</div>
       <div class="profile-display" id="profile-summary">Fill in your garden details above to get personalized advice.</div>
+      <div id="profile-saved" style="display:none;font-size:11px;color:var(--green);margin-top:6px;text-align:center">&#10003; Profile saved</div>
     </div>
 
     <!-- Quick Actions -->
@@ -606,6 +611,9 @@
       <button class="quick-btn" onclick="quickAction('Should I water today? Check the weather for my area.')">💧 Watering check</button>
       <button class="quick-btn" onclick="quickAction('Look up low-maintenance perennials that work in my zone, soil, and sun conditions.')">🔍 Plant recommendations</button>
       <button class="quick-btn" onclick="quickAction('My plant leaves are yellowing and I see small bugs on the undersides. What should I do?')">🐛 Diagnose a problem</button>
+      <button class="quick-btn" onclick="quickAction('Check the pollen forecast for my area and tell me if today is a good day to work in the garden.')">🌸 Pollen check</button>
+      <button class="quick-btn" onclick="quickAction('Check for any active NOAA frost or freeze alerts for my area.')">🌨️ Frost alerts</button>
+      <button class="quick-btn" onclick="quickAction('How much rain has my area had in the last 2 weeks? Should I adjust watering?')">📊 Recent rainfall</button>
     </div>
 
     <!-- Agent transparency -->
@@ -669,7 +677,7 @@
 
     <!-- Input bar -->
     <div class="input-bar">
-      <textarea id="msg-input" placeholder="Ask anything about your garden…" rows="1" onkeydown="handleKey(event)"></textarea>
+      <textarea id="msg-input" placeholder="Ask anything about your garden..." maxlength="2000" style="width:100%;padding:10px 14px;min-height:44px;max-height:120px;border-radius:6px;font-size:14px;border:1px solid var(--sand);background:var(--cream);color:var(--ink);font-family:inherit;resize:vertical" rows="1" onkeydown="handleKey(event)"></textarea>
       <label for="img-upload" title="Upload plant photo for diagnosis" style="cursor:pointer;height:44px;padding:0 12px;background:var(--sand);border:1px solid var(--sand);border-radius:6px;font-size:18px;display:flex;align-items:center">&#128247;</label>
       <input type="file" id="img-upload" accept="image/*" style="display:none" onchange="handleImageUpload(event)">
       <button class="send-btn" id="send-btn" onclick="window._pendingImage ? sendMessageWithImage() : sendMessage()">Send &#8594;</button>
@@ -710,6 +718,13 @@ function toggleGoal(el) {
   if (goals.has(g)) { goals.delete(g); el.classList.remove('active'); }
   else { goals.add(g); el.classList.add('active'); }
   updateProfileSummary();
+}
+
+function showProfileSaved() {
+  const el = document.getElementById('profile-saved');
+  if (!el) return;
+  el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 2000);
 }
 
 function updateProfileSummary() {
@@ -753,10 +768,23 @@ function appendMessage(role, text, toolsUsed = [], rounds = 0) {
   div.className = `msg ${role}`;
 
   const avatar = role === 'user' ? 'You' : 'J';
+  const now = new Date();
+  const ts = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
   let traceHTML = '';
   if (role === 'assistant' && toolsUsed.length > 0) {
+    const toolLabels = {
+      'identify_plant': 'Plant ID',
+      'get_garden_zone': 'USDA Zone',
+      'get_soil_data': 'SoilGrids',
+      'get_weather_forecast': 'NOAA Weather',
+      'generate_diy_report': 'DIY Report',
+      'lookup_plant_database': 'Plant Database',
+      'get_frost_alerts': 'NOAA Frost Alerts',
+      'get_pollen_forecast': 'Pollen Forecast',
+      'get_historical_weather': 'Rain History'
+    };
     const badges = toolsUsed.map(t =>
-      `<span class="tool-badge active">${t.replace(/_/g,' ')}</span>`
+      `<span class="tool-badge active" title="${t}">${toolLabels[t] || t.replace(/_/g,' ')}</span>`
     ).join('');
     traceHTML = `<div class="tool-trace">${badges}<span class="rounds-badge">${rounds} round${rounds!==1?'s':''}</span></div>`;
   } else if (role === 'assistant') {
@@ -767,6 +795,10 @@ function appendMessage(role, text, toolsUsed = [], rounds = 0) {
     <div class="msg-avatar">${avatar}</div>
     <div class="msg-bubble rendered">
       <p>${renderMarkdown(text)}</p>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
+        ${role==='assistant' ? '<button onclick="copyMsg(this)" style="background:none;border:1px solid var(--sand);border-radius:3px;padding:2px 8px;font-size:10px;color:var(--stone);cursor:pointer;font-family:inherit" title="Copy response">Copy</button>' : '<span></span>'}
+        <span style="font-size:10px;color:#9a9a8a">${ts}</span>
+      </div>
       ${traceHTML}
     </div>`;
   chat.appendChild(div);
@@ -933,7 +965,8 @@ async function sendMessage(text) {
       return;
     }
 
-    appendMessage('assistant', data.response, data.toolsUsed || [], data.rounds || 1);
+    const responseText = data.response || 'I encountered an issue generating a response. Please try again.';
+    appendMessage('assistant', responseText, data.toolsUsed || [], data.rounds || 1);
     const toolStr = data.toolsUsed?.length ? data.toolsUsed.join(', ') : 'none';
     devLog(`← Response: ${data.rounds} round(s) | tools: [${toolStr}]`, 'tool');
     if (data.toolsUsed?.length === 0)
@@ -970,6 +1003,8 @@ function handleKey(e) {
 document.getElementById('msg-input').addEventListener('input', function() {
   this.style.height = '';
   this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+  const counter = document.getElementById('char-count');
+  if (counter) counter.textContent = this.value.length + '/2000';
 });
 
 updateProfileSummary();
@@ -1070,6 +1105,15 @@ async function runStatusCheck() {
 
 
 // ── Mobile sidebar ─────────────────────────────────────────────────────────
+function copyMsg(btn) {
+  const bubble = btn.closest('.msg-bubble');
+  const text = bubble ? bubble.innerText.replace(/Copy\n.*/, '').trim() : '';
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 2000);
+  }).catch(() => { btn.textContent = 'Error'; });
+}
+
 function toggleMobileSidebar() {
   document.querySelector('.sidebar').classList.toggle('open');
   var o = document.getElementById('mobile-overlay');
