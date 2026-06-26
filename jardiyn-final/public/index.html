@@ -379,12 +379,94 @@
   .rendered h2 { font-size: 14px; margin: 12px 0 5px; }
   .rendered h3 { font-size: 13px; margin: 10px 0 4px; }
 
+  /* ── Status bar ── */
+  .status-bar {
+    background: #0f1f0c;
+    padding: 5px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 11px;
+    font-family: monospace;
+    border-bottom: 1px solid #1a3a14;
+    flex-wrap: wrap;
+  }
+  .status-dot {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: #4a7a42;
+  }
+  .status-dot::before {
+    content: '●';
+    font-size: 8px;
+  }
+  .status-dot.ok::before    { color: #4caf50; }
+  .status-dot.warn::before  { color: #ff9800; }
+  .status-dot.error::before { color: #f44336; }
+  .status-dot.checking::before { color: #888; animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  .status-bar-right {
+    margin-left: auto;
+    color: #4a7a42;
+    cursor: pointer;
+    text-decoration: underline;
+  }
+
+  /* ── Developer panel ── */
+  .dev-panel {
+    display: none;
+    background: #0a140a;
+    border-bottom: 2px solid #2d5a27;
+    padding: 12px 24px;
+    font-family: monospace;
+    font-size: 12px;
+    color: #8ab87a;
+    max-height: 220px;
+    overflow-y: auto;
+  }
+  .dev-panel.open { display: block; }
+  .dev-panel-title {
+    color: #4caf50;
+    font-weight: bold;
+    margin-bottom: 8px;
+    letter-spacing: 1px;
+  }
+  .dev-log-entry {
+    padding: 2px 0;
+    border-bottom: 1px solid #1a3a14;
+    line-height: 1.5;
+  }
+  .dev-log-entry.tool   { color: #81c784; }
+  .dev-log-entry.api    { color: #64b5f6; }
+  .dev-log-entry.error  { color: #e57373; }
+  .dev-log-entry.info   { color: #8ab87a; }
+  .dev-log-entry .ts    { color: #4a7a42; margin-right: 8px; }
+  .dev-status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .dev-status-item {
+    background: #0f1f0c;
+    border: 1px solid #1a3a14;
+    border-radius: 4px;
+    padding: 6px 10px;
+  }
+  .dev-status-item .label { color: #4a7a42; font-size: 10px; }
+  .dev-status-item .value { color: #8ab87a; font-weight: bold; }
+  .dev-status-item.ok     { border-color: #2d5a27; }
+  .dev-status-item.error  { border-color: #5a2d2d; }
+  .dev-status-item.warn   { border-color: #5a4a2d; }
+
   @media (max-width: 700px) {
     .app { grid-template-columns: 1fr; }
     .sidebar { display: none; }
     .welcome-prompts { grid-template-columns: 1fr; }
   }
 </style>
+
 </head>
 <body>
 
@@ -397,7 +479,60 @@
   <div class="header-badge">Spatial Garden Intelligence</div>
 </header>
 
-<!-- ── APP LAYOUT ── -->
+<!-- ── STATUS BAR ── -->
+<div class="status-bar" id="status-bar">
+  <span class="status-dot checking" id="dot-server">Server</span>
+  <span class="status-dot checking" id="dot-api">Claude API</span>
+  <span class="status-dot checking" id="dot-tools">Tools</span>
+  <span class="status-dot checking" id="dot-live">Live APIs</span>
+  <span class="status-dot checking" id="dot-db">Persistence</span>
+  <span class="status-bar-right" onclick="toggleDevPanel()">⚙ Developer Panel</span>
+</div>
+
+<!-- ── DEVELOPER PANEL ── -->
+<div class="dev-panel" id="dev-panel">
+  <div class="dev-panel-title">▶ JARDIYN DEVELOPER PANEL</div>
+  <div class="dev-status-grid" id="dev-status-grid">
+    <div class="dev-status-item warn">
+      <div class="label">STATUS</div>
+      <div class="value" id="dev-overall">Checking...</div>
+    </div>
+    <div class="dev-status-item">
+      <div class="label">SERVER VERSION</div>
+      <div class="value" id="dev-version">—</div>
+    </div>
+    <div class="dev-status-item">
+      <div class="label">UPTIME</div>
+      <div class="value" id="dev-uptime">—</div>
+    </div>
+    <div class="dev-status-item">
+      <div class="label">NODE ENV</div>
+      <div class="value" id="dev-env">—</div>
+    </div>
+    <div class="dev-status-item">
+      <div class="label">LIVE APIS</div>
+      <div class="value" id="dev-liveapis">—</div>
+    </div>
+    <div class="dev-status-item">
+      <div class="label">ANTHROPIC KEY</div>
+      <div class="value" id="dev-key">—</div>
+    </div>
+    <div class="dev-status-item">
+      <div class="label">PERSISTENCE</div>
+      <div class="value" id="dev-persist">—</div>
+    </div>
+    <div class="dev-status-item">
+      <div class="label">TOOLS</div>
+      <div class="value" id="dev-tools">—</div>
+    </div>
+    <div class="dev-status-item">
+      <div class="label">ZONE SAMPLE</div>
+      <div class="value" id="dev-zone">—</div>
+    </div>
+  </div>
+  <div class="dev-panel-title" style="margin-top:8px">▶ REQUEST LOG</div>
+  <div id="dev-log"></div>
+</div>
 <div class="app">
 
   <!-- ── SIDEBAR ── -->
@@ -549,14 +684,7 @@ function toggleGoal(el) {
   const g = el.dataset.goal;
   if (goals.has(g)) { goals.delete(g); el.classList.remove('active'); }
   else { goals.add(g); el.classList.add('active'); }
-  
-// Expose functions used by inline HTML event handlers in the deployed browser.
-// Without this, onclick="sendMessage()" and onkeydown="handleKey(event)"
-// can fail after deployment because the functions are not visible on window.
-window.sendMessage = sendMessage;
-window.handleKey = handleKey;
-
-updateProfileSummary();
+  updateProfileSummary();
 }
 
 function updateProfileSummary() {
@@ -657,6 +785,7 @@ async function sendMessage(text) {
 
   appendMessage('user', msg);
   appendTyping();
+  devLog(`→ POST /api/chat: "${msg.slice(0,60)}"`, 'api');
 
   const profile = getProfile();
   const body = { message: msg, garden_profile: profile, history, session_id: sessionId };
@@ -671,11 +800,18 @@ async function sendMessage(text) {
     removeTyping();
 
     if (!res.ok) {
-      showError(data.error || 'Server error — check that ANTHROPIC_API_KEY is set.');
+      const errMsg = data.error || 'Server error — check that ANTHROPIC_API_KEY is set.';
+      showError(errMsg);
+      devLog(`✗ Error ${res.status}: ${errMsg}`, 'error');
+      if (data.detail) devLog(`  Detail: ${data.detail}`, 'error');
       return;
     }
 
     appendMessage('assistant', data.response, data.toolsUsed || [], data.rounds || 1);
+    const toolStr = data.toolsUsed?.length ? data.toolsUsed.join(', ') : 'none';
+    devLog(`← Response: ${data.rounds} round(s) | tools: [${toolStr}]`, 'tool');
+    if (data.toolsUsed?.length === 0)
+      devLog('  ↳ Model answered directly — no tools called (PS-02 agentic proof)', 'info');
 
     // Maintain conversation history for multi-turn
     history.push({ role: 'user', content: msg });
@@ -712,7 +848,107 @@ document.getElementById('msg-input').addEventListener('input', function() {
 
 updateProfileSummary();
 
-// ── Restore prior session on load (garden history persistence) ──
+// ══════════════════════════════════════════════════════════════
+// DEVELOPER PANEL + STATUS BAR
+// ══════════════════════════════════════════════════════════════
+
+function toggleDevPanel() {
+  document.getElementById('dev-panel').classList.toggle('open');
+}
+
+function devLog(msg, type = 'info') {
+  const log = document.getElementById('dev-log');
+  if (!log) return;
+  const ts = new Date().toISOString().slice(11, 19);
+  const el = document.createElement('div');
+  el.className = `dev-log-entry ${type}`;
+  el.innerHTML = `<span class="ts">[${ts}]</span>${msg}`;
+  log.prepend(el);
+  while (log.children.length > 50) log.removeChild(log.lastChild);
+}
+
+function setDot(id, state, label) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.className = `status-dot ${state}`;
+  el.textContent = label;
+}
+
+function setDevItem(id, value, state = 'ok') {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = value;
+  const parent = el.closest('.dev-status-item');
+  if (parent) parent.className = `dev-status-item ${state}`;
+}
+
+async function runStatusCheck() {
+  devLog('Running system status check...', 'info');
+  try {
+    const res = await fetch('/api/status');
+    const s = await res.json();
+    const ok = s.overall_ok;
+
+    setDevItem('dev-overall', ok ? '✓ ALL SYSTEMS GO' : '✗ DEGRADED — see items below', ok ? 'ok' : 'error');
+    setDot('dot-server', s.server.ok ? 'ok' : 'error', `Server v${s.server.version}`);
+    setDevItem('dev-version', s.server.version);
+    setDevItem('dev-uptime', `${s.server.uptime_seconds}s`);
+
+    const envOk = s.environment.node_env === 'production';
+    setDevItem('dev-env', s.environment.node_env, envOk ? 'ok' : 'warn');
+
+    setDevItem('dev-liveapis',
+      s.environment.live_apis ? '✓ true' : '✗ false — set LIVE_APIS=true in Render',
+      s.environment.live_apis ? 'ok' : 'error');
+    setDot('dot-live', s.environment.live_apis ? 'ok' : 'error',
+      s.environment.live_apis ? 'Live APIs ON' : 'Live APIs OFF');
+
+    setDevItem('dev-key',
+      s.environment.api_key_set ? '✓ SET' : '✗ MISSING — add ANTHROPIC_API_KEY in Render',
+      s.environment.api_key_set ? 'ok' : 'error');
+
+    setDot('dot-api', s.anthropic.ok ? 'ok' : 'error',
+      s.anthropic.ok ? 'Claude ✓' : 'Claude ✗');
+    if (!s.anthropic.ok)
+      devLog(`Claude API error: ${s.anthropic.error}`, 'error');
+    else
+      devLog('Claude API: connected and responding ✓', 'api');
+
+    setDevItem('dev-persist',
+      `${s.persistence.mode} ${s.persistence.ok ? '✓' : '✗'}`,
+      s.persistence.ok ? 'ok' : 'warn');
+    setDot('dot-db', s.persistence.ok ? 'ok' : 'warn', `DB: ${s.persistence.mode}`);
+
+    setDot('dot-tools', s.tools.ok ? 'ok' : 'error',
+      s.tools.ok ? `${s.tools.count} Tools ✓` : 'Tools ✗');
+    setDevItem('dev-tools',
+      s.tools.ok ? `${s.tools.count} tools ready` : `Error: ${s.tools.error}`,
+      s.tools.ok ? 'ok' : 'error');
+
+    if (s.tools.sample) {
+      setDevItem('dev-zone',
+        `ZIP 20770 → Zone ${s.tools.sample.zone} [${s.tools.sample.mode}]`,
+        s.tools.sample.mode === 'live' ? 'ok' : 'warn');
+      devLog(`Tool test → Zone ${s.tools.sample.zone} (${s.tools.sample.mode})`, 'tool');
+    }
+
+    devLog(`Check complete — ${ok ? 'ALL OK' : 'DEGRADED'}`, ok ? 'info' : 'error');
+  } catch (err) {
+    ['dot-server','dot-api','dot-tools','dot-live','dot-db'].forEach(id =>
+      setDot(id, 'error', 'Error'));
+    setDevItem('dev-overall', `✗ Cannot reach server: ${err.message}`, 'error');
+    devLog(`Status check failed: ${err.message}`, 'error');
+  }
+}
+
+// Log every chat request in dev panel
+const _origSend = sendMessage;
+window._devWrapSend = function(text) {
+  devLog(`→ Sending: "${(text || document.getElementById('msg-input')?.value || '').slice(0,60)}"`, 'api');
+};
+
+runStatusCheck();
+setInterval(runStatusCheck, 60000);
 (async function restoreSession() {
   try {
     const res = await fetch('/api/history/' + sessionId);
@@ -743,42 +979,77 @@ updateProfileSummary();
 })();
 
 
+// ══════════════════════════════════════════════════════════════
+// DEVELOPER PANEL + STATUS BAR
+// ══════════════════════════════════════════════════════════════
 
-<script id="jardiyn-browser-bridge-v5">
-/* JARDIYN_BROWSER_BRIDGE_v5
-   Makes inline onclick/onkeydown handlers work on Render. */
-window.addEventListener("DOMContentLoaded", function () {
+function toggleDevPanel() {
+  const p = document.getElementById('dev-panel');
+  if (p) p.classList.toggle('open');
+}
+
+function devLog(msg, type = 'info') {
+  const log = document.getElementById('dev-log');
+  if (!log) return;
+  const ts = new Date().toISOString().slice(11, 19);
+  const el = document.createElement('div');
+  el.className = 'dev-log-entry ' + type;
+  el.innerHTML = '<span class="ts">[' + ts + ']</span>' + msg;
+  log.prepend(el);
+  while (log.children.length > 50) log.removeChild(log.lastChild);
+}
+
+function setDot(id, state, label) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.className = 'status-dot ' + state;
+  el.textContent = label;
+}
+
+function setDevItem(id, value, state) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = value;
+  const parent = el.closest('.dev-status-item');
+  if (parent) parent.className = 'dev-status-item ' + (state || 'ok');
+}
+
+async function runStatusCheck() {
   try {
-    if (typeof sendMessage === "function") {
-      window.sendMessage = sendMessage;
-    }
-    if (typeof handleKey === "function") {
-      window.handleKey = handleKey;
-    }
-
-    console.log("JARDIYN_BROWSER_BRIDGE_v5 loaded", {
-      sendMessage: typeof window.sendMessage,
-      handleKey: typeof window.handleKey
-    });
+    const res = await fetch('/api/status');
+    const s = await res.json();
+    const ok = s.overall_ok;
+    setDevItem('dev-overall', ok ? '✓ ALL SYSTEMS GO' : '✗ DEGRADED', ok ? 'ok' : 'error');
+    setDot('dot-server', s.server?.ok ? 'ok' : 'error', 'Server v' + (s.server?.version || '?'));
+    setDevItem('dev-version', s.server?.version || '?');
+    setDevItem('dev-uptime', (s.server?.uptime_seconds || 0) + 's');
+    setDevItem('dev-env', s.environment?.node_env || '?', s.environment?.node_env === 'production' ? 'ok' : 'warn');
+    setDevItem('dev-liveapis', s.environment?.live_apis ? '✓ true' : '✗ false — set LIVE_APIS=true', s.environment?.live_apis ? 'ok' : 'error');
+    setDot('dot-live', s.environment?.live_apis ? 'ok' : 'error', s.environment?.live_apis ? 'Live APIs ON' : 'Live APIs OFF');
+    setDevItem('dev-key', s.environment?.api_key_set ? '✓ SET' : '✗ MISSING', s.environment?.api_key_set ? 'ok' : 'error');
+    setDot('dot-api', s.anthropic?.ok ? 'ok' : 'error', s.anthropic?.ok ? 'Claude ✓' : 'Claude ✗');
+    setDevItem('dev-persist', (s.persistence?.mode || '?') + ' ' + (s.persistence?.ok ? '✓' : '✗'), s.persistence?.ok ? 'ok' : 'warn');
+    setDot('dot-db', s.persistence?.ok ? 'ok' : 'warn', 'DB: ' + (s.persistence?.mode || '?'));
+    setDot('dot-tools', s.tools?.ok ? 'ok' : 'error', s.tools?.ok ? s.tools.count + ' Tools ✓' : 'Tools ✗');
+    setDevItem('dev-tools', s.tools?.ok ? s.tools.count + ' tools ready' : 'Error: ' + s.tools?.error, s.tools?.ok ? 'ok' : 'error');
+    if (s.tools?.sample) setDevItem('dev-zone', 'ZIP 20770 → Zone ' + s.tools.sample.zone + ' [' + s.tools.sample.mode + ']', s.tools.sample.mode === 'live' ? 'ok' : 'warn');
+    devLog('Status: ' + (ok ? 'ALL OK ✓' : 'DEGRADED ✗'), ok ? 'info' : 'error');
   } catch (err) {
-    console.error("JARDIYN_BROWSER_BRIDGE_v5 failed", err);
+    ['dot-server','dot-api','dot-tools','dot-live','dot-db'].forEach(id => setDot(id, 'error', 'Error'));
+    setDevItem('dev-overall', '✗ Cannot reach server: ' + err.message, 'error');
+    devLog('Status check failed: ' + err.message, 'error');
   }
-});
-</script>
+}
 
+// Expose to window so inline onclick handlers work
+window.sendMessage   = sendMessage;
+window.quickAction   = quickAction;
+window.handleKey     = handleKey;
+window.toggleGoal    = toggleGoal;
+window.toggleDevPanel = toggleDevPanel;
 
-window.sendMessage    = sendMessage;
-window.quickAction    = quickAction;
-window.handleKey      = handleKey;
-window.toggleGoal     = toggleGoal;
-</script>
-</body>
-</html>
-
-window.sendMessage    = sendMessage;
-window.quickAction    = quickAction;
-window.handleKey      = handleKey;
-window.toggleGoal     = toggleGoal;
+runStatusCheck();
+setInterval(runStatusCheck, 60000);
 </script>
 </body>
 </html>
