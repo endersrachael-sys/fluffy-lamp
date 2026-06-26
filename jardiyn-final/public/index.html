@@ -549,7 +549,14 @@ function toggleGoal(el) {
   const g = el.dataset.goal;
   if (goals.has(g)) { goals.delete(g); el.classList.remove('active'); }
   else { goals.add(g); el.classList.add('active'); }
-  updateProfileSummary();
+  
+// Expose functions used by inline HTML event handlers in the deployed browser.
+// Without this, onclick="sendMessage()" and onkeydown="handleKey(event)"
+// can fail after deployment because the functions are not visible on window.
+window.sendMessage = sendMessage;
+window.handleKey = handleKey;
+
+updateProfileSummary();
 }
 
 function updateProfileSummary() {
