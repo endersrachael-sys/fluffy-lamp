@@ -177,3 +177,43 @@ app.listen(PORT, () => {
 });
 
 export default app;
+
+// ── GET /api/status — full diagnostic endpoint ──────────────────────────────
+app.get("/api/status", async (req, res) => {
+  const status = {
+    timestamp: new Date().toISOString(),
+    server: { ok: true, version: "2.1.0", uptime_seconds: Math.floor(process.uptime()) },
+    environment: {
+      node_env: process.env.NODE_ENV || "not set",
+      live_apis: process.env.LIVE_APIS === "true",
+      api_key_set: !!process.env.ANTHROPIC_API_KEY,
+      node_version: process.version
+    },
+    persistence: { ok: false, mode: PERSISTENCE_MODE },
+    anthropic: { ok: false, error: null },
+    tools: { ok: false, count: 0 }
+  };
+  try {
+    saveProfile("_status_check_", { test: true });
+    status.persistence.ok = !!loadProfile("_status_check_");
+  } catch (e) { status.persistence.error = e.message; }
+  try {
+    const { default: Anthropic } = await import("@anthropic-ai/sdk");
+    const client = new Anthropic();
+    const r = await client.messages.create({
+      model: "claude-sonnet-4-6", max_tokens: 10,
+      messages: [{ role: "user", content: "say ok" }]
+    });
+    status.anthropic.ok = r.content?.[0]?.text?.length > 0;
+  } catch (e) { status.anthropic.error = e.message?.slice(0, 120); }
+  try {
+    const { dispatchTool } = await import("./src/services/toolHandlers.js");
+    const r = await dispatchTool("get_garden_zone", { zip_code: "20770" });
+    status.tools.ok = !!r.hardiness_zone;
+    status.tools.count = 7;
+    status.tools.sample = { zip: "20770", zone: r.hardiness_zone, mode: r.mode || r.provenance?.mode };
+  } catch (e) { status.tools.error = e.message; }
+  status.overall_ok = status.server.ok && status.environment.api_key_set &&
+                      status.persistence.ok && status.anthropic.ok && status.tools.ok;
+  res.status(status.overall_ok ? 200 : 503).json(status);
+});
