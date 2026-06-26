@@ -20,11 +20,11 @@ Deployment target:
 
 Final deployed URL:
 
-`PASTE_RENDER_URL_HERE`
+`https://fluffy-lamp-fp3r.onrender.com`
 
 Health check:
 
-`PASTE_RENDER_URL_HERE/api/health`
+`https://fluffy-lamp-fp3r.onrender.com/api/health`
 
 ## 2. Prompt Engineering
 

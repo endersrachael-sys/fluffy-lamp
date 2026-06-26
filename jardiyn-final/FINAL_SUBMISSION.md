@@ -2,11 +2,11 @@
 
 ## Deployed Application
 
-PASTE_RENDER_URL_HERE
+https://fluffy-lamp-fp3r.onrender.com
 
 ## Backend Health Check
 
-PASTE_RENDER_URL_HERE/api/health
+https://fluffy-lamp-fp3r.onrender.com/api/health
 
 ## GitHub Repository
 
@@ -121,7 +121,7 @@ JarDIYn does not replace professional horticulture, pesticide safety guidance, p
 
 ## Final Submission Links
 
-Deployed app: PASTE_RENDER_URL_HERE  
-Health check: PASTE_RENDER_URL_HERE/api/health  
+Deployed app: https://fluffy-lamp-fp3r.onrender.com  
+Health check: https://fluffy-lamp-fp3r.onrender.com/api/health  
 GitHub repo: https://github.com/endersrachael-sys/fluffy-lamp  
 Project folder: `jardiyn-final/`

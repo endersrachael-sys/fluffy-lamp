@@ -168,3 +168,33 @@ Confirmed evidence:
 - The project includes deployment configuration, prompt logs, build logs, and final documentation.
 
 The most important evaluation proof is the contrast between PS-02 and PS-07. PS-02 proves the model can choose no tool, while PS-07 proves the model can chain multiple tools. This directly addresses the instructor feedback that the final project must show model-decided behavior rather than hardcoded routing.
+
+## Final Live API + Agentic Tool Proof
+
+The deployed Render app was verified at:
+
+https://fluffy-lamp-fp3r.onrender.com
+
+Live API test performed:
+
+Prompt:
+
+"I do not know my zone yet but my ZIP is 90210. What vegetables should I grow?"
+
+Live response evidence:
+
+- The deployed `/api/chat` endpoint returned a successful garden recommendation.
+- Claude selected `get_garden_zone`.
+- Claude selected `get_soil_data`.
+- Claude then selected `lookup_plant_database`.
+- The backend executed the selected tools.
+- The model completed the response after three rounds.
+- The response included grounded zone, frost, rainfall, soil, and vegetable recommendation context.
+
+Trace evidence:
+
+- Round 1: `tool_use` for `get_garden_zone` and `get_soil_data`
+- Round 2: `tool_use` for `lookup_plant_database`
+- Round 3: `end_turn` final answer
+
+This confirms the deployed application is not only a static frontend and not only a one-shot prompt-response app. The live system uses the backend API, Claude reasoning, model-decided tool calls, backend tool execution, returned tool results, and a final model-generated response.
