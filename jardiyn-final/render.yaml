@@ -1,8 +1,8 @@
 services:
   - type: web
     name: jardiyn-final
-    runtime: node
-    plan: free
+    env: node
+    rootDir: jardiyn-final
     buildCommand: npm install
     startCommand: npm start
     autoDeploy: true
@@ -15,7 +15,3 @@ services:
         value: true
       - key: FORCE_FALLBACK_AGENT
         value: false
-      - key: ANTHROPIC_API_KEY
-        sync: false
-      - key: ANTHROPIC_MODEL
-        sync: false
