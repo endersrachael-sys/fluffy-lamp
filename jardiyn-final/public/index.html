@@ -1906,21 +1906,6 @@ function showError(msg) {
 // DEVELOPER PANEL + STATUS BAR
 // ══════════════════════════════════════════════════════════════
 
-function toggleDevPanel() {
-  document.getElementById('dev-panel').classList.toggle('open');
-}
-
-function devLog(msg, type = 'info') {
-  const log = document.getElementById('dev-log');
-  if (!log) return;
-  const ts = new Date().toISOString().slice(11, 19);
-  const el = document.createElement('div');
-  el.className = `dev-log-entry ${type}`;
-  el.innerHTML = `<span class="ts">[${ts}]</span>${msg}`;
-  log.prepend(el);
-  while (log.children.length > 50) log.removeChild(log.lastChild);
-}
-
 function setDot(id, state, label) {
   const el = document.getElementById(id);
   if (!el) return;
@@ -1934,65 +1919,6 @@ function setDevItem(id, value, state = 'ok') {
   el.textContent = value;
   const parent = el.closest('.dev-status-item');
   if (parent) parent.className = `dev-status-item ${state}`;
-}
-
-async function runStatusCheck() {
-  devLog('Running system status check...', 'info');
-  try {
-    const res = await fetch('/api/status');
-    const s = await res.json();
-    const ok = s.overall_ok;
-
-    setDevItem('dev-overall', ok ? '✓ ALL SYSTEMS GO' : '✗ DEGRADED — see items below', ok ? 'ok' : 'error');
-    setDot('dot-server', s.server.ok ? 'ok' : 'error', `Server v${s.server.version}`);
-    setDevItem('dev-version', s.server.version);
-    setDevItem('dev-uptime', `${s.server.uptime_seconds}s`);
-
-    const envOk = s.environment.node_env === 'production';
-    setDevItem('dev-env', s.environment.node_env, envOk ? 'ok' : 'warn');
-
-    setDevItem('dev-liveapis',
-      s.environment.live_apis ? '✓ true' : '✗ false — set LIVE_APIS=true in Render',
-      s.environment.live_apis ? 'ok' : 'error');
-    setDot('dot-live', s.environment.live_apis ? 'ok' : 'error',
-      s.environment.live_apis ? 'Live APIs ON' : 'Live APIs OFF');
-
-    setDevItem('dev-key',
-      s.environment.api_key_set ? '✓ SET' : '✗ MISSING — add ANTHROPIC_API_KEY in Render',
-      s.environment.api_key_set ? 'ok' : 'error');
-
-    setDot('dot-api', s.anthropic.ok ? 'ok' : 'error',
-      s.anthropic.ok ? 'Claude ✓' : 'Claude ✗');
-    if (!s.anthropic.ok)
-      devLog(`Claude API error: ${s.anthropic.error}`, 'error');
-    else
-      devLog('Claude API: connected and responding ✓', 'api');
-
-    setDevItem('dev-persist',
-      `${s.persistence.mode} ${s.persistence.ok ? '✓' : '✗'}`,
-      s.persistence.ok ? 'ok' : 'warn');
-    setDot('dot-db', s.persistence.ok ? 'ok' : 'warn', `DB: ${s.persistence.mode}`);
-
-    setDot('dot-tools', s.tools.ok ? 'ok' : 'error',
-      s.tools.ok ? `${s.tools.count} Tools ✓` : 'Tools ✗');
-    setDevItem('dev-tools',
-      s.tools.ok ? `${s.tools.count} tools ready` : `Error: ${s.tools.error}`,
-      s.tools.ok ? 'ok' : 'error');
-
-    if (s.tools.sample) {
-      setDevItem('dev-zone',
-        `ZIP 20770 → Zone ${s.tools.sample.zone} [${s.tools.sample.mode}]`,
-        s.tools.sample.mode === 'live' ? 'ok' : 'warn');
-      devLog(`Tool test → Zone ${s.tools.sample.zone} (${s.tools.sample.mode})`, 'tool');
-    }
-
-    devLog(`Check complete — ${ok ? 'ALL OK' : 'DEGRADED'}`, ok ? 'info' : 'error');
-  } catch (err) {
-    ['dot-server','dot-api','dot-tools','dot-live','dot-db'].forEach(id =>
-      setDot(id, 'error', 'Error'));
-    setDevItem('dev-overall', `✗ Cannot reach server: ${err.message}`, 'error');
-    devLog(`Status check failed: ${err.message}`, 'error');
-  }
 }
 
 // Log every chat request in dev panel
@@ -2737,38 +2663,7 @@ function clearImagePreview() {
   if (input) input.placeholder = 'Ask anything about your garden...';
 }
 
-async function sendMessageWithImage(text) {
-  if (!window._pendingImage) { if (typeof sendMessage === 'function') sendMessage(text); return; }
-  const input = document.getElementById('msg-input');
-  const msg = text || input.value.trim() || 'What is wrong with this plant?';
-  input.value = '';
-  const btn = document.getElementById('send-btn'); if (btn) btn.disabled = true;
-  const img = window._pendingImage; clearImagePreview();
-  if (typeof appendMessage === 'function') appendMessage('user', '[Photo] ' + msg);
-  if (typeof appendTyping === 'function') appendTyping();
-  try {
-    const res = await fetch('/api/identify', { method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ symptom_description: msg, image_base64: img.base64, image_media_type: img.media_type, garden_profile: getProfile(), session_id: window.sessionId }) });
-    const data = await res.json();
-    if (typeof removeTyping === 'function') removeTyping();
-    if (!res.ok) { if (typeof showError === 'function') showError(data.error || "Couldn\u2019t process photo."); return; }
-    if (typeof appendMessage === 'function') appendMessage('assistant', data.response, data.toolsUsed||[], data.rounds||1, data.trace||[]);
-    if (typeof devLogTrace === 'function') devLogTrace('[Photo] ' + msg, data.toolsUsed||[], data.trace||[], data.rounds||1, null, getProfile());
-    refreshMemoryAfterResponse();
-  } catch (err) {
-    if (typeof removeTyping === 'function') removeTyping();
-    if (typeof showError === 'function') showError('Network error: ' + err.message);
-  } finally {
-    if (btn) btn.disabled = false;
-    input.focus();
-  }
-}
-
 // ── Dev panel toggle ──────────────────────────────────────────────────────────
-function toggleDevPanel() {
-  document.getElementById('dev-panel')?.classList.toggle('open');
-}
-
 // ── Dev panel resize ──────────────────────────────────────────────────────────
 (function() {
   const handle = document.getElementById('dp-resize');
@@ -2781,15 +2676,6 @@ function toggleDevPanel() {
 })();
 
 // ── devLog & devLogTrace ──────────────────────────────────────────────────────
-function devLog(msg, type='info') {
-  const log = document.getElementById('dev-log'); if (!log) return;
-  const ts = new Date().toISOString().slice(11,19);
-  const el = document.createElement('div'); el.className = `dp-log-line ${type}`;
-  el.innerHTML = `<span class="dp-ts">[${ts}]</span>${msg}`;
-  log.prepend(el);
-  while (log.children.length > 120) log.removeChild(log.lastChild);
-}
-
 function devLogTrace(prompt, toolsUsed, trace, rounds, ms, gardenProfile) {
   const log = document.getElementById('dev-log'); if (!log) return;
   const ts = new Date().toISOString().slice(11,19);
@@ -2880,42 +2766,6 @@ function devLogTrace(prompt, toolsUsed, trace, rounds, ms, gardenProfile) {
 }
 
 // ── runStatusCheck (gold) ─────────────────────────────────────────────────────
-async function runStatusCheck() {
-  devLog('System check…', 'info');
-  try {
-    const res = await fetch('/api/status');
-    const s   = await res.json();
-    const ok  = s.overall_ok;
-    const setText = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
-    const overall = document.getElementById('dp-overall');
-    if (overall) { overall.textContent = ok?'● ALL OK':'● DEGRADED'; overall.className=ok?'dp-status-ok':'dp-status-err'; }
-    setText('dp-ver',    s.server?.version||'?');
-    setText('dp-uptime', s.server?.uptime_seconds??'?');
-    setText('dp-env',    s.environment?.node_env||'?');
-    setText('dp-live',   s.environment?.live_apis?'LIVE':'SANDBOX');
-    setText('dp-key',    s.environment?.api_key_set?'✓':'✗');
-    setText('dp-db',     s.persistence?.mode||'?');
-    setText('dp-tools',  s.tools?.count??'?');
-    // status bar dots
-    const setDot = (id, state, label) => {
-      const el = document.getElementById(id); if (!el) return;
-      el.className = `status-dot ${state}`;
-      el.textContent = label;
-    };
-    setDot('dot-server', s.server?.ok?'ok':'error', `v${s.server?.version}`);
-    setDot('dot-api',    s.anthropic?.ok?'ok':'error', s.anthropic?.ok?'Claude ✓':'Claude ✗');
-    setDot('dot-live',   s.environment?.live_apis?'ok':'error', s.environment?.live_apis?'Live ✓':'Sandbox');
-    setDot('dot-db',     s.persistence?.ok?'ok':'warn', `DB:${s.persistence?.mode}`);
-    setDot('dot-tools',  s.tools?.ok?'ok':'error', `${s.tools?.count||0} tools`);
-    if (s.tools?.sample) devLog(`tool test → get_garden_zone(${s.tools.sample.zip}) = Zone ${s.tools.sample.zone} [${s.tools.sample.mode}]`, 'tool');
-    if (!s.anthropic?.ok) devLog(`Claude API: ${s.anthropic?.error}`, 'error');
-    else devLog(`Claude ✓ · key set · sonnet-4-6`, 'api');
-    devLog(`status=${ok?'OK':'DEGRADED'} · db=${s.persistence?.mode}`, ok?'info':'error');
-  } catch (err) {
-    devLog(`status check failed: ${err.message}`, 'error');
-  }
-}
-
 // ── Wire devLogTrace + refreshMemory into sendMessage ─────────────────────────
 // Patch sendMessage to add devLogTrace + memory refresh after each response
 const _origSendMessage = typeof sendMessage !== 'undefined' ? sendMessage : null;
