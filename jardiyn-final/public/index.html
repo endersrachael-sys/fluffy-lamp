@@ -1,0 +1,3152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JarDIYn by GardenHub — Spatial Garden Intelligence</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌿</text></svg>">
+<style>
+  :root {
+    /* Core greens */
+    --green-dark:  #1a3318;
+    --green:       #2a5425;
+    --green-light: #4a7a42;
+    --green-ghost: #eef5eb;
+    /* Notebook dark — sidebar */
+    --nb:          #0c1a0b;
+    --nb-border:   #1c2e1a;
+    --nb-text:     #a8c4a2;
+    --nb-label:    #5a7a56;
+    /* Warm parchment — main area */
+    --cream:       #f6f1e8;
+    --parchment:   #f0e9d8;
+    --sand:        #e2d5bc;
+    --sand-dark:   #c8b898;
+    /* Accents */
+    --gold:        #a67c00;
+    --gold-light:  #c9920a;
+    --rust:        #b34428;
+    /* Text */
+    --ink:         #181810;
+    --stone:       #6a6a5a;
+    --stone-light: #9a9a8a;
+    --white:       #ffffff;
+    /* Shadows */
+    --shadow-sm:   0 1px 4px rgba(15,26,14,0.09);
+    --shadow:      0 2px 12px rgba(15,26,14,0.13);
+    --shadow-lg:   0 4px 28px rgba(15,26,14,0.18);
+    /* Radius */
+    --r:    5px;
+    --r-sm: 3px;
+    --r-lg: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+    background: var(--cream);
+    color: var(--ink);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Header ── */
+  .header {
+    background: var(--nb);
+    color: var(--nb-text);
+    padding: 0;
+    height: 54px;
+    display: flex;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 1px solid var(--nb-border);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+  }
+  .header-brand {
+    display: flex;
+    align-items: center;
+    height: 100%;
+  }
+  .header-logo {
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: var(--nb-text);
+    padding: 0 20px;
+    border-right: 1px solid var(--nb-border);
+    height: 100%;
+    display: flex;
+    align-items: center;
+  }
+  .logo-j { color: var(--gold-light); }
+  .header-divider { width: 1px; background: var(--nb-border); height: 24px; margin: 0; }
+  .header-sub {
+    font-size: 10px;
+    color: var(--nb-label);
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    padding: 0 16px;
+    border-right: 1px solid var(--nb-border);
+    height: 100%;
+    display: flex;
+    align-items: center;
+  }
+  .header-badge {
+    font-size: 9.5px;
+    color: var(--nb-label);
+    padding: 0 16px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    height: 100%;
+    display: flex;
+    align-items: center;
+  }
+  .header-brand {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .header-logo {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--cream);
+    letter-spacing: -0.5px;
+  }
+  .header-logo span { color: var(--gold-light); font-style: italic; }
+  .header-sub {
+    font-size: 11px;
+    color: #8ab87a;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  .header-badge {
+    font-size: 10px;
+    background: rgba(255,255,255,0.12);
+    color: #8ab87a;
+    padding: 3px 10px;
+    border-radius: 2px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  /* ── Layout ── */
+  .app {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    flex: 1;
+    min-height: calc(100vh - 56px);
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    background: var(--nb);
+    border-right: 1px solid var(--nb-border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--nb-border) transparent;
+  }
+  .sidebar-section {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--nb-border);
+  }
+  .sidebar-title {
+    font-size: 9px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--nb-label);
+    margin-bottom: 10px;
+    font-weight: 700;
+  }
+
+  textarea {
+    width: 100%;
+    padding: 7px 9px;
+    border: 1px solid var(--nb-border);
+    border-radius: var(--r-sm);
+    font-size: 12px;
+    font-family: inherit;
+    background: rgba(255,255,255,0.06);
+    color: var(--nb-text);
+    resize: vertical;
+    min-height: 52px;
+    color-scheme: dark;
+  }
+  textarea:focus { outline: none; border-color: var(--green-light); background: rgba(255,255,255,0.10); }
+
+  label {
+    display: block;
+    font-size: 10px;
+    color: var(--nb-label);
+    margin-bottom: 2px;
+    margin-top: 8px;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+  }
+  label:first-of-type { margin-top: 0; }
+  input, select, textarea {
+    width: 100%;
+    padding: 7px 10px;
+    border: 1px solid var(--sand);
+    border-radius: 4px;
+    font-size: 13px;
+    font-family: inherit;
+    background: var(--cream);
+    color: var(--ink);
+    transition: border-color 0.15s;
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--green);
+    background: var(--white);
+  }
+  textarea { resize: vertical; min-height: 56px; }
+
+  .tag-row { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+  .tag {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--nb-border);
+    border-radius: var(--r-sm);
+    font-size: 10.5px;
+    padding: 3px 8px;
+    cursor: pointer;
+    color: var(--nb-label);
+    transition: all 0.12s;
+    user-select: none;
+  }
+  .tag.active {
+    background: var(--green);
+    color: white;
+    border-color: var(--green);
+    font-weight: 500;
+  }
+
+  .quick-btn {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--nb-border);
+    border-radius: var(--r-sm);
+    padding: 8px 10px;
+    font-size: 11.5px;
+    color: var(--nb-text);
+    cursor: pointer;
+    margin-bottom: 4px;
+    font-family: inherit;
+    transition: all 0.12s;
+    line-height: 1.35;
+  }
+  .quick-btn:hover {
+    background: rgba(255,255,255,0.09);
+    border-color: var(--green-light);
+    color: var(--nb-text);
+  }
+
+  .profile-display {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--nb-border);
+    border-radius: var(--r-sm);
+    padding: 9px 11px;
+    font-size: 11px;
+    line-height: 1.8;
+    color: var(--nb-label);
+    min-height: 36px;
+  }
+  .profile-display strong { color: var(--green); }
+
+  /* ── Main chat area ── */
+  .main {
+    display: flex;
+    flex-direction: column;
+    background: var(--cream);
+  }
+
+  .chat-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* ── Messages ── */
+  .msg {
+    display: flex;
+    gap: 10px;
+    max-width: 820px;
+  }
+  .msg.user { flex-direction: row-reverse; margin-left: auto; }
+  .msg-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: bold;
+  }
+  .msg.user .msg-avatar { background: var(--green); color: var(--white); }
+  .msg.assistant .msg-avatar { background: var(--gold); color: var(--white); }
+  .msg-bubble {
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    line-height: 1.6;
+    max-width: 680px;
+  }
+  .msg.user .msg-bubble {
+    background: var(--green);
+    color: white;
+    border-radius: var(--r-lg) 3px var(--r-lg) var(--r-lg);
+    box-shadow: var(--shadow-sm);
+  }
+  .msg.assistant .msg-bubble {
+    background: var(--white);
+    border: 1px solid var(--sand);
+    border-radius: 3px var(--r-lg) var(--r-lg) var(--r-lg);
+    box-shadow: var(--shadow);
+  }
+  .msg-bubble p { margin-bottom: 8px; }
+  .msg-bubble p:last-child { margin-bottom: 0; }
+  .msg-bubble ul, .msg-bubble ol { margin: 6px 0 6px 20px; }
+  .msg-bubble li { margin-bottom: 4px; }
+  .msg-bubble h1, .msg-bubble h2, .msg-bubble h3 {
+    color: var(--green);
+    margin: 12px 0 6px;
+    font-size: 14px;
+  }
+  .msg-bubble strong { color: var(--green-dark); }
+  .msg-bubble code {
+    background: var(--cream);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-family: monospace;
+    font-size: 12px;
+  }
+
+  /* ── Tool trace badge ── */
+  .tool-trace {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--sand);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .tool-badge {
+    font-size: 10px;
+    letter-spacing: 0.5px;
+    background: var(--cream);
+    border: 1px solid var(--sand);
+    color: var(--green);
+    padding: 2px 7px;
+    border-radius: 2px;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .tool-badge.active { background: var(--green); color: var(--white); border-color: var(--green); }
+  .rounds-badge {
+    font-size: 10px;
+    color: var(--stone);
+    padding: 2px 7px;
+    border: 1px solid var(--sand);
+    border-radius: 2px;
+  }
+
+  /* ── Typing indicator ── */
+  .typing-msg .msg-bubble {
+    padding: 14px 16px;
+  }
+  .typing-dots { display: flex; gap: 4px; align-items: center; }
+  .typing-dots span {
+    width: 7px; height: 7px;
+    background: var(--stone);
+    border-radius: 50%;
+    animation: dot-bounce 1.2s infinite;
+  }
+  .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes dot-bounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+    30% { transform: translateY(-5px); opacity: 1; }
+  }
+
+  /* ── Welcome screen ── */
+  .welcome {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    gap: 24px;
+    padding: 40px;
+    text-align: center;
+  }
+  .welcome-icon { font-size: 48px; }
+  .welcome h2 { font-size: 24px; color: var(--green); font-weight: 300; }
+  .welcome p { font-size: 14px; color: var(--stone); max-width: 420px; line-height: 1.6; }
+  .welcome-prompts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    max-width: 560px;
+    width: 100%;
+  }
+  .welcome-prompt {
+    background: var(--white);
+    border: 1px solid var(--sand);
+    border-radius: 6px;
+    padding: 12px 14px;
+    text-align: left;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--ink);
+    font-family: inherit;
+    transition: all 0.15s;
+    line-height: 1.4;
+  }
+  .welcome-prompt:hover {
+    border-color: var(--green);
+    box-shadow: var(--shadow);
+  }
+  .welcome-prompt .prompt-icon { font-size: 16px; margin-bottom: 4px; display: block; }
+  .welcome-prompt .prompt-text { color: var(--stone); font-size: 11px; }
+
+  /* ── Input bar ── */
+  .input-bar {
+    padding: 16px 24px;
+    background: var(--white);
+    border-top: 1px solid var(--sand);
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+  }
+  .input-bar textarea {
+    flex: 1;
+    padding: 10px 14px;
+    min-height: 44px;
+    max-height: 120px;
+    border-radius: 6px;
+    font-size: 14px;
+  }
+  .send-btn {
+    height: 44px;
+    padding: 0 20px;
+    background: var(--green);
+    color: var(--white);
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+    font-family: inherit;
+  }
+  .send-btn:hover { background: var(--green-light); }
+  .send-btn:disabled { background: var(--stone); cursor: not-allowed; }
+
+  /* ── Error banner ── */
+  .error-banner {
+    background: #fdf0ec;
+    border: 1px solid var(--rust);
+    border-radius: 6px;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--rust);
+    margin: 0 24px 12px;
+  }
+
+  /* ── Markdown rendering in bubbles ── */
+  .rendered h1 { font-size: 16px; margin: 14px 0 6px; }
+  .rendered h2 { font-size: 14px; margin: 12px 0 5px; }
+  .rendered h3 { font-size: 13px; margin: 10px 0 4px; }
+
+  /* ── Status bar ── */
+  .status-bar {
+    background: #0f1f0c;
+    padding: 5px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 11px;
+    font-family: monospace;
+    border-bottom: 1px solid #1a3a14;
+    flex-wrap: wrap;
+  }
+  .status-dot {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: #4a7a42;
+  }
+  .status-dot::before {
+    content: '●';
+    font-size: 8px;
+  }
+  .status-dot.ok::before    { color: #4caf50; }
+  .status-dot.warn::before  { color: #ff9800; }
+  .status-dot.error::before { color: #f44336; }
+  .status-dot.checking::before { color: #888; animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  .status-bar-right {
+    margin-left: auto;
+    color: #4a7a42;
+    cursor: pointer;
+    text-decoration: underline;
+  }
+
+  /* ── Developer panel ── */
+  .dev-panel {
+    display: none;
+    background: #0a140a;
+    border-bottom: 2px solid #2d5a27;
+    padding: 12px 24px;
+    font-family: monospace;
+    font-size: 12px;
+    color: #8ab87a;
+    max-height: 220px;
+    overflow-y: auto;
+  }
+  .dev-panel.open { display: block; }
+  .dev-panel-title {
+    color: #4caf50;
+    font-weight: bold;
+    margin-bottom: 8px;
+    letter-spacing: 1px;
+  }
+  .dev-log-entry {
+    padding: 2px 0;
+    border-bottom: 1px solid #1a3a14;
+    line-height: 1.5;
+  }
+  .dev-log-entry.tool   { color: #81c784; }
+  .dev-log-entry.api    { color: #64b5f6; }
+  .dev-log-entry.error  { color: #e57373; }
+  .dev-log-entry.info   { color: #8ab87a; }
+  .dev-log-entry .ts    { color: #4a7a42; margin-right: 8px; }
+  .dev-status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .dev-status-item {
+    background: #0f1f0c;
+    border: 1px solid #1a3a14;
+    border-radius: 4px;
+    padding: 6px 10px;
+  }
+  .dev-status-item .label { color: #4a7a42; font-size: 10px; }
+  .dev-status-item .value { color: #8ab87a; font-weight: bold; }
+  .dev-status-item.ok     { border-color: #2d5a27; }
+  .dev-status-item.error  { border-color: #5a2d2d; }
+  .dev-status-item.warn   { border-color: #5a4a2d; }
+
+  .mobile-menu-btn {
+    display: none; background: none; border: none;
+    color: var(--cream); font-size: 22px; cursor: pointer; padding: 4px 10px;
+  }
+  .mobile-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5); z-index: 199;
+  }
+  .mobile-overlay.show { display: block; }
+
+  /* ── Intelligence Hub — action groups ── */
+  .action-primary {
+    background: var(--green);
+    color: white;
+    border: none;
+    border-radius: var(--r-sm);
+    padding: 9px 10px;
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.12s;
+    text-align: center;
+    width: 100%;
+  }
+  .action-primary:hover { background: var(--green-light); transform: translateY(-1px); }
+
+  .action-gold {
+    background: var(--gold);
+    color: white;
+    border: none;
+    border-radius: var(--r-sm);
+    padding: 9px 10px;
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.12s;
+    text-align: center;
+    width: 100%;
+  }
+  .action-gold:hover { background: var(--gold-light); transform: translateY(-1px); }
+
+  .action-group {
+    margin-bottom: 10px;
+  }
+  .action-group-label {
+    font-size: 8.5px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--nb-label);
+    margin-bottom: 5px;
+    font-weight: 700;
+    padding-left: 1px;
+  }
+  .action-chip {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--nb-border);
+    border-radius: var(--r-sm);
+    padding: 7px 10px;
+    font-size: 11px;
+    color: var(--nb-text);
+    cursor: pointer;
+    margin-bottom: 3px;
+    font-family: inherit;
+    transition: all 0.12s;
+    line-height: 1.3;
+  }
+  .action-chip:hover {
+    background: rgba(255,255,255,0.09);
+    border-color: var(--green-light);
+    color: #d4e8d0;
+  }
+  .action-chip:last-child { margin-bottom: 0; }
+
+  /* ── More detail toggle ── */
+  .more-toggle {
+    margin-top: 10px;
+    background: none;
+    border: none;
+    color: var(--nb-label);
+    font-size: 10px;
+    cursor: pointer;
+    font-family: inherit;
+    padding: 0;
+    text-decoration: underline;
+    letter-spacing: 0.3px;
+    display: block;
+  }
+  .more-toggle:hover { color: var(--nb-text); }
+
+  /* ── Gold Demo Badge ── */
+  .demo-badge-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    background: linear-gradient(135deg, #1a3318 0%, #0c1a0b 100%);
+    border: 1px solid var(--gold);
+    border-radius: var(--r);
+    padding: 10px 14px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 6px;
+  }
+  .demo-badge-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(166,124,0,0.15) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .demo-badge-btn:hover {
+    border-color: var(--gold-light);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(166,124,0,0.25);
+  }
+  .demo-badge-icon {
+    width: 28px;
+    height: 28px;
+    background: var(--gold);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(166,124,0,0.4);
+  }
+  .demo-badge-text { text-align: left; }
+  .demo-badge-title { font-size: 12px; font-weight: 700; color: var(--gold-light); display: block; }
+  .demo-badge-sub   { font-size: 9.5px; color: var(--nb-label); display: block; margin-top: 1px; }
+
+  /* ── Demo Mode Overlay ── */
+  .demo-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 500;
+    background: rgba(8, 16, 8, 0.92);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .demo-overlay.open { display: flex; }
+  .demo-panel {
+    background: var(--nb);
+    border: 1px solid var(--gold);
+    border-radius: 12px;
+    width: 100%;
+    max-width: 700px;
+    max-height: 88vh;
+    overflow-y: auto;
+    box-shadow: 0 8px 48px rgba(0,0,0,0.6), 0 0 0 1px rgba(166,124,0,0.2);
+    position: relative;
+  }
+  .demo-panel-header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--nb-border);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+  .demo-panel-title {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--gold-light);
+    letter-spacing: -0.5px;
+    margin-bottom: 3px;
+  }
+  .demo-panel-sub {
+    font-size: 11px;
+    color: var(--nb-label);
+    letter-spacing: 0.5px;
+  }
+  .demo-close {
+    background: none;
+    border: none;
+    color: var(--nb-label);
+    font-size: 20px;
+    cursor: pointer;
+    padding: 0 4px;
+    line-height: 1;
+    transition: color 0.1s;
+    flex-shrink: 0;
+  }
+  .demo-close:hover { color: var(--nb-text); }
+  .demo-scenarios-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    padding: 18px 24px;
+  }
+  .demo-scenario-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--nb-border);
+    border-radius: var(--r-lg);
+    padding: 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: left;
+  }
+  .demo-scenario-card:hover {
+    background: rgba(255,255,255,0.08);
+    border-color: var(--green-light);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  }
+  .demo-scenario-card.active {
+    border-color: var(--gold);
+    background: rgba(166,124,0,0.08);
+  }
+  .dsc-number {
+    font-size: 9px;
+    color: var(--nb-label);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .dsc-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--nb-text);
+    margin-bottom: 4px;
+    line-height: 1.3;
+  }
+  .dsc-desc {
+    font-size: 10.5px;
+    color: var(--nb-label);
+    line-height: 1.45;
+  }
+  .demo-prompts-panel {
+    border-top: 1px solid var(--nb-border);
+    padding: 16px 24px 20px;
+    display: none;
+  }
+  .demo-prompts-panel.open { display: block; }
+  .demo-prompts-label {
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--nb-label);
+    margin-bottom: 10px;
+    font-weight: 700;
+  }
+  .demo-prompt-btn {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    width: 100%;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--nb-border);
+    border-radius: var(--r);
+    padding: 11px 14px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12.5px;
+    color: var(--nb-text);
+    text-align: left;
+    transition: all 0.12s;
+    line-height: 1.4;
+  }
+  .demo-prompt-btn:hover {
+    background: rgba(255,255,255,0.09);
+    border-color: var(--green);
+    color: #d4e8d0;
+  }
+  .demo-prompt-btn::before {
+    content: '→';
+    color: var(--gold);
+    flex-shrink: 0;
+    font-size: 13px;
+    margin-top: 1px;
+  }
+  .demo-prompt-btn:last-child { margin-bottom: 0; }
+
+
+  /* ── Situational Awareness Notification System ── */
+  .notif-stack {
+    position: fixed;
+    top: 62px;
+    right: 16px;
+    z-index: 400;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-width: 340px;
+    pointer-events: none;
+  }
+  .notif-card {
+    background: var(--nb);
+    border-radius: var(--r-lg);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+    overflow: hidden;
+    pointer-events: all;
+    transform: translateX(120%);
+    transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    will-change: transform;
+  }
+  .notif-card.show  { transform: translateX(0); }
+  .notif-card.hide  { transform: translateX(120%); transition: transform 0.25s ease-in; }
+  .notif-stripe {
+    height: 3px;
+    width: 100%;
+  }
+  .notif-stripe.red    { background: linear-gradient(90deg, #e05a3a, #c03020); }
+  .notif-stripe.amber  { background: linear-gradient(90deg, #c9920a, #a67c00); }
+  .notif-stripe.green  { background: linear-gradient(90deg, #2a5425, #4a7a42); }
+  .notif-body {
+    padding: 12px 14px;
+    border: 1px solid var(--nb-border);
+    border-top: none;
+    border-radius: 0 0 var(--r-lg) var(--r-lg);
+  }
+  .notif-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .notif-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+    line-height: 1;
+    margin-top: 1px;
+  }
+  .notif-title {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--nb-text);
+    line-height: 1.3;
+    flex: 1;
+  }
+  .notif-dismiss {
+    background: none;
+    border: none;
+    color: var(--nb-label);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 0;
+    line-height: 1;
+    flex-shrink: 0;
+    transition: color 0.1s;
+  }
+  .notif-dismiss:hover { color: var(--nb-text); }
+  .notif-desc {
+    font-size: 11px;
+    color: var(--nb-label);
+    line-height: 1.5;
+    margin-bottom: 10px;
+  }
+  .notif-action {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--nb-border);
+    border-radius: var(--r-sm);
+    padding: 8px 11px;
+    font-size: 11.5px;
+    color: var(--nb-text);
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+    transition: all 0.12s;
+    line-height: 1.35;
+  }
+  .notif-action:hover {
+    background: rgba(255,255,255,0.12);
+    border-color: var(--green-light);
+  }
+  .notif-action-arrow {
+    color: var(--gold);
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+  .notif-time {
+    font-size: 9.5px;
+    color: var(--nb-label);
+    margin-top: 8px;
+    text-align: right;
+    letter-spacing: 0.3px;
+  }
+
+  @media (max-width: 700px) {
+    .mobile-menu-btn { display: block; }
+    .app { grid-template-columns: 1fr; }
+    .sidebar {
+      position: fixed; left: -320px; top: 0; bottom: 0; width: 300px;
+      z-index: 200; transition: left 0.25s ease;
+      box-shadow: 4px 0 20px rgba(0,0,0,0.3);
+    }
+    .sidebar.open { left: 0; }
+    .welcome-prompts { grid-template-columns: 1fr; }
+  }
+
+  /* ── Tab navigation ── */
+  .tab-bar { display:flex;background:var(--parchment);border-bottom:1px solid var(--sand);padding:0 20px;flex-shrink:0; }
+  .tab-btn { background:none;border:none;border-bottom:2px solid transparent;padding:10px 16px;font-size:12.5px;font-weight:500;color:var(--stone);cursor:pointer;font-family:inherit;transition:all 0.13s;white-space:nowrap;margin-bottom:-1px; }
+  .tab-btn:hover { color:var(--green); }
+  .tab-btn.active { color:var(--green);border-bottom-color:var(--green);font-weight:600; }
+  .tab-badge { display:inline-flex;align-items:center;justify-content:center;background:var(--rust);color:white;border-radius:10px;font-size:9px;font-weight:700;padding:1px 5px;margin-left:4px;min-width:16px; }
+  .tab-panel { display:none;flex:1;overflow-y:auto;flex-direction:column; }
+  .tab-panel.active { display:flex; }
+
+  /* ── Property card (Garden tab) ── */
+  .property-card { margin:20px 24px 0;background:var(--white);border:1px solid var(--sand);border-radius:8px;overflow:hidden;box-shadow:var(--shadow); }
+  .prop-header { background:var(--green-dark);color:var(--cream);padding:14px 20px;display:flex;align-items:center;justify-content:space-between; }
+  .prop-header h3 { font-size:15px;font-weight:600; }
+  .zone-badge { background:var(--gold);color:white;font-size:11px;font-weight:700;padding:3px 10px;border-radius:3px; }
+  .prop-grid { display:grid;grid-template-columns:repeat(4,1fr); }
+  .prop-cell { padding:11px 14px;border-right:1px solid var(--sand);border-bottom:1px solid var(--sand); }
+  .prop-cell:nth-child(4n) { border-right:none; }
+  .prop-cell .pl { font-size:9px;color:var(--stone-light);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px; }
+  .prop-cell .pv { font-size:13px;font-weight:600;color:var(--ink); }
+  .prop-cell .ps { font-size:10px;color:var(--stone);margin-top:2px; }
+
+  /* ── Today widget ── */
+  .today-widget { margin:14px 24px 0;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px; }
+  .today-card { background:var(--white);border:1px solid var(--sand);border-radius:8px;padding:14px 16px;box-shadow:0 1px 4px rgba(30,61,24,0.08); }
+  .today-card .tl { font-size:9px;color:var(--stone-light);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px; }
+  .today-card .tv { font-size:24px;font-weight:700;color:var(--ink);line-height:1; }
+  .today-card .ts { font-size:11px;color:var(--stone);margin-top:4px; }
+  .frost-meter { display:flex;gap:3px;margin-top:8px; }
+  .frost-pip { height:5px;flex:1;border-radius:2px;background:var(--sand); }
+  .frost-pip.on-none { background:#4caf50; }
+  .frost-pip.on-watch { background:#ff9800; }
+  .frost-pip.on-warn  { background:#f44336; }
+  .pollen-bar { height:7px;border-radius:4px;background:var(--sand);margin-top:8px;overflow:hidden; }
+  .pollen-fill { height:100%;border-radius:4px;background:var(--green-light);transition:width 0.4s; }
+
+  /* ── Tasks view ── */
+  .tasks-view { padding:20px 24px;flex:1; }
+  .tasks-section { margin-bottom:20px; }
+  .section-title { font-size:9.5px;color:var(--stone-light);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;font-weight:600; }
+  .task-row { display:flex;align-items:flex-start;gap:10px;padding:11px 14px;background:var(--white);border:1px solid var(--sand);border-radius:6px;margin-bottom:6px;box-shadow:0 1px 4px rgba(30,61,24,0.06);transition:all 0.12s; }
+  .task-row:hover { border-color:var(--green-light); }
+  .task-row.high { border-left:3px solid var(--rust); }
+  .task-row.medium { border-left:3px solid var(--gold); }
+  .tr-check { width:18px;height:18px;flex-shrink:0;border:2px solid var(--sand);border-radius:4px;cursor:pointer;background:none;margin-top:1px;display:flex;align-items:center;justify-content:center;color:transparent;font-size:11px;transition:all 0.1s; }
+  .tr-check:hover { border-color:#4caf50;color:#4caf50; }
+  .tr-title { font-size:13px;color:var(--ink);font-weight:500;margin-bottom:2px; }
+  .tr-meta  { font-size:11px;color:var(--stone); }
+
+  /* ── Plants view ── */
+  .plants-view { padding:20px 24px; }
+  .plant-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-top:12px; }
+  .plant-card { background:var(--white);border:1px solid var(--sand);border-radius:8px;padding:14px;box-shadow:0 1px 4px rgba(30,61,24,0.06);transition:all 0.13s;cursor:pointer; }
+  .plant-card:hover { border-color:var(--green);box-shadow:var(--shadow);transform:translateY(-2px); }
+  .plant-icon { font-size:26px;margin-bottom:6px; }
+  .plant-name { font-size:13px;font-weight:600;color:var(--ink); }
+  .plant-sci  { font-size:10.5px;color:var(--stone);font-style:italic; }
+  .plant-loc  { font-size:10.5px;color:var(--stone-light);margin-top:4px; }
+  .plant-tag  { display:inline-block;font-size:9px;font-weight:600;text-transform:uppercase;padding:2px 6px;border-radius:2px;margin-top:5px;background:#e8f5e9;color:#2e7d32; }
+
+  /* ── Garden memory sidebar ── */
+  .mem-task { display:flex;align-items:flex-start;gap:6px;padding:5px 7px;background:rgba(255,255,255,0.05);border:1px solid var(--nb-border);border-radius:3px;margin-bottom:3px;font-size:10.5px;color:var(--nb-text);line-height:1.3; }
+  .mem-task.high { border-left:2px solid #e05a3a; }
+  .mem-task.medium { border-left:2px solid var(--gold); }
+  .mem-check { width:12px;height:12px;flex-shrink:0;border:1px solid var(--nb-label);border-radius:2px;cursor:pointer;background:none;color:transparent;font-size:9px;display:flex;align-items:center;justify-content:center;transition:all 0.1s;margin-top:1px; }
+  .mem-check:hover { border-color:#4caf50;color:#4caf50; }
+  .diag-chip { display:inline-flex;gap:3px;background:rgba(200,80,50,0.1);border:1px solid rgba(200,80,50,0.2);border-radius:3px;padding:2px 6px;font-size:9.5px;color:#c85032;margin:1px;cursor:pointer; }
+
+  /* ── Enhanced dev panel ── */
+  .dev-panel { display:none;position:fixed;bottom:0;left:0;right:0;height:50vh;min-height:280px;max-height:600px;background:#07100a;border-top:2px solid #1c2e1a;font-family:'JetBrains Mono','Fira Code',monospace;font-size:11px;color:#7ab87a;z-index:300;flex-direction:column;box-shadow:0 -4px 24px rgba(0,0,0,0.5); }
+  .dev-panel.open { display:flex; }
+  .dp-resize { height:4px;background:#1c2e1a;cursor:ns-resize;flex-shrink:0; }
+  .dp-resize:hover { background:#2d5a27; }
+  .dp-status { display:flex;align-items:center;gap:10px;padding:5px 16px;background:#050d07;border-bottom:1px solid #1c2e1a;flex-shrink:0;flex-wrap:wrap; }
+  .dp-status-ok  { color:#4caf50;font-weight:700; }
+  .dp-status-err { color:#f44336;font-weight:700; }
+  .dp-stat { color:#3d6a3a;font-size:10px; }
+  .dp-stat span { color:#5a9a5a; }
+  .dp-log { flex:1;overflow-y:auto;padding:4px 0;scrollbar-width:thin;scrollbar-color:#1c2e1a transparent; }
+  .dp-log-line { padding:1px 16px;font-size:10px;line-height:1.6;border-bottom:1px solid #0a140a; }
+  .dp-log-line.tool  { color:#4a8042; } .dp-log-line.api { color:#4a7ab0; }
+  .dp-log-line.error { color:#a04040; } .dp-log-line.info { color:#2e5a2e; }
+  .dp-log-line .dp-ts { color:#1e3e1e;margin-right:6px; }
+  .dp-macro { border-bottom:1px solid #0f1a0e; }
+  .dp-macro-header { display:flex;align-items:baseline;gap:8px;padding:5px 16px;cursor:pointer;background:#07100a;transition:background 0.1s; }
+  .dp-macro-header:hover { background:#0d1a0c; }
+  .dp-macro-ts { color:#2e5a2e;font-size:10px;flex-shrink:0; }
+  .dp-macro-prompt { color:#6ab06a;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+  .dp-macro-meta { color:#3d6a3a;font-size:10px;flex-shrink:0; }
+  .dp-macro-body { display:none;padding:0 0 4px; }
+  .dp-macro-body.open { display:block; }
+  .dp-round { margin:3px 16px 3px 24px;border-left:2px solid #1a3018;padding-left:10px; }
+  .dp-round-hdr { font-size:9.5px;color:#2e5a2e;letter-spacing:1px;text-transform:uppercase;padding:2px 0;display:flex;align-items:center;gap:6px; }
+  .dp-stop-end { color:#4caf50; } .dp-stop-tool { color:#ff9800; } .dp-stop-max { color:#f44336; }
+  .dp-tool { display:flex;align-items:baseline;flex-wrap:wrap;gap:5px;padding:2px 0;font-size:10.5px; }
+  .dp-tool-arrow { color:#1e3e1e; } .dp-tool-name { color:#81c784;font-weight:700; }
+  .dp-mode-live { background:#0f2e0f;color:#4caf50;padding:1px 5px;border-radius:2px;font-size:9px;font-weight:700; }
+  .dp-mode-sand { background:#2a2200;color:#ffa726;padding:1px 5px;border-radius:2px;font-size:9px;font-weight:700; }
+  .dp-mode-unk  { background:#1a1a1a;color:#666;padding:1px 5px;border-radius:2px;font-size:9px; }
+  .dp-mode-err  { background:#2e0808;color:#ef5350;padding:1px 5px;border-radius:2px;font-size:9px;font-weight:700; }
+  .dp-source { color:#2a5028;font-size:9.5px; }
+  .dp-args { display:flex;flex-wrap:wrap;gap:4px;padding:1px 0 2px 16px; }
+  .dp-arg { background:#0a180a;border:1px solid #1a3018;border-radius:2px;padding:1px 6px;font-size:9.5px;color:#3d6a3a; }
+  .dp-arg-key { color:#2e5a2e; } .dp-arg-val { color:#5a9a5a; }
+  .dp-reasoning { padding:2px 0 2px 4px;font-size:10px;color:#2a4a2a;font-style:italic;border-left:2px solid #0f2010;margin:2px 0;line-height:1.4; }
+  .dp-direct { color:#2a5028;padding:2px 0;font-size:10px; }
+  .dp-subatomic { display:flex;flex-wrap:wrap;gap:3px 8px;padding:2px 0 3px 20px;border-left:2px solid #0a1a0a;margin:1px 0 3px 16px; }
+  .dp-sub-pair { display:inline-flex;gap:3px;align-items:baseline; }
+  .dp-sub-k { color:#1e4020;font-size:9px; } .dp-sub-v { color:#3a7038;font-size:9.5px;font-weight:500; }
+  .dp-quantum { font-size:8.5px;color:#1a3a3a;background:#040f10;border:1px solid #0a2020;padding:1px 5px;border-radius:2px;margin-left:4px; }
+  .dp-quantum-sm { font-size:8.5px;color:#1e4040;margin-left:auto; }
+  .dp-quantum-line { display:flex;flex-wrap:wrap;gap:3px 10px;padding:3px 16px 4px;background:#040f0d;border-bottom:1px solid #0a1a0a;margin-bottom:3px; }
+  .dp-quantum-line .dp-sub-k { color:#124040; } .dp-quantum-line .dp-sub-v { color:#1a6060; }
+  .dp-profile { margin:4px 16px 4px 24px;padding:4px 8px;background:#050d07;border:1px solid #122010;border-radius:2px;font-size:9.5px;color:#2e5a2e;display:flex;flex-wrap:wrap;gap:4px 10px; }
+  .dp-profile span { color:#4a8042; }
+</style>
+
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<header class="header">
+  <button class="mobile-menu-btn" onclick="toggleMobileSidebar()" aria-label="Open sidebar" aria-expanded="false">&#9776;</button>
+  <div class="header-brand">
+    <div class="header-logo"><span class="logo-j">J</span>arDIYn</div>
+    <div class="header-divider"></div>
+    <div class="header-sub">by GardenHub</div>
+  </div>
+  <div style="margin-left:auto;display:flex;align-items:center;gap:0;height:100%">
+    <div class="header-badge">Spatial Garden Intelligence</div>
+  </div>
+</header>
+
+<!-- ── STATUS BAR ── -->
+<div class="status-bar" id="status-bar">
+  <span class="status-dot checking" id="dot-server">Server</span>
+  <span class="status-dot checking" id="dot-api">Claude API</span>
+  <span class="status-dot checking" id="dot-tools">Tools</span>
+  <span class="status-dot checking" id="dot-live">Live APIs</span>
+  <span class="status-dot checking" id="dot-db">Persistence</span>
+  <span class="status-bar-right" onclick="toggleDevPanel()">⚙ Developer Panel</span>
+</div>
+
+
+<div class="mobile-overlay" id="mobile-overlay" onclick="toggleMobileSidebar()"></div>
+<div class="app">
+
+  <!-- ── SIDEBAR ── -->
+  <aside class="sidebar">
+
+    <!-- Garden Profile — tight, core fields visible -->
+    <div class="sidebar-section">
+      <div class="sidebar-title">Garden Profile</div>
+      <label>Site Name</label>
+      <input type="text" id="site-name" placeholder="My Garden" value="My Garden">
+      <label>ZIP Code</label>
+      <div style="display:flex;gap:5px">
+        <input type="text" id="zip" placeholder="49503" maxlength="5" style="flex:1">
+        <button onclick="lookupZone()" style="padding:7px 10px;background:var(--green);color:white;border:none;border-radius:var(--r-sm);cursor:pointer;font-size:11px;white-space:nowrap;font-family:inherit">Look up</button>
+      </div>
+      <label>Soil</label>
+      <select id="soil">
+        <option value="">Unknown — look it up</option>
+        <option value="clay loam">Clay Loam</option>
+        <option value="silt loam">Silt Loam</option>
+        <option value="sandy loam">Sandy Loam</option>
+        <option value="loam">Loam</option>
+        <option value="sandy">Sandy</option>
+        <option value="clay">Clay</option>
+      </select>
+      <label>Sun</label>
+      <select id="sun">
+        <option value="full_sun">Full Sun (6+ hrs)</option>
+        <option value="partial_shade">Partial Shade (3–6 hrs)</option>
+        <option value="full_shade">Full Shade (&lt;3 hrs)</option>
+      </select>
+      <label>Goals</label>
+      <div class="tag-row">
+        <div class="tag" data-goal="grow vegetables"    onclick="toggleGoal(this)">🥕 Vegetables</div>
+        <div class="tag" data-goal="attract pollinators" onclick="toggleGoal(this)">🐝 Pollinators</div>
+        <div class="tag" data-goal="low maintenance"    onclick="toggleGoal(this)">😌 Low maint.</div>
+        <div class="tag" data-goal="native plants"      onclick="toggleGoal(this)">🌿 Natives</div>
+        <div class="tag" data-goal="cut flowers"        onclick="toggleGoal(this)">💐 Flowers</div>
+        <div class="tag" data-goal="herbs and edibles"  onclick="toggleGoal(this)">🌿 Herbs</div>
+      </div>
+      <button class="more-toggle" id="more-toggle" onclick="toggleMoreProfile()">+ More detail</button>
+      <div id="more-profile" style="display:none;margin-top:8px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">
+          <div><label>Experience</label>
+            <select id="experience"><option value="beginner">Beginner</option><option value="some" selected>Some</option><option value="experienced">Experienced</option></select></div>
+          <div><label>Budget</label>
+            <select id="budget"><option value="tight">Tight</option><option value="moderate" selected>Moderate</option><option value="generous">Generous</option></select></div>
+          <div><label>Maintenance</label>
+            <select id="maintenance"><option value="low" selected>Low</option><option value="medium">Medium</option><option value="high">High</option></select></div>
+          <div><label>Water</label>
+            <select id="water-access"><option value="hose" selected>Hose</option><option value="drip">Drip</option><option value="sprinkler">Sprinkler</option><option value="hand">Hand</option></select></div>
+          <div><label>Drainage</label>
+            <select id="drainage"><option value="">Unknown</option><option value="good">Good</option><option value="slow">Slow</option><option value="poor">Poor</option></select></div>
+          <div><label>Deer / Pests</label>
+            <select id="pest-pressure"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">Heavy</option></select></div>
+        </div>
+        <label style="margin-top:8px">Known problems</label>
+        <textarea id="known-problems" rows="2" placeholder="heavy clay, drainage issues…"></textarea>
+        <label>Past failures</label>
+        <textarea id="past-failures" rows="2" placeholder="lavender rotted, tomatoes wilted…"></textarea>
+      </div>
+    </div>
+
+    <!-- Active Profile -->
+    <div class="sidebar-section">
+      <div class="sidebar-title">Active Profile</div>
+      <div class="profile-display" id="profile-summary">Fill in your garden details above.</div>
+      <div id="profile-saved" style="display:none;font-size:10px;color:#6ab06a;margin-top:5px;text-align:center">&#10003; Saved</div>
+    </div>
+
+    <!-- Gold Demo Badge -->
+    <div class="sidebar-section" style="padding:12px 14px">
+      <button class="demo-badge-btn" onclick="openDemoMode()">
+        <div class="demo-badge-icon">✦</div>
+        <div class="demo-badge-text">
+          <span class="demo-badge-title">Demo Mode</span>
+          <span class="demo-badge-sub">10 live scenarios · real agent</span>
+        </div>
+        <span style="margin-left:auto;color:var(--gold);font-size:11px;opacity:0.7">▶</span>
+      </button>
+    </div>
+
+    <!-- Intelligence Hub — actions grouped by category -->
+    <div class="sidebar-section">
+      <div class="sidebar-title">Intelligence</div>
+
+      <!-- Primary: Plan & Diagnose -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:10px">
+        <button class="action-primary" onclick="runPlanCheck()">🎯 Plan Check</button>
+        <button class="action-gold"    onclick="generateGardenPlan()">📑 Garden Plan</button>
+      </div>
+
+      <!-- Category: Plant -->
+      <div class="action-group">
+        <div class="action-group-label">Plant</div>
+        <button class="action-chip" onclick="quickAction('What should I plant this month for my zone, soil, and sun conditions? Give me a specific list with timing.')">What to plant now</button>
+        <button class="action-chip" onclick="quickAction('Look up low-maintenance perennials that work in my zone, soil, and sun conditions.')">Recommendations</button>
+        <button class="action-chip" onclick="quickAction('My plant leaves are yellowing and I see small bugs on the undersides. What should I do?')">Diagnose a problem</button>
+      </div>
+
+      <!-- Category: Conditions -->
+      <div class="action-group">
+        <div class="action-group-label">Conditions</div>
+        <button class="action-chip" onclick="quickAction('Should I water today? Check the recent rainfall and forecast for my area.')">💧 Watering check</button>
+        <button class="action-chip" onclick="quickAction('Check the pollen forecast for my area and any garden implications.')">🌸 Pollen today</button>
+        <button class="action-chip" onclick="quickAction('Check for any active NOAA frost or freeze alerts for my area and what I should protect.')">🌡️ Frost alerts</button>
+        <button class="action-chip" onclick="quickAction('How much rain has my area had in the last 2 weeks? Should I adjust my watering?')">🌧️ Recent rainfall</button>
+      </div>
+
+      <!-- Category: Reports -->
+      <div class="action-group">
+        <div class="action-group-label">Reports</div>
+        <button class="action-chip" onclick="quickAction('Generate my monthly DIY garden report with priorities, weather, and what to watch.')">Monthly report</button>
+        <button class="action-chip" onclick="quickAction('What should I do this weekend in my garden? Give me 3 specific tasks for my conditions.')">Weekend tasks</button>
+      </div>
+    </div>
+
+    <!-- Garden Memory -->
+    <div class="sidebar-section" id="memory-section">
+      <div class="sidebar-title">Garden Memory</div>
+      <div id="mem-tasks"><div style="font-size:10px;color:var(--nb-label)">No pending tasks</div></div>
+      <div id="mem-diagnoses" style="margin-top:6px"></div>
+    </div>
+
+    <!-- How It Works -->
+    <div class="sidebar-section">
+      <div class="sidebar-title">How It Works</div>
+      <div style="font-size:10.5px;color:var(--nb-label);line-height:1.65">
+        Claude reads your question and decides which tools to call — no hardcoded routing.
+        <div style="margin-top:8px;display:flex;flex-direction:column;gap:3px">
+          <span style="color:var(--nb-text);font-size:10px"><span style="color:#4caf50">●</span> get_garden_zone <span style="color:var(--nb-label)">USDA zone</span></span>
+          <span style="color:var(--nb-text);font-size:10px"><span style="color:#4caf50">●</span> get_soil_data <span style="color:var(--nb-label)">SoilGrids (ISRIC)</span></span>
+          <span style="color:var(--nb-text);font-size:10px"><span style="color:#4caf50">●</span> get_weather_forecast <span style="color:var(--nb-label)">NOAA / Open-Meteo</span></span>
+          <span style="color:var(--nb-text);font-size:10px"><span style="color:#4caf50">●</span> get_frost_alerts <span style="color:var(--nb-label)">NOAA NWS</span></span>
+          <span style="color:var(--nb-text);font-size:10px"><span style="color:#4caf50">●</span> get_pollen_forecast <span style="color:var(--nb-label)">Air Quality API</span></span>
+          <span style="color:var(--nb-text);font-size:10px"><span style="color:#4caf50">●</span> lookup_plant_database <span style="color:var(--nb-label)">OpenFarm + iNaturalist</span></span>
+          <span style="color:var(--nb-text);font-size:10px"><span style="color:#4caf50">●</span> identify_plant <span style="color:var(--nb-label)">Photo diagnosis</span></span>
+          <span style="color:var(--nb-text);font-size:10px"><span style="color:#4caf50">●</span> generate_diy_report <span style="color:var(--nb-label)">Monthly plan</span></span>
+        </div>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- ── MAIN AREA ── -->
+  <main class="main">
+
+      <!-- ─── Tab bar ─── -->
+      <div class="tab-bar" role="tablist">
+        <button class="tab-btn active" role="tab" aria-selected="true"  data-tab="chat"   onclick="switchTab('chat')">💬 Chat</button>
+        <button class="tab-btn"        role="tab" aria-selected="false" data-tab="garden" onclick="switchTab('garden')">🌿 Garden</button>
+        <button class="tab-btn"        role="tab" aria-selected="false" data-tab="tasks"  onclick="switchTab('tasks')">✅ Tasks<span class="tab-badge" id="task-count-badge" style="display:none">0</span></button>
+        <button class="tab-btn"        role="tab" aria-selected="false" data-tab="plants" onclick="switchTab('plants')">🌱 Plants</button>
+      </div>
+
+      <!-- ─── CHAT tab ─── -->
+      <div class="tab-panel active" id="tab-chat" role="tabpanel">
+        <div class="chat-area" id="chat-area">
+          <div class="welcome" id="welcome">
+            <div style="font-size:42px;font-weight:800;color:var(--green-dark);letter-spacing:-1px;margin-bottom:4px">JarDIYn</div>
+            <div style="font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--stone-light);margin-bottom:20px">Spatial Garden Intelligence</div>
+            <div id="todays-priorities" style="width:100%;max-width:560px;margin-bottom:16px;display:none">
+              <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--stone-light);margin-bottom:8px">Today in your garden</div>
+              <div id="priority-tasks" style="display:flex;flex-direction:column;gap:6px"></div>
+            </div>
+            <p style="font-size:14px;color:var(--stone);max-width:400px;line-height:1.65;margin-bottom:20px" id="welcome-desc">
+              Real soil data, USDA zones, live weather — so you know <strong style="color:var(--ink)">exactly what to do next in your yard.</strong>
+            </p>
+            <div class="welcome-prompts">
+              <button class="welcome-prompt" onclick="quickAction('What should I do in my garden this week? Check my zone, weather, and soil conditions.')">
+                <span style="font-size:20px;margin-bottom:5px;display:block">📍</span>
+                <strong style="font-size:13px;display:block;color:var(--ink);margin-bottom:2px">This week in my garden</strong>
+                <span style="font-size:11px;color:var(--stone)">Zone + live weather + soil → next actions</span>
+              </button>
+              <button class="welcome-prompt" onclick="quickAction('My tomato leaves have yellow spots and bugs on the undersides. What is wrong and how do I treat it safely?')">
+                <span style="font-size:20px;margin-bottom:5px;display:block">🔍</span>
+                <strong style="font-size:13px;display:block;color:var(--ink);margin-bottom:2px">Diagnose a plant problem</strong>
+                <span style="font-size:11px;color:var(--stone)">Describe symptoms or upload a photo</span>
+              </button>
+              <button class="welcome-prompt" onclick="quickAction('What should I plant right now for my zone, soil, and sun conditions? Give me a specific list.')">
+                <span style="font-size:20px;margin-bottom:5px;display:block">🌱</span>
+                <strong style="font-size:13px;display:block;color:var(--ink);margin-bottom:2px">What to plant right now</strong>
+                <span style="font-size:11px;color:var(--stone)">Zone + season + goals → curated list</span>
+              </button>
+              <button class="welcome-prompt" onclick="quickAction('Generate my monthly DIY garden report with priorities, weather context, and what to watch this month.')">
+                <span style="font-size:20px;margin-bottom:5px;display:block">📋</span>
+                <strong style="font-size:13px;display:block;color:var(--ink);margin-bottom:2px">Monthly garden report</strong>
+                <span style="font-size:11px;color:var(--stone)">Tasks, warnings, and local timing</span>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="input-bar">
+          <div style="flex:1;position:relative">
+            <textarea id="msg-input" placeholder="Ask anything about your garden..." rows="1" maxlength="2000"
+              aria-label="Message input"
+              style="width:100%;padding:10px 40px 10px 14px;min-height:44px;max-height:120px;border-radius:5px;font-size:14px;border:1px solid var(--sand);background:var(--cream);color:var(--ink);font-family:inherit;resize:none;transition:border-color 0.15s"></textarea>
+            <label for="img-upload" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--stone-light);font-size:18px" title="Upload plant photo">📷</label>
+            <input type="file" id="img-upload" accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif" style="display:none" onchange="handleImageUpload(event)">
+          </div>
+          <button class="send-btn" id="send-btn" onclick="window._pendingImage ? sendMessageWithImage() : sendMessage()">Send</button>
+        </div>
+        <div id="error-banner" class="error-banner" style="display:none"></div>
+      </div>
+
+      <!-- ─── GARDEN tab ─── -->
+      <div class="tab-panel" id="tab-garden" role="tabpanel">
+        <div style="flex:1;overflow-y:auto;padding-bottom:24px">
+          <div class="property-card" id="property-card">
+            <div class="prop-header">
+              <div>
+                <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.45);margin-bottom:3px">Garden Profile</div>
+                <h3 id="prop-name">My Garden</h3>
+              </div>
+              <div class="zone-badge" id="prop-zone">Zone —</div>
+            </div>
+            <div class="prop-grid">
+              <div class="prop-cell"><div class="pl">Soil</div><div class="pv" id="prop-soil">—</div></div>
+              <div class="prop-cell"><div class="pl">Sun</div><div class="pv" id="prop-sun">—</div></div>
+              <div class="prop-cell"><div class="pl">Goals</div><div class="pv" id="prop-goals" style="font-size:11px;font-weight:500">—</div></div>
+              <div class="prop-cell"><div class="pl">Experience</div><div class="pv" id="prop-exp">—</div><div class="ps" id="prop-budget"></div></div>
+            </div>
+          </div>
+
+          <div class="today-widget">
+            <div class="today-card">
+              <div class="tl">Weather Now</div>
+              <div class="tv" id="g-temp">—°</div>
+              <div class="ts" id="g-cond">Fill ZIP to load</div>
+            </div>
+            <div class="today-card">
+              <div class="tl">Frost Risk</div>
+              <div class="tv" id="g-frost" style="font-size:14px;padding-top:4px">—</div>
+              <div class="frost-meter">
+                <div class="frost-pip" id="fp1"></div><div class="frost-pip" id="fp2"></div>
+                <div class="frost-pip" id="fp3"></div><div class="frost-pip" id="fp4"></div>
+              </div>
+            </div>
+            <div class="today-card">
+              <div class="tl">Pollen</div>
+              <div class="tv" id="g-pollen" style="font-size:14px;padding-top:4px">—</div>
+              <div class="pollen-bar"><div class="pollen-fill" id="pollen-fill" style="width:0%"></div></div>
+              <div class="ts" id="g-pollen-type" style="margin-top:4px"></div>
+            </div>
+          </div>
+
+          <div style="margin:20px 24px 0">
+            <div class="section-title">Diagnosis History</div>
+            <div id="g-diagnoses"><div style="color:var(--stone);font-size:13px">No diagnoses yet. Describe a problem in Chat to get started.</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── TASKS tab ─── -->
+      <div class="tab-panel" id="tab-tasks" role="tabpanel">
+        <div class="tasks-view">
+          <div class="tasks-section">
+            <div class="section-title">Due today &amp; overdue</div>
+            <div id="tasks-urgent"><div style="color:var(--stone);font-size:13px">No urgent tasks.</div></div>
+          </div>
+          <div class="tasks-section">
+            <div class="section-title">Upcoming</div>
+            <div id="tasks-upcoming"><div style="color:var(--stone);font-size:13px">No upcoming tasks. JarDIYn creates tasks automatically from diagnoses and plans.</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── PLANTS tab ─── -->
+      <div class="tab-panel" id="tab-plants" role="tabpanel">
+        <div class="plants-view">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div class="section-title" style="margin-bottom:0">Plant Inventory</div>
+            <button onclick="promptAddPlant()" style="background:var(--green);color:white;border:none;border-radius:4px;padding:6px 14px;font-size:12px;cursor:pointer;font-family:inherit">+ Add Plant</button>
+          </div>
+          <div class="plant-grid" id="plant-grid">
+            <div style="color:var(--stone);font-size:13px;grid-column:1/-1;margin-top:12px">No plants yet. Add them as you work with JarDIYn.</div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let history = [];
+let goals = new Set();
+
+// Persistent session — survives refresh via the server's SQLite store
+let sessionId = localStorage.getItem('jardiyn_session');
+if (!sessionId) {
+  sessionId = 'sess_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+  localStorage.setItem('jardiyn_session', sessionId);
+}
+window.sessionId = sessionId; // expose for async functions
+
+// ── Profile ───────────────────────────────────────────────────────────────
+function getProfile() {
+  const zip  = document.getElementById('zip').value.trim();
+  const soil = document.getElementById('soil').value;
+  const sun  = document.getElementById('sun').value;
+  const name = document.getElementById('site-name').value.trim() || 'My Garden';
+  const get  = (id, dflt = '') => (document.getElementById(id)?.value || dflt).trim();
+  return {
+    site_name:           name,
+    zip_code:            zip || undefined,
+    soil_type:           soil || undefined,
+    sun_exposure:        sun,
+    goals:               [...goals],
+    plant_inventory:     [],
+    // Extended Garden Passport (P0 from roadmap)
+    experience_level:    get('experience', 'some'),
+    budget:              get('budget', 'moderate'),
+    maintenance_tolerance: get('maintenance', 'low'),
+    water_access:        get('water-access', 'hose'),
+    drainage:            get('drainage') || undefined,
+    pest_pressure:       get('pest-pressure', 'medium'),
+    known_problems:      get('known-problems') || undefined,
+    past_failures:       get('past-failures') || undefined,
+  };
+}
+
+function toggleGoal(el) {
+  const g = el.dataset.goal;
+  if (goals.has(g)) { goals.delete(g); el.classList.remove('active'); }
+  else { goals.add(g); el.classList.add('active'); }
+  updateProfileSummary();
+}
+
+function showProfileSaved() {
+  const el = document.getElementById('profile-saved');
+  if (!el) return;
+  el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 2000);
+}
+
+// ── localStorage persistence (P0 from roadmap) ──────────────────────────────
+// Doc says: "Use localStorage for MVP persistence, but structure data so it
+// can later move to cloud accounts." This matches that contract exactly.
+function saveProfileLocal() {
+  try {
+    const p = getProfile();
+    localStorage.setItem('jardiyn_garden_passport', JSON.stringify({
+      userId: 'local-demo-user',
+      propertyId: 'demo-property-001',
+      gardenPassport: p,
+      propertyPassport: {},
+      plans: [],
+      history: [],
+      sharedWith: [],
+      savedAt: new Date().toISOString()
+    }));
+  } catch (err) { console.warn('saveProfileLocal failed', err); }
+}
+
+function loadProfileLocal() {
+  try {
+    const raw = localStorage.getItem('jardiyn_garden_passport');
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    const p = data.gardenPassport || {};
+    const setIf = (id, val) => {
+      const el = document.getElementById(id);
+      if (el && val != null) el.value = val;
+    };
+    setIf('site-name', p.site_name);
+    setIf('zip', p.zip_code);
+    setIf('soil', p.soil_type);
+    setIf('sun', p.sun_exposure);
+    setIf('experience', p.experience_level);
+    setIf('budget', p.budget);
+    setIf('maintenance', p.maintenance_tolerance);
+    setIf('water-access', p.water_access);
+    setIf('drainage', p.drainage);
+    setIf('pest-pressure', p.pest_pressure);
+    setIf('known-problems', p.known_problems);
+    setIf('past-failures', p.past_failures);
+    if (Array.isArray(p.goals)) {
+      goals = new Set(p.goals);
+      document.querySelectorAll('.tag').forEach(t => {
+        if (goals.has(t.dataset.goal)) t.classList.add('active');
+      });
+    }
+    return true;
+  } catch (err) {
+    console.warn('loadProfileLocal failed', err);
+    return false;
+  }
+}
+
+// ── Demo Scenarios (P0 from roadmap — 10 scenarios × 5 prompts) ─────────────
+// Each scenario preloads a Garden Passport and offers 5 ready-to-send prompts.
+// The prompt goes through the real /api/chat — these are not fake simulations.
+const SCENARIOS = {
+  'beginner-backyard': {
+    title: 'Beginner Backyard Garden',
+    profile: { zip_code: '22030', soil_type: 'loam', sun_exposure: 'full_sun',
+      experience_level: 'beginner', budget: 'tight', maintenance_tolerance: 'low',
+      goals: ['attract pollinators', 'low maintenance'],
+      known_problems: 'Never gardened before. Worried I will kill everything.' },
+    prompts: [
+      "I have never gardened before. What is the simplest thing I can plant this season that will probably succeed?",
+      "What are the 3 most common beginner mistakes I should avoid?",
+      "Give me a 30-day beginner plan with weekend-sized tasks.",
+      "What tools do I actually need vs what stores try to sell beginners?",
+      "What plants are forgiving if I forget to water them?",
+    ]
+  },
+  'clay-soil': {
+    title: 'Clay Soil Problem Yard',
+    profile: { zip_code: '49503', soil_type: 'clay', sun_exposure: 'partial_shade',
+      experience_level: 'some', budget: 'moderate', maintenance_tolerance: 'low',
+      drainage: 'slow',
+      goals: ['low maintenance', 'attract pollinators'],
+      known_problems: 'Heavy clay soil, plants failed last year, poor drainage.',
+      past_failures: 'Lavender rotted, tomatoes wilted, lost 4 perennials' },
+    prompts: [
+      "What will probably fail in my clay soil?",
+      "What plants actually thrive in heavy clay?",
+      "How do I improve clay soil without overcomplicating it?",
+      "What should I avoid buying at the nursery for clay soil?",
+      "Create a realistic 30-day recovery plan for my failed yard.",
+    ]
+  },
+  'pollinator-native': {
+    title: 'Pollinator Native Garden',
+    profile: { zip_code: '20770', soil_type: 'loam', sun_exposure: 'full_sun',
+      experience_level: 'some', budget: 'moderate', maintenance_tolerance: 'medium',
+      goals: ['attract pollinators', 'native plants'],
+      known_problems: 'Want to support bees and butterflies but unsure which natives' },
+    prompts: [
+      "Which native pollinator plants are best for my zone?",
+      "Plan a bloom-time sequence so pollinators have food spring through fall.",
+      "What should I avoid that looks pollinator-friendly but actually isn't?",
+      "How do I convert part of my lawn to a pollinator strip?",
+      "What invasive species do I need to remove before planting natives?",
+    ]
+  },
+  'plant-diagnosis': {
+    title: 'Plant Diagnosis',
+    profile: { zip_code: '37027', soil_type: 'silt loam', sun_exposure: 'partial_shade',
+      experience_level: 'some', budget: 'moderate', maintenance_tolerance: 'medium',
+      goals: ['grow vegetables'],
+      known_problems: 'Tomato leaves yellowing, white spots on squash, holes in pepper leaves' },
+    prompts: [
+      "My tomato leaves are yellowing from the bottom up. What is going wrong?",
+      "White powdery spots on my squash leaves — what is it and how do I treat it safely?",
+      "Something is eating holes in my pepper plants overnight. How do I figure out what?",
+      "When should I worry vs when is yellowing normal?",
+      "What is the safest first treatment I can try before chemicals?",
+    ]
+  },
+  'nursery-shopping': {
+    title: 'Nursery Shopping Assistant',
+    profile: { zip_code: '02138', soil_type: 'sandy loam', sun_exposure: 'full_sun',
+      experience_level: 'beginner', budget: 'tight', maintenance_tolerance: 'low',
+      goals: ['low maintenance', 'native plants'],
+      known_problems: 'About to go to nursery, want a shopping list and know what to avoid' },
+    prompts: [
+      "Build me a smart nursery shopping list for my zone and soil.",
+      "What should I avoid buying at the nursery that looks tempting but won't survive here?",
+      "How do I tell a healthy plant from a stressed one before buying?",
+      "What questions should I ask the nursery staff?",
+      "Compare 3 things that would actually thrive in my conditions.",
+    ]
+  },
+  'drought-week': {
+    title: 'Drought / Heat Stress Week',
+    profile: { zip_code: '85016', soil_type: 'sandy', sun_exposure: 'full_sun',
+      experience_level: 'some', budget: 'moderate', maintenance_tolerance: 'medium',
+      water_access: 'drip',
+      goals: ['low maintenance'],
+      known_problems: 'Heat wave, plants stressed, water restrictions' },
+    prompts: [
+      "We are in a 100°F+ stretch. Which of my plants are most at risk?",
+      "How much water should I give and when during a heat wave?",
+      "Should I prune, mulch, or shade-cloth right now?",
+      "What plants should I plan to replace with more heat-tolerant options?",
+      "How can I tell heat stress from underwatering vs disease?",
+    ]
+  },
+  'shade-yard': {
+    title: 'Shady Front Yard',
+    profile: { zip_code: '97214', soil_type: 'clay loam', sun_exposure: 'full_shade',
+      experience_level: 'some', budget: 'moderate', maintenance_tolerance: 'low',
+      goals: ['low maintenance', 'native plants'],
+      known_problems: 'North-facing yard, almost no direct sun, hostas chewed by deer',
+      past_failures: 'Lavender, roses, anything that needed sun',
+      pest_pressure: 'high' },
+    prompts: [
+      "What actually thrives in deep shade besides hostas?",
+      "What deer-resistant shade plants work in my zone?",
+      "How do I design a shade garden that isn't just green-on-green?",
+      "What ground covers work in shade where grass won't grow?",
+      "Convert my failing shade lawn into something that actually works.",
+    ]
+  },
+  'raised-bed-food': {
+    title: 'Raised Bed Food Garden',
+    profile: { zip_code: '80301', soil_type: 'loam', sun_exposure: 'full_sun',
+      experience_level: 'some', budget: 'moderate', maintenance_tolerance: 'medium',
+      water_access: 'drip',
+      goals: ['grow vegetables', 'herbs and edibles'],
+      known_problems: 'Building 4 raised beds, want maximum yield' },
+    prompts: [
+      "Plan a 4-bed rotation for vegetables in my zone with max yield.",
+      "What is the ideal soil mix for new raised beds?",
+      "Which crops pair well together and which fight each other?",
+      "Build me a sowing calendar for spring through fall.",
+      "What pest and disease issues are most common in raised beds?",
+    ]
+  },
+  'community-garden': {
+    title: 'Community Garden Plot',
+    profile: { zip_code: '60614', soil_type: 'silt loam', sun_exposure: 'full_sun',
+      experience_level: 'some', budget: 'tight', maintenance_tolerance: 'medium',
+      goals: ['grow vegetables', 'attract pollinators'],
+      known_problems: '10x10 community plot, weekly visits, share tools, need quick wins' },
+    prompts: [
+      "I have a 10x10 community garden plot I can only visit on weekends. What should I grow?",
+      "What plants forgive missed waterings between visits?",
+      "How do I avoid the most common community garden mistakes?",
+      "What should I grow that the whole community will benefit from?",
+      "Create a one-page plot plan with planting dates.",
+    ]
+  },
+  'public-to-backyard': {
+    title: 'Public Garden → Backyard Translation',
+    profile: { zip_code: '19046', soil_type: 'loam', sun_exposure: 'full_sun',
+      experience_level: 'some', budget: 'generous', maintenance_tolerance: 'medium',
+      goals: ['attract pollinators', 'cut flowers'],
+      known_problems: 'Inspired by Longwood Gardens but have a normal-sized yard and budget' },
+    prompts: [
+      "I loved the perennial borders at Longwood. How do I translate that to my normal yard?",
+      "What parts of public garden design don't translate to small yards?",
+      "Give me a backyard-scale plant palette inspired by an English border.",
+      "What is the realistic maintenance for that kind of garden?",
+      "Build phases so I can do this over 2 years instead of all at once.",
+    ]
+  },
+};
+
+function loadScenario(id) {
+  const promptsEl = document.getElementById('scenario-prompts');
+  const buttonsEl = document.getElementById('scenario-prompt-buttons');
+  const titleEl = document.getElementById('scenario-title');
+  if (!id) { promptsEl.style.display = 'none'; return; }
+  const scenario = SCENARIOS[id];
+  if (!scenario) return;
+
+  // Apply profile to all form fields
+  const p = scenario.profile;
+  const setVal = (fid, v) => { const el = document.getElementById(fid); if (el && v != null) el.value = v; };
+  setVal('site-name', scenario.title);
+  setVal('zip', p.zip_code);
+  setVal('soil', p.soil_type);
+  setVal('sun', p.sun_exposure);
+  setVal('experience', p.experience_level);
+  setVal('budget', p.budget);
+  setVal('maintenance', p.maintenance_tolerance);
+  setVal('water-access', p.water_access || 'hose');
+  setVal('drainage', p.drainage || '');
+  setVal('pest-pressure', p.pest_pressure || 'medium');
+  setVal('known-problems', p.known_problems || '');
+  setVal('past-failures', p.past_failures || '');
+
+  // Apply goals
+  goals = new Set(p.goals || []);
+  document.querySelectorAll('.tag').forEach(t => {
+    if (goals.has(t.dataset.goal)) t.classList.add('active');
+    else t.classList.remove('active');
+  });
+
+  updateProfileSummary();
+  saveProfileLocal();
+  showProfileSaved();
+
+  // Render prompt buttons
+  titleEl.textContent = scenario.title + ' — try a prompt:';
+  buttonsEl.innerHTML = '';
+  scenario.prompts.forEach(prompt => {
+    const btn = document.createElement('button');
+    btn.className = 'quick-btn';
+    btn.style.cssText = 'font-size:11px;line-height:1.35;text-align:left;padding:8px 10px';
+    btn.textContent = prompt;
+    btn.onclick = () => quickAction(prompt);
+    buttonsEl.appendChild(btn);
+  });
+  promptsEl.style.display = 'block';
+
+  if (typeof devLog === 'function')
+    devLog('Loaded scenario: ' + scenario.title, 'info');
+}
+
+// ── Plan Check Mode (P0 from roadmap) ───────────────────────────────────────
+// Forces structured "what looks good / what may fail / next 3 actions" output.
+function runPlanCheck() {
+  const p = getProfile();
+  const profileSummary = [
+    p.zip_code && ('ZIP ' + p.zip_code),
+    p.soil_type,
+    p.sun_exposure?.replace('_',' '),
+    p.experience_level + ' gardener',
+    p.budget + ' budget',
+    p.maintenance_tolerance + ' maintenance tolerance',
+    p.drainage && (p.drainage + ' drainage'),
+    p.pest_pressure !== 'low' && (p.pest_pressure + ' pest pressure'),
+    p.goals?.length && ('goals: ' + p.goals.join(', ')),
+    p.known_problems && ('known problems: ' + p.known_problems),
+    p.past_failures && ('past failures: ' + p.past_failures),
+  ].filter(Boolean).join(' · ');
+
+  const prompt =
+    `PLAN CHECK MODE: Review my garden situation honestly. My profile: ${profileSummary || 'minimal info'}.\n\n` +
+    `Format your response in EXACTLY this structure with these section headers:\n\n` +
+    `## ✅ What Looks Good\n(2–4 specific positives about what they have going for them)\n\n` +
+    `## ⚠️ What May Fail\n(2–4 specific risks based on their conditions and goals)\n\n` +
+    `## ❓ What Needs More Context\n(1–2 specific pieces of info that would change the recommendation)\n\n` +
+    `## 🔧 What I Would Change\n(2–3 specific changes, in order of priority)\n\n` +
+    `## 🎯 Next 3 Actions\n(3 numbered, time-bound, weekend-sized next steps)\n\n` +
+    `Use real data — call tools for zone, soil, weather, frost as needed. Be direct but supportive. ` +
+    `Correct the plan, not the person.`;
+  quickAction(prompt);
+}
+
+// ── Generate Garden Plan (P0 from roadmap) ──────────────────────────────────
+// Forces the 12-section structured deliverable.
+function generateGardenPlan() {
+  const p = getProfile();
+  const profileSummary = [
+    p.zip_code && ('ZIP ' + p.zip_code),
+    p.soil_type,
+    p.sun_exposure?.replace('_',' '),
+    p.experience_level + ' gardener',
+    p.budget + ' budget',
+    p.maintenance_tolerance + ' maintenance',
+    p.water_access + ' watering',
+    p.drainage && (p.drainage + ' drainage'),
+    p.pest_pressure !== 'low' && (p.pest_pressure + ' deer/pest pressure'),
+    p.goals?.length && ('goals: ' + p.goals.join(', ')),
+    p.known_problems && ('known problems: ' + p.known_problems),
+    p.past_failures && ('past failures: ' + p.past_failures),
+  ].filter(Boolean).join(' · ');
+
+  const prompt =
+    `GENERATE GARDEN PLAN: Create a complete, structured garden plan for me.\n\n` +
+    `Profile: ${profileSummary || 'minimal — make reasonable defaults explicit'}\n\n` +
+    `Format your response with EXACTLY these section headers, in this order:\n\n` +
+    `## 📍 Site Summary\n(2–3 sentences — zone, conditions, your read on the site)\n\n` +
+    `## 🎯 Main Goal\n(1 sentence — the priority outcome)\n\n` +
+    `## 🌱 Recommended Plants\n(5–8 plants, formatted as: **Common Name** (Latin) — why it works here)\n\n` +
+    `## 🚫 Avoid List\n(3–5 plants that look tempting but will fail in these conditions, with reason)\n\n` +
+    `## 🪨 Soil Prep\n(Specific amendments and method, 3–5 numbered steps)\n\n` +
+    `## 💧 Watering Guidance\n(Schedule + signs of over/under-watering for this site)\n\n` +
+    `## 🗓️ Weekend Tasks\n(4–6 numbered, weekend-sized tasks for the next month)\n\n` +
+    `## 🛒 Shopping List\n(Itemized list with approximate quantities)\n\n` +
+    `## ⚠️ Safety Notes\n(Any pest, toxicity, allergen, or tool-safety callouts)\n\n` +
+    `## 📚 Sources Used\n(Briefly which tools/data informed this plan)\n\n` +
+    `## 🌿 What to Ask a Local Nursery\n(3 specific questions to verify locally)\n\n` +
+    `## 🤝 When to Call a Professional\n(When this is beyond DIY — be honest)\n\n` +
+    `Use real tools — call zone, soil, weather, plant database as needed. Ground everything in their actual conditions.`;
+  quickAction(prompt);
+}
+
+window.loadScenario = loadScenario;
+window.runPlanCheck = runPlanCheck;
+window.generateGardenPlan = generateGardenPlan;
+
+function updateProfileSummary() {
+  const p = getProfile();
+  const lines = [];
+  if (p.zip_code) lines.push(`<strong>ZIP:</strong> ${p.zip_code}`);
+  if (p.soil_type) lines.push(`<strong>Soil:</strong> ${p.soil_type}`);
+  lines.push(`<strong>Sun:</strong> ${p.sun_exposure.replace('_', ' ')}`);
+  lines.push(`<strong>Experience:</strong> ${p.experience_level}`);
+  lines.push(`<strong>Budget:</strong> ${p.budget}`);
+  lines.push(`<strong>Maint:</strong> ${p.maintenance_tolerance}`);
+  if (p.drainage) lines.push(`<strong>Drainage:</strong> ${p.drainage}`);
+  if (p.pest_pressure && p.pest_pressure !== 'low') lines.push(`<strong>Pests:</strong> ${p.pest_pressure}`);
+  if (p.goals.length) lines.push(`<strong>Goals:</strong> ${p.goals.join(', ')}`);
+  if (p.known_problems) lines.push(`<strong>Issues:</strong> ${p.known_problems.slice(0,60)}${p.known_problems.length>60?'…':''}`);
+  document.getElementById('profile-summary').innerHTML =
+    lines.length ? lines.join('<br>') : 'Fill in your garden details above.';
+}
+['zip','soil','sun','site-name','experience','budget','maintenance','water-access','drainage','pest-pressure','known-problems','past-failures'].forEach(id =>
+  document.getElementById(id)?.addEventListener('change', () => { updateProfileSummary(); showProfileSaved(); saveProfileLocal(); }));
+['zip','site-name','known-problems','past-failures'].forEach(id =>
+  document.getElementById(id)?.addEventListener('input', () => { updateProfileSummary(); saveProfileLocal(); }));
+
+// ── Markdown renderer (simple) ─────────────────────────────────────────────
+function renderMarkdown(text) {
+  return text
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>\n?)+/g, s => `<ul>${s}</ul>`)
+    .replace(/\n\n/g, '</p><p>')
+    .replace(/^(?!<[hulo])/gm, '')
+    .replace(/\n/g, '<br>');
+}
+
+// ── Append message bubble ──────────────────────────────────────────────────
+function appendMessage(role, text, toolsUsed = [], rounds = 0, trace = []) {
+  const welcome = document.getElementById('welcome');
+  if (welcome) welcome.remove();
+
+  const chat = document.getElementById('chat-area');
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+
+  const avatar = role === 'user' ? 'You' : 'J';
+  const now = new Date();
+  const ts = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+  let traceHTML = '';
+  if (role === 'assistant' && toolsUsed.length > 0) {
+    const toolLabels = {
+      'identify_plant': 'Plant ID',
+      'get_garden_zone': 'USDA Zone',
+      'get_soil_data': 'SoilGrids',
+      'get_weather_forecast': 'NOAA Weather',
+      'generate_diy_report': 'DIY Report',
+      'lookup_plant_database': 'Plant Database',
+      'get_frost_alerts': 'NOAA Frost Alerts',
+      'get_pollen_forecast': 'Pollen Forecast',
+      'get_historical_weather': 'Rain History'
+    };
+    // Build map of tool name -> mode from trace
+    const toolMode = {};
+    const toolSource = {};
+    (trace || []).forEach(t => {
+      if (t.step === 'tool_execution' && t.tool) {
+        toolMode[t.tool] = t.mode || 'unknown';
+        if (t.source) toolSource[t.tool] = t.source;
+      }
+    });
+    const badges = toolsUsed.map(t => {
+      const mode = toolMode[t] || 'unknown';
+      const dot = mode === 'live' ? '🟢' : mode === 'sandbox' ? '🟡' : '⚪';
+      const label = toolLabels[t] || t.replace(/_/g,' ');
+      const title = toolSource[t] ? `${t} · ${mode.toUpperCase()} · ${toolSource[t]}` : `${t} · ${mode}`;
+      return `<span class="tool-badge active" title="${title}">${dot} ${label}</span>`;
+    }).join('');
+    // Compute overall confidence based on live ratio
+    const liveCount = toolsUsed.filter(t => toolMode[t] === 'live').length;
+    const conf = liveCount === toolsUsed.length ? 'high (all live data)'
+               : liveCount > 0 ? `medium (${liveCount}/${toolsUsed.length} live)`
+               : 'mock data (sandbox)';
+    traceHTML = `<div class="tool-trace">${badges}<span class="rounds-badge">${rounds} round${rounds!==1?'s':''}</span><span class="rounds-badge" style="background:var(--cream)">confidence: ${conf}</span></div>`;
+  } else if (role === 'assistant') {
+    traceHTML = `<div class="tool-trace"><span class="rounds-badge">no tools — direct answer (${rounds} round)</span></div>`;
+  }
+
+  div.innerHTML = `
+    <div class="msg-avatar">${avatar}</div>
+    <div class="msg-bubble rendered">
+      <p>${renderMarkdown(text)}</p>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
+        ${role==='assistant' ? '<button onclick="copyMsg(this)" style="background:none;border:1px solid var(--sand);border-radius:3px;padding:2px 8px;font-size:10px;color:var(--stone);cursor:pointer;font-family:inherit" title="Copy response">Copy</button>' : '<span></span>'}
+        <span style="font-size:10px;color:#9a9a8a">${ts}</span>
+      </div>
+      ${traceHTML}
+    </div>`;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+  return div;
+}
+
+function appendTyping() {
+  const chat = document.getElementById('chat-area');
+  const div = document.createElement('div');
+  div.className = 'msg assistant typing-msg';
+  div.id = 'typing-indicator';
+  div.innerHTML = `
+    <div class="msg-avatar">J</div>
+    <div class="msg-bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>`;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function removeTyping() {
+  document.getElementById('typing-indicator')?.remove();
+}
+
+function showError(msg) {
+  const b = document.getElementById('error-banner');
+  b.textContent = msg;
+  b.style.display = 'block';
+  setTimeout(() => b.style.display = 'none', 8000);
+}
+
+// ── Send message ───────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════
+// DEVELOPER PANEL + STATUS BAR
+// ══════════════════════════════════════════════════════════════
+
+function setDot(id, state, label) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.className = `status-dot ${state}`;
+  el.textContent = label;
+}
+
+function setDevItem(id, value, state = 'ok') {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = value;
+  const parent = el.closest('.dev-status-item');
+  if (parent) parent.className = `dev-status-item ${state}`;
+}
+
+// Log every chat request in dev panel
+const _origSend = sendMessage;
+window._devWrapSend = function(text) {
+  devLog(`→ Sending: "${(text || document.getElementById('msg-input')?.value || '').slice(0,60)}"`, 'api');
+};
+
+
+
+async function sendMessage(text) {
+  const input = document.getElementById('msg-input');
+  const msg = text || input.value.trim();
+  if (!msg) return;
+
+  input.value = '';
+  input.style.height = '';
+  document.getElementById('send-btn').disabled = true;
+  document.getElementById('error-banner').style.display = 'none';
+
+  appendMessage('user', msg);
+  appendTyping();
+  devLog(`→ POST /api/chat: "${msg.slice(0,60)}"`, 'api');
+
+  const profile = getProfile();
+  const _reqStart = Date.now();
+  const body = { message: msg, garden_profile: profile, history, session_id: sessionId };
+
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    removeTyping();
+
+    if (!res.ok) {
+      const errMsg = data.error || 'Server error — check that ANTHROPIC_API_KEY is set.';
+      showError(errMsg);
+      devLog(`✗ Error ${res.status}: ${errMsg}`, 'error');
+      if (data.detail) devLog(`  Detail: ${data.detail}`, 'error');
+      return;
+    }
+
+    const responseText = data.response || 'I encountered an issue generating a response. Please try again.';
+    appendMessage('assistant', responseText, data.toolsUsed || [], data.rounds || 1, data.trace || []);
+    if (typeof devLogTrace === 'function') devLogTrace(msg, data.toolsUsed||[], data.trace||[], data.rounds||1, Date.now()-_reqStart, profile);
+    if (typeof refreshMemoryAfterResponse === 'function') refreshMemoryAfterResponse();
+    const toolStr = data.toolsUsed?.length ? data.toolsUsed.join(', ') : 'none';
+    devLog(`← Response: ${data.rounds} round(s) | tools: [${toolStr}]`, 'tool');
+    if (data.toolsUsed?.length === 0)
+      devLog('  ↳ Model answered directly — no tools called (PS-02 agentic proof)', 'info');
+
+    // Maintain conversation history for multi-turn
+    history.push({ role: 'user', content: msg });
+    history.push({ role: 'assistant', content: data.response });
+    // Keep last 10 turns to avoid context overflow
+    if (history.length > 20) history = history.slice(-20);
+
+  } catch (err) {
+    removeTyping();
+    showError('Network error: ' + err.message);
+  } finally {
+    document.getElementById('send-btn').disabled = false;
+    input.focus();
+  }
+}
+
+function quickAction(text) {
+  document.getElementById('msg-input').value = text;
+  sendMessage(text);
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+// Auto-resize textarea
+document.getElementById('msg-input').addEventListener('input', function() {
+  this.style.height = '';
+  this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+  const counter = document.getElementById('char-count');
+  if (counter) counter.textContent = this.value.length + '/2000';
+});
+
+// Restore from localStorage if available (doc P0 requirement)
+loadProfileLocal();
+updateProfileSummary();
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GOLD TIER JS — Tab Navigation, Garden Tab, Memory, Dev Lens, Photo Pipeline
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── Tab switching ────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.tab === tab);
+    b.setAttribute('aria-selected', b.dataset.tab === tab);
+  });
+  document.querySelectorAll('.tab-panel').forEach(p => {
+    p.classList.toggle('active', p.id === 'tab-' + tab);
+  });
+  if (tab === 'garden')  loadGardenTab();
+  if (tab === 'tasks')   loadTasksTab();
+  if (tab === 'plants')  loadPlantsTab();
+}
+window.switchTab = switchTab;
+
+// ── Update property card from sidebar profile ────────────────────────────────
+function updatePropertyCard() {
+  const p = typeof getProfile === 'function' ? getProfile() : {};
+  const setText = (id, v) => { const el = document.getElementById(id); if (el && v) el.textContent = v; };
+  setText('prop-name', p.site_name || 'My Garden');
+  setText('prop-zone', p.hardiness_zone ? 'Zone ' + p.hardiness_zone : 'Zone —');
+  setText('prop-soil', p.soil_type || '—');
+  setText('prop-sun',  p.sun_exposure ? p.sun_exposure.replace('_',' ') : '—');
+  setText('prop-goals', p.goals?.join(', ') || '—');
+  setText('prop-exp',   p.experience_level || '—');
+  setText('prop-budget', p.budget ? 'Budget: ' + p.budget : '');
+}
+
+// ── Load Garden tab — property card + live weather/frost/pollen widgets ──────
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SITUATIONAL AWARENESS ENGINE
+// Runs on boot and every 30 min. Fetches live conditions, evaluates
+// against thresholds, and pushes agentic notification nudges.
+// Each alert has a pre-built prompt that fires directly to Claude.
+// ═══════════════════════════════════════════════════════════════════════════
+
+let _conditionsCache = null;      // last fetched conditions
+let _notifsShown     = new Set(); // prevent duplicate alerts this session
+
+// ── Fetch and evaluate all conditions ───────────────────────────────────────
+async function fetchConditions(zip) {
+  if (!zip) return null;
+  try {
+    const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${zip}&count=1&format=json`);
+    const geo    = await geoRes.json();
+    const loc    = geo.results?.[0];
+    if (!loc) return null;
+
+    const [wRes, fRes, pRes] = await Promise.all([
+      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current=temperature_2m,relative_humidity_2m,weathercode,precipitation&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode&temperature_unit=fahrenheit&forecast_days=7`),
+      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&daily=temperature_2m_min&temperature_unit=fahrenheit&forecast_days=3`),
+      fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${loc.latitude}&longitude=${loc.longitude}&hourly=grass_pollen,birch_pollen,mugwort_pollen&forecast_days=1`),
+    ]);
+
+    const wData = await wRes.json();
+    const fData = await fRes.json();
+    const pData = await pRes.json();
+
+    const cur      = wData.current || {};
+    const daily    = wData.daily   || {};
+    const maxTemps = daily.temperature_2m_max || [];
+    const minTemps = daily.temperature_2m_min || [];
+    const precip   = daily.precipitation_sum  || [];
+    const wcodes   = daily.weathercode        || [];
+
+    // Weather code groups
+    const isStorm = (wc) => wc >= 95;
+    const isHeavyRain = (wc) => wc >= 61 && wc <= 77;
+
+    const conditions = {
+      loc,
+      zip,
+      currentTemp:    Math.round(cur.temperature_2m || 0),
+      humidity:       cur.relative_humidity_2m || 0,
+      currentWCode:   cur.weathercode || 0,
+      minNext3Days:   Math.min(...minTemps.slice(0, 3)),
+      maxNext3Days:   Math.max(...maxTemps.slice(0, 3)),
+      maxNext7Days:   Math.max(...maxTemps),
+      stormToday:     isStorm(wcodes[0]) || isStorm(wcodes[1]),
+      stormThisWeek:  wcodes.slice(0, 5).some(isStorm),
+      heavyRainSoon:  wcodes.slice(0, 3).some(isHeavyRain),
+      totalRain7Day:  precip.reduce((a, b) => a + (b || 0), 0),
+      droughtRisk:    precip.slice(0, 7).every(p => (p || 0) < 0.1),
+      grass:          pData.hourly?.grass_pollen?.[12]  || 0,
+      birch:          pData.hourly?.birch_pollen?.[12]  || 0,
+      weed:           pData.hourly?.mugwort_pollen?.[12] || 0,
+    };
+
+    conditions.maxPollen     = Math.max(conditions.grass, conditions.birch, conditions.weed);
+    conditions.frostTonightRisk  = conditions.minNext3Days <= 35;
+    conditions.freezeTonightRisk = conditions.minNext3Days <= 28;
+    conditions.heatWaveRisk  = conditions.maxNext3Days >= 95;
+    conditions.hotSpell       = conditions.maxNext7Days >= 90;
+
+    _conditionsCache = conditions;
+    return conditions;
+  } catch (err) {
+    console.warn('[conditions] fetch failed:', err.message);
+    return null;
+  }
+}
+
+// ── Evaluate conditions and decide which alerts to show ──────────────────────
+function evaluateAlerts(cond, gardenProfile) {
+  if (!cond) return [];
+  const plants = gardenProfile?.goals?.join(', ') || 'your garden';
+  const zone   = gardenProfile?.hardiness_zone   || '';
+  const alerts = [];
+
+  // 🔴 FREEZE WARNING — act tonight
+  if (cond.freezeTonightRisk) {
+    alerts.push({
+      id:       'freeze-warning',
+      urgency:  'red',
+      icon:     '🧊',
+      title:    `Freeze warning — ${cond.minNext3Days}°F expected`,
+      desc:     `Temperatures dropping to ${cond.minNext3Days}°F within 72 hours. Tender plants, containers, and new transplants are at risk.`,
+      prompt:   `URGENT: Freeze warning for my area — temperatures dropping to ${cond.minNext3Days}°F. I grow ${plants}${zone ? ' in Zone ' + zone : ''}. Tell me exactly which plants need protection tonight, what to cover, what to bring inside, and whether to water before the freeze. Be specific to my plant list.`,
+      actionLabel: 'Get freeze protection plan →',
+    });
+  }
+  // 🟡 FROST WATCH — below 35°F
+  else if (cond.frostTonightRisk) {
+    alerts.push({
+      id:       'frost-watch',
+      urgency:  'amber',
+      icon:     '🌡️',
+      title:    `Frost watch — lows near ${cond.minNext3Days}°F`,
+      desc:     `Near-freezing temperatures forecast. Check tender plants, seedlings, and anything recently transplanted.`,
+      prompt:   `Frost watch in my area — temps dropping to ${cond.minNext3Days}°F. I grow ${plants}${zone ? ' in Zone ' + zone : ''}. Which of my plants are vulnerable? What should I do today to prepare, and is there anything I can skip protecting?`,
+      actionLabel: 'Check which plants are at risk →',
+    });
+  }
+
+  // 🔴 HEAT WAVE — 95°F+ incoming
+  if (cond.heatWaveRisk) {
+    alerts.push({
+      id:       'heat-wave',
+      urgency:  'red',
+      icon:     '🔥',
+      title:    `Heat wave — ${cond.maxNext3Days}°F expected`,
+      desc:     `Extreme heat incoming. Vegetables, leafy greens, and containers are at highest risk. Watering timing is critical.`,
+      prompt:   `Heat wave alert: ${cond.maxNext3Days}°F expected in the next 3 days. I grow ${plants}. Which of my plants are most at risk from this heat? What should I do right now — watering schedule, shade cloth, mulching — and what should I not do during the heat spike?`,
+      actionLabel: 'Get heat wave action plan →',
+    });
+  }
+  // 🟡 HOT SPELL — 90°F+ this week
+  else if (cond.hotSpell && !cond.heatWaveRisk) {
+    alerts.push({
+      id:       'hot-spell',
+      urgency:  'amber',
+      icon:     '☀️',
+      title:    `Hot week ahead — up to ${cond.maxNext7Days}°F`,
+      desc:     `Above-average heat this week. Adjust watering schedule and watch for stress signs.`,
+      prompt:   `It will be ${cond.maxNext7Days}°F this week. I grow ${plants}. How should I adjust my watering schedule, and what early stress signs should I watch for in each type of plant I'm growing?`,
+      actionLabel: 'Adjust watering for the heat →',
+    });
+  }
+
+  // 🔴 STORM INCOMING — today or tomorrow
+  if (cond.stormToday) {
+    alerts.push({
+      id:       'storm-today',
+      urgency:  'red',
+      icon:     '⛈️',
+      title:    'Storm approaching — act before it hits',
+      desc:     'Thunderstorm forecast for today or tonight. Staked plants, tall growth, and containers need attention now.',
+      prompt:   `Thunderstorm approaching my area. I grow ${plants}. What should I do right now before the storm hits? Which plants need staking or securing? Should I harvest anything? What should I move indoors? Give me a 30-minute before-storm checklist.`,
+      actionLabel: 'Pre-storm checklist →',
+    });
+  }
+
+  // 🟡 DROUGHT RISK — no meaningful rain in 7 days
+  if (cond.droughtRisk && cond.maxNext7Days > 80) {
+    alerts.push({
+      id:       'drought-risk',
+      urgency:  'amber',
+      icon:     '🏜️',
+      title:    'Dry stretch ahead — watering critical',
+      desc:     `No significant rain forecast. With ${cond.maxNext7Days}°F highs, soil moisture will drop fast.`,
+      prompt:   `Dry week ahead with ${cond.maxNext7Days}°F highs and no rain in the forecast. I grow ${plants}. Give me a specific watering plan for each type — when to water, how deep, signs of under vs overwatering — and whether I should mulch to preserve moisture.`,
+      actionLabel: 'Build a watering plan →',
+    });
+  }
+
+  // 🟡 HIGH POLLEN — affects outdoor work
+  if (cond.maxPollen > 100) {
+    const pollenType = cond.grass > cond.birch && cond.grass > cond.weed ? 'grass' : cond.birch > cond.weed ? 'tree (birch)' : 'weed';
+    alerts.push({
+      id:       'high-pollen',
+      urgency:  'amber',
+      icon:     '🌸',
+      title:    `High ${pollenType} pollen today`,
+      desc:     `Pollen count is elevated. If you're sensitive, this affects when to work outside. Also relevant for pollinator plants.`,
+      prompt:   `High ${pollenType} pollen today. I grow ${plants}. What does this mean for my garden — are there any plants I should be aware of that are actively pollinating? Best time of day to work outside to minimize exposure? Anything I should do or avoid today?`,
+      actionLabel: 'What this means for your garden →',
+    });
+  }
+
+  // 🟢 GOOD PLANTING WINDOW — mild temps, some rain coming
+  if (!cond.freezeTonightRisk && !cond.heatWaveRisk && !cond.stormToday &&
+      cond.maxNext3Days < 85 && cond.minNext3Days > 40 && cond.totalRain7Day > 0.5) {
+    alerts.push({
+      id:       'planting-window',
+      urgency:  'green',
+      icon:     '🌱',
+      title:    'Good planting window this week',
+      desc:     `Mild temps (${cond.minNext3Days}–${cond.maxNext3Days}°F) with rain in the forecast. Ideal for transplanting and new plants.`,
+      prompt:   `This week looks like a good planting window for my area — highs ${cond.maxNext3Days}°F, lows ${cond.minNext3Days}°F, with some rain expected. I grow ${plants}${zone ? ' in Zone ' + zone : ''}. What should I plant or transplant this week to take advantage of these conditions? Any timing tips?`,
+      actionLabel: 'What to plant this week →',
+    });
+  }
+
+  return alerts;
+}
+
+// ── Push a notification card ─────────────────────────────────────────────────
+function pushNotification(alert) {
+  if (_notifsShown.has(alert.id)) return;
+  _notifsShown.add(alert.id);
+
+  const stack = document.getElementById('notif-stack');
+  if (!stack) return;
+
+  const ts   = new Date().toLocaleTimeString('en', { hour: 'numeric', minute: '2-digit' });
+  const card = document.createElement('div');
+  card.className = 'notif-card';
+  card.id = 'notif-' + alert.id;
+  card.innerHTML = `
+    <div class="notif-stripe ${alert.urgency}"></div>
+    <div class="notif-body">
+      <div class="notif-header">
+        <div class="notif-icon">${alert.icon}</div>
+        <div class="notif-title">${alert.title}</div>
+        <button class="notif-dismiss" onclick="dismissNotif('${alert.id}')" aria-label="Dismiss">✕</button>
+      </div>
+      <div class="notif-desc">${alert.desc}</div>
+      <button class="notif-action" onclick="fireAlertPrompt(${JSON.stringify(alert.prompt).replace(/'/g,"\\'")} , '${alert.id}')">
+        <span class="notif-action-arrow">→</span>
+        ${alert.actionLabel}
+      </button>
+      <div class="notif-time">Live conditions · ${ts}</div>
+    </div>`;
+
+  stack.appendChild(card);
+
+  // Animate in
+  requestAnimationFrame(() => requestAnimationFrame(() => card.classList.add('show')));
+
+  // Auto-dismiss green alerts after 12s, others stay until dismissed
+  if (alert.urgency === 'green') {
+    setTimeout(() => dismissNotif(alert.id), 12000);
+  }
+}
+
+function dismissNotif(id) {
+  const card = document.getElementById('notif-' + id);
+  if (!card) return;
+  card.classList.add('hide');
+  setTimeout(() => card.remove(), 300);
+}
+
+function fireAlertPrompt(prompt, alertId) {
+  dismissNotif(alertId);
+  if (typeof switchTab === 'function') switchTab('chat');
+  setTimeout(() => {
+    if (typeof quickAction === 'function') quickAction(prompt);
+  }, 150);
+}
+
+// ── Main situational awareness runner ───────────────────────────────────────
+async function runSituationalAwareness() {
+  const p = typeof getProfile === 'function' ? getProfile() : {};
+  if (!p.zip_code) return;
+
+  const cond = await fetchConditions(p.zip_code);
+  if (!cond) return;
+
+  const alerts = evaluateAlerts(cond, p);
+
+  // Push urgent alerts first (red), then amber, then green
+  const order = ['red','amber','green'];
+  const sorted = alerts.sort((a, b) => order.indexOf(a.urgency) - order.indexOf(b.urgency));
+
+  // Stagger the notifications so they don't all slam in at once
+  sorted.forEach((alert, i) => {
+    setTimeout(() => pushNotification(alert), i * 600);
+  });
+
+  // Also try browser Notification API for the most urgent
+  const critical = sorted.filter(a => a.urgency === 'red')[0];
+  if (critical && 'Notification' in window) {
+    if (Notification.permission === 'granted') {
+      new Notification('JarDIYn — ' + critical.title, {
+        body: critical.desc,
+        icon: '/favicon.ico',
+        tag:  critical.id,
+      });
+    } else if (Notification.permission === 'default') {
+      Notification.requestPermission().then(perm => {
+        if (perm === 'granted') {
+          new Notification('JarDIYn — ' + critical.title, {
+            body: critical.desc,
+            icon: '/favicon.ico',
+            tag:  critical.id,
+          });
+        }
+      });
+    }
+  }
+
+  return cond;
+}
+
+// ── loadGardenTab — uses cached conditions when available ────────────────────
+async function loadGardenTab() {
+  updatePropertyCard();
+  const p = typeof getProfile === 'function' ? getProfile() : {};
+  if (!p.zip_code) return;
+
+  // Use cached conditions or fetch fresh
+  const cond = _conditionsCache || await fetchConditions(p.zip_code);
+  if (!cond) return;
+
+  // Update weather widgets
+  const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  setText('g-temp', cond.currentTemp + '°F');
+  setText('g-cond', cond.humidity + '% humidity · ' + (cond.currentTemp > 85 ? 'Hot' : cond.currentTemp < 40 ? 'Cold' : 'Mild'));
+
+  // Frost meter
+  const fl = cond.freezeTonightRisk ? 'warning' : cond.frostTonightRisk ? 'watch' : 'none';
+  setText('g-frost', fl === 'warning' ? '⚠ Freeze' : fl === 'watch' ? 'Watch' : 'Clear');
+  ['fp1','fp2','fp3','fp4'].forEach((id, i) => {
+    const pip = document.getElementById(id);
+    if (!pip) return;
+    pip.className = 'frost-pip';
+    if (fl === 'warning' && i <= 3) pip.classList.add('on-warn');
+    else if (fl === 'watch' && i <= 1) pip.classList.add('on-watch');
+    else if (fl === 'none' && i === 0) pip.classList.add('on-none');
+  });
+
+  // Pollen bar
+  const pollenLabel = cond.maxPollen < 10 ? 'Low' : cond.maxPollen < 50 ? 'Moderate' : cond.maxPollen < 200 ? 'High' : 'Very High';
+  const pollenPct   = Math.min(100, (cond.maxPollen / 300) * 100);
+  setText('g-pollen', pollenLabel);
+  setText('g-pollen-type', cond.grass > cond.birch && cond.grass > cond.weed ? 'Grass dominant' : cond.birch > cond.weed ? 'Tree dominant' : 'Weed dominant');
+  const pf = document.getElementById('pollen-fill');
+  if (pf) pf.style.width = pollenPct + '%';
+
+  // Heat indicator on weather card
+  if (cond.heatWaveRisk) setText('g-cond', `🔥 Heat wave — ${cond.maxNext3Days}°F ahead`);
+  if (cond.stormToday)   setText('g-cond', `⛈️ Storm incoming · ${cond.humidity}% humidity`);
+
+  loadGardenDiagnoses();
+}
+
+window.runSituationalAwareness = runSituationalAwareness;
+window.dismissNotif            = dismissNotif;
+window.fireAlertPrompt         = fireAlertPrompt;
+window.fetchConditions         = fetchConditions;
+window.loadGardenTab           = loadGardenTab;
+
+
+async function loadGardenDiagnoses() {
+  const sid = window.sessionId || sessionId; if (!sid) return;
+  try {
+    const res = await fetch(`/api/garden/${window.sessionId || sessionId}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    renderDiagnosesInGardenTab(data.diagnoses || []);
+  } catch {}
+}
+
+function renderDiagnosesInGardenTab(diagnoses) {
+  const el = document.getElementById('g-diagnoses');
+  if (!el) return;
+  if (!diagnoses.length) {
+    el.innerHTML = '<div style="color:var(--stone);font-size:13px">No diagnoses yet.</div>';
+    return;
+  }
+  el.innerHTML = diagnoses.map(d => {
+    const date = d.created_at ? new Date(d.created_at).toLocaleDateString('en',{month:'short',day:'numeric'}) : '';
+    return `<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--white);border:1px solid var(--sand);border-radius:6px;margin-bottom:6px;cursor:pointer"
+      onclick="quickAction('Follow up on ${d.suspected_issue} diagnosis — what should I check now?');switchTab('chat')">
+      <span style="font-size:18px;flex-shrink:0">🔍</span>
+      <div>
+        <div style="font-size:13px;font-weight:500;color:var(--ink);text-transform:capitalize">${d.suspected_issue}</div>
+        <div style="font-size:11px;color:var(--stone);margin-top:2px">${date} · Confidence: ${d.confidence || 'medium'} · <span style="color:var(--green);text-decoration:underline">Follow up →</span></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Tasks tab ────────────────────────────────────────────────────────────────
+async function loadTasksTab() {
+  const sid = window.sessionId || sessionId; if (!sid) return;
+  try {
+    const res = await fetch(`/api/garden/${window.sessionId || sessionId}`);
+    if (!res.ok) return;
+    const { tasks } = await res.json();
+    renderTasksTab(tasks || []);
+    updateTaskBadge(tasks?.filter(t => t.status === 'pending').length || 0);
+  } catch {}
+}
+
+function renderTasksTab(tasks) {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 2);
+  const urgent   = tasks.filter(t => t.status === 'pending' && t.due_date && new Date(t.due_date) <= tomorrow);
+  const upcoming = tasks.filter(t => t.status === 'pending' && (!t.due_date || new Date(t.due_date) > tomorrow));
+
+  const renderTask = t => {
+    const due = t.due_date ? new Date(t.due_date) : null;
+    const overdue = due && due < today;
+    const dueStr  = due ? (overdue ? '⚠ Overdue' : due.toLocaleDateString('en',{weekday:'short',month:'short',day:'numeric'})) : 'No due date';
+    return `<div class="task-row ${t.priority || 'medium'}">
+      <button class="tr-check" onclick="doCompleteTask('${t.id}')" title="Mark done">✓</button>
+      <div>
+        <div class="tr-title">${t.title}</div>
+        <div class="tr-meta">${dueStr}${t.reason ? ' · ' + t.reason.slice(0,60) : ''}</div>
+      </div>
+    </div>`;
+  };
+
+  const urgentEl   = document.getElementById('tasks-urgent');
+  const upcomingEl = document.getElementById('tasks-upcoming');
+  if (urgentEl)   urgentEl.innerHTML   = urgent.length   ? urgent.map(renderTask).join('')   : '<div style="color:var(--stone);font-size:13px">No urgent tasks.</div>';
+  if (upcomingEl) upcomingEl.innerHTML = upcoming.length ? upcoming.map(renderTask).join('') : '<div style="color:var(--stone);font-size:13px">No upcoming tasks yet.</div>';
+}
+
+async function doCompleteTask(taskId) {
+  const sid = window.sessionId || sessionId;
+  if (!sid) return;
+  try {
+    await fetch(`/api/tasks/${sid}/${taskId}/complete`, { method: 'POST' });
+    await loadTasksTab();
+    await loadGardenMemory();
+    devLog(`Task ${taskId} completed ✓`, 'info');
+  } catch (err) {
+    console.error('[tasks] complete error:', err.message);
+  }
+}
+window.doCompleteTask = doCompleteTask;
+
+function updateTaskBadge(count) {
+  const badge = document.getElementById('task-count-badge');
+  if (!badge) return;
+  badge.style.display = count > 0 ? 'inline-flex' : 'none';
+  badge.textContent = count;
+}
+
+// ── Plants tab ───────────────────────────────────────────────────────────────
+async function loadPlantsTab() {
+  const sid = window.sessionId || sessionId; if (!sid) return;
+  try {
+    const res = await fetch(`/api/garden/${window.sessionId || sessionId}`);
+    if (!res.ok) return;
+    const { plants } = await res.json();
+    renderPlantsTab(plants || []);
+  } catch {}
+}
+
+function renderPlantsTab(plants) {
+  const grid = document.getElementById('plant-grid');
+  if (!grid) return;
+  if (!plants.length) {
+    grid.innerHTML = '<div style="color:var(--stone);font-size:13px;grid-column:1/-1;margin-top:12px">No plants yet.</div>';
+    return;
+  }
+  const icons = {'vegetable':'🥕','tomato':'🍅','rose':'🌹','herb':'🌿','tree':'🌳','flower':'🌸','shrub':'🌿','fern':'🌿','grass':'🌾','default':'🌱'};
+  grid.innerHTML = plants.map(p => {
+    const iconKey = Object.keys(icons).find(k => p.common_name?.toLowerCase().includes(k)) || 'default';
+    return `<div class="plant-card" onclick="quickAction('Tell me about ${p.common_name} care for my conditions and what I should do this week.')">
+      <div class="plant-icon">${icons[iconKey]}</div>
+      <div class="plant-name">${p.common_name}</div>
+      ${p.scientific_name ? `<div class="plant-sci">${p.scientific_name}</div>` : ''}
+      ${p.location ? `<div class="plant-loc">📍 ${p.location}</div>` : ''}
+      <div class="plant-tag">${p.status || 'active'}</div>
+    </div>`;
+  }).join('');
+}
+
+function promptAddPlant() {
+  const name = prompt('Plant name (e.g. "Tomato", "Black-Eyed Susan"):');
+  if (!name) return;
+  const loc = prompt('Location in garden (optional, e.g. "Back bed", "Container"):') || '';
+  addPlantToInventory(name, '', loc);
+}
+window.promptAddPlant = promptAddPlant;
+
+// ── Garden Memory sidebar ────────────────────────────────────────────────────
+async function loadGardenMemory() {
+  const sid = window.sessionId || sessionId; if (!sid) return;
+  try {
+    const res = await fetch(`/api/garden/${window.sessionId || sessionId}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    renderSidebarMemory(data.tasks || [], data.diagnoses || []);
+    renderTodaysPriorities(data.tasks || [], data.diagnoses || []);
+    updateTaskBadge((data.tasks || []).filter(t => t.status === 'pending').length);
+  } catch (err) { console.warn('[memory]', err.message); }
+}
+
+function renderSidebarMemory(tasks, diagnoses) {
+  const tasksEl = document.getElementById('mem-tasks');
+  const diagEl  = document.getElementById('mem-diagnoses');
+  const pending = tasks.filter(t => t.status === 'pending').slice(0, 5);
+  if (tasksEl) {
+    tasksEl.innerHTML = pending.length
+      ? pending.map(t => `<div class="mem-task ${t.priority||'medium'}">
+          <button class="mem-check" onclick="doCompleteTask('${t.id}');event.stopPropagation()" title="Done">✓</button>
+          <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10.5px">${t.title}</div>
+        </div>`).join('')
+      : '<div style="font-size:10px;color:var(--stone-light)">No pending tasks</div>';
+  }
+  if (diagEl) {
+    diagEl.innerHTML = diagnoses.slice(0,3).map(d =>
+      `<span class="diag-chip" onclick="quickAction('Follow up on ${d.suspected_issue}');switchTab(\'chat\')" title="Click to follow up">🔍 ${d.suspected_issue}</span>`
+    ).join('');
+  }
+}
+
+function renderTodaysPriorities(tasks, diagnoses) {
+  const el   = document.getElementById('todays-priorities');
+  const list = document.getElementById('priority-tasks');
+  const desc = document.getElementById('welcome-desc');
+  if (!el || !list) return;
+  const today    = new Date(); today.setHours(0,0,0,0);
+  const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 2);
+  const urgent = tasks.filter(t => t.status === 'pending' && t.due_date && new Date(t.due_date) <= tomorrow).slice(0, 4);
+  const overdueFollowUps = diagnoses.filter(d => d.status === 'open' && d.follow_up_date && new Date(d.follow_up_date) <= new Date()).slice(0, 2);
+  if (!urgent.length && !overdueFollowUps.length) return;
+  if (desc) desc.style.display = 'none';
+  el.style.display = 'block';
+  list.innerHTML = [
+    ...urgent.map(t => {
+      const due = new Date(t.due_date); const overdue = due < today;
+      const icon = t.priority === 'high' ? '🔴' : '🟡';
+      return `<button style="display:flex;align-items:center;gap:10px;background:var(--white);border:1px solid var(--sand);border-${t.priority==='high'?'left:3px solid #e05a3a':'left:3px solid var(--gold)'};border-radius:6px;padding:10px 14px;text-align:left;cursor:pointer;font-family:inherit;width:100%;box-shadow:0 1px 4px rgba(30,61,24,0.06);transition:all 0.12s"
+        onclick="quickAction('Task: ${t.title} — what exactly should I do and what should I look for?');switchTab('chat')">
+        <span style="font-size:16px">${icon}</span>
+        <div>
+          <div style="font-size:12.5px;font-weight:600;color:var(--ink)">${t.title}</div>
+          <div style="font-size:10.5px;color:var(--stone);margin-top:1px">${overdue ? '⚠ Overdue' : due.toLocaleDateString('en',{weekday:'short',month:'short',day:'numeric'})}</div>
+        </div>
+      </button>`;
+    }),
+    ...overdueFollowUps.map(d =>
+      `<button style="display:flex;align-items:center;gap:10px;background:var(--white);border:1px solid var(--sand);border-left:3px solid #e05a3a;border-radius:6px;padding:10px 14px;text-align:left;cursor:pointer;font-family:inherit;width:100%;box-shadow:0 1px 4px rgba(30,61,24,0.06)"
+        onclick="quickAction('Time to check on the ${d.suspected_issue} — 3 days since diagnosis. What should I see?');switchTab('chat')">
+        <span style="font-size:16px">🔍</span>
+        <div>
+          <div style="font-size:12.5px;font-weight:600;color:var(--ink)">Follow up: ${d.suspected_issue}</div>
+          <div style="font-size:10.5px;color:var(--stone);margin-top:1px">Check treatment progress</div>
+        </div>
+      </button>`
+    )
+  ].join('');
+}
+
+async async function addPlantToInventory(commonName, sci, loc) {
+  const sid = window.sessionId || sessionId;
+  if (!commonName || !sid) { console.warn('[plants] no sessionId'); return; }
+  try {
+    const res = await fetch(`/api/plants/${sid}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ common_name: commonName, scientific_name: sci || '', location: loc || '' })
+    });
+    if (!res.ok) { const e = await res.json(); console.error('[plants] save failed:', e); return; }
+    await loadGardenMemory();
+    if (document.getElementById('tab-plants')?.classList.contains('active')) loadPlantsTab();
+    devLog(`Plant added: ${commonName}`, 'info');
+  } catch (err) {
+    console.error('[plants] error:', err.message);
+  }
+}
+window.addPlantToInventory = addPlantToInventory;
+
+function refreshMemoryAfterResponse() { setTimeout(loadGardenMemory, 800); }
+window.refreshMemoryAfterResponse = refreshMemoryAfterResponse;
+
+// ── Garden tab: update property card whenever profile changes ─────────────────
+// Patch into the existing updateProfileSummary call chain
+const _origUpdatePS = typeof updateProfileSummary === 'function' ? updateProfileSummary : null;
+// We'll call updatePropertyCard after sidebar profile changes via event delegation
+
+// ── Photo pipeline — normalizePlantPhotoToJpeg ────────────────────────────────
+const ALLOWED_IMG = ['image/jpeg','image/png','image/webp','image/gif'];
+const MAX_PX = 1600, JPEG_Q = 0.85, MAX_BYTES = 10*1024*1024;
+
+async function normalizePlantPhotoToJpeg(file) {
+  if (!file) throw new Error('No file selected.');
+  if (file.size > MAX_BYTES) throw new Error('Image too large. Please use an image under 10MB.');
+  const declared = file.type || 'unknown';
+  if (file.type && !ALLOWED_IMG.includes(file.type) && !file.type.startsWith('image/heic') && !file.type.startsWith('image/heif'))
+    throw new Error('Unsupported format: ' + declared);
+  let bmp;
+  try { bmp = await createImageBitmap(file); }
+  catch { throw new Error("We couldn\u2019t process this photo. Please try another image."); }
+  const { width: w, height: h } = bmp;
+  const scale = Math.min(1, MAX_PX / Math.max(w, h));
+  const tw = Math.round(w*scale), th = Math.round(h*scale);
+  const canvas = document.createElement('canvas');
+  canvas.width = tw; canvas.height = th;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#fff'; ctx.fillRect(0,0,tw,th);
+  ctx.drawImage(bmp, 0, 0, tw, th);
+  bmp.close?.();
+  const blob = await new Promise((res,rej) => canvas.toBlob(b => b ? res(b) : rej(new Error('Encode failed')), 'image/jpeg', JPEG_Q));
+  const b64  = await new Promise((res,rej) => { const fr = new FileReader(); fr.onload = () => res(fr.result.split(',')[1]); fr.onerror = rej; fr.readAsDataURL(blob); });
+  return { base64: b64, media_type: 'image/jpeg', width: tw, height: th, bytes: blob.size, declared_type: declared, preview_url: URL.createObjectURL(blob) };
+}
+
+function handleImageUpload(event) {
+  const file = event.target.files[0]; event.target.value = '';
+  if (!file) return;
+  const input = document.getElementById('msg-input');
+  input.placeholder = 'Processing photo\u2026';
+  normalizePlantPhotoToJpeg(file).then(n => {
+    window._pendingImage = { base64: n.base64, media_type: n.media_type, name: file.name, width: n.width, height: n.height, bytes: n.bytes, preview_url: n.preview_url };
+    input.placeholder = 'Photo ready — describe the problem or click Send.';
+    document.getElementById('img-preview')?.remove();
+    const prev = document.createElement('div'); prev.id = 'img-preview';
+    prev.style.cssText = 'padding:8px 24px;background:var(--cream);border-bottom:1px solid var(--sand);display:flex;align-items:center;gap:10px';
+    prev.innerHTML = `<img src="${n.preview_url}" style="height:50px;border-radius:4px;border:1px solid var(--sand)">` +
+      `<span style="font-size:12px;color:var(--stone)">Photo ready — ${n.width}×${n.height}, ${Math.round(n.bytes/1024)}KB</span>` +
+      `<button onclick="clearImagePreview()" style="margin-left:auto;background:none;border:none;cursor:pointer;color:var(--stone-light);font-size:17px">×</button>`;
+    const inputBar = document.querySelector('.input-bar');
+    if (inputBar) inputBar.before(prev);
+    input.focus();
+  }).catch(err => {
+    input.placeholder = 'Ask anything about your garden...';
+    if (typeof showError === 'function') showError(err.message);
+  });
+}
+
+function clearImagePreview() {
+  document.getElementById('img-preview')?.remove();
+  if (window._pendingImage?.preview_url) URL.revokeObjectURL(window._pendingImage.preview_url);
+  window._pendingImage = null;
+  const input = document.getElementById('msg-input');
+  if (input) input.placeholder = 'Ask anything about your garden...';
+}
+
+// ── Dev panel toggle ──────────────────────────────────────────────────────────
+// ── Dev panel resize ──────────────────────────────────────────────────────────
+(function() {
+  const handle = document.getElementById('dp-resize');
+  const panel  = document.getElementById('dev-panel');
+  if (!handle || !panel) return;
+  let drag = false, startY = 0, startH = 0;
+  handle.addEventListener('mousedown', e => { drag=true; startY=e.clientY; startH=panel.offsetHeight; document.body.style.userSelect='none'; });
+  document.addEventListener('mousemove', e => { if (!drag) return; panel.style.height = Math.min(Math.max(startH+(startY-e.clientY),180),window.innerHeight*0.85)+'px'; });
+  document.addEventListener('mouseup', () => { drag=false; document.body.style.userSelect=''; });
+})();
+
+// ── devLog & devLogTrace ──────────────────────────────────────────────────────
+function devLogTrace(prompt, toolsUsed, trace, rounds, ms, gardenProfile) {
+  const log = document.getElementById('dev-log'); if (!log) return;
+  const ts = new Date().toISOString().slice(11,19);
+  const bodyId = 'dp-' + Date.now();
+  const msLbl  = ms ? `${(ms/1000).toFixed(1)}s` : '';
+  const roundEntries = (trace||[]).filter(t => t.round != null);
+  const execByTool   = {};
+  (trace||[]).forEach(t => { if (t.step==='tool_execution') execByTool[t.tool]=t; });
+  let totalIn=0, totalOut=0;
+  roundEntries.forEach(r => { if (r.usage) { totalIn+=r.usage.input_tokens||0; totalOut+=r.usage.output_tokens||0; } });
+  const modelShort = (roundEntries[0]?.model||'').replace('claude-','').replace(/-\d{8}$/,'');
+  const toolCount = toolsUsed ? toolsUsed.length : 0;
+  const liveCount = Object.values(execByTool).filter(t=>t.mode==='live').length;
+  const allLive = toolCount>0 && liveCount===toolCount;
+  const modeDot = toolCount===0 ? '<span style="color:#2e5a2e">◌</span>' : allLive ? '<span style="color:#4caf50">●</span>' : '<span style="color:#ff9800">◑</span>';
+  const qBadge = (totalIn+totalOut)>0 ? `<span class="dp-quantum">${totalIn}→${totalOut}t${modelShort?' · '+modelShort:''}</span>` : '';
+
+  function renderRounds() {
+    if (!roundEntries.length) return `<div class="dp-round"><div class="dp-round-hdr"><span>round 1</span><span class="dp-stop-end">end_turn ✓</span></div><div class="dp-direct">↳ direct answer — no tools called</div></div>`;
+    return roundEntries.map(r => {
+      const stopCls = r.stop_reason==='end_turn'?'dp-stop-end':r.stop_reason==='tool_use'?'dp-stop-tool':'dp-stop-max';
+      const stopLbl = r.stop_reason==='end_turn'?'end_turn ✓':r.stop_reason==='tool_use'?'tool_use →':(r.stop_reason||'?');
+      const usageLine = r.usage ? `<span class="dp-quantum-sm">↑${r.usage.input_tokens}t ↓${r.usage.output_tokens}t</span>` : '';
+      const blocksHtml = (r.content_blocks||[]).map(b => {
+        if (b.type==='text'&&b.text?.trim()) {
+          const safe = b.text.slice(0,180).replace(/</g,'&lt;').replace(/>/g,'&gt;');
+          return `<div class="dp-reasoning">↳ ${safe}${b.text.length>180?'…':''}</div>`;
+        }
+        if (b.type==='tool_use') {
+          const exec = execByTool[b.name]||{};
+          const mode = exec.mode||'unknown';
+          const modeCls = mode==='live'?'dp-mode-live':mode==='sandbox'?'dp-mode-sand':'dp-mode-unk';
+          const args = Object.entries(b.input||{}).slice(0,5).map(([k,v])=>
+            `<span class="dp-arg"><span class="dp-arg-key">${k}</span>=<span class="dp-arg-val">${String(v).slice(0,40).replace(/</g,'&lt;')}</span></span>`).join('');
+          const subHtml = exec.subatomic && Object.keys(exec.subatomic).length
+            ? `<div class="dp-subatomic">${Object.entries(exec.subatomic).filter(([k])=>!['generated_at','tool'].includes(k)).slice(0,8).map(([k,v])=>
+                `<span class="dp-sub-pair"><span class="dp-sub-k">${k}</span><span class="dp-sub-v">${String(v).slice(0,50).replace(/</g,'&lt;')}</span></span>`).join('')}</div>` : '';
+          return `<div class="dp-tool"><span class="dp-tool-arrow">↳</span><span class="dp-tool-name">${b.name}</span><span class="${modeCls}">${mode.toUpperCase()}</span>${exec.ok===false?'<span class="dp-mode-err">ERR</span>':''}${exec.source?`<span class="dp-source">${exec.source}</span>`:''}</div>${args?`<div class="dp-args">${args}</div>`:''}${subHtml}`;
+        }
+        return '';
+      }).join('');
+      return `<div class="dp-round"><div class="dp-round-hdr"><span>round ${r.round}</span><span class="${stopCls}">${stopLbl}</span>${usageLine}</div>${blocksHtml}</div>`;
+    }).join('');
+  }
+
+  // QUANTUM summary: model, message_id, cumulative tokens
+  const modelFull  = roundEntries[0]?.model || '';
+  const msgId      = roundEntries[roundEntries.length-1]?.message_id || '';
+  const cacheRead  = roundEntries.reduce((a,r) => a + (r.usage?.cache_read_input_tokens||0), 0);
+  const quantumSummary = (totalIn+totalOut) > 0 ? `
+    <div class="dp-quantum-line">
+      <span class="dp-sub-k">model</span><span class="dp-sub-v">${modelFull||'claude-sonnet-4-6'}</span>
+      <span class="dp-sub-k">rounds</span><span class="dp-sub-v">${rounds||1}</span>
+      <span class="dp-sub-k">input_tok</span><span class="dp-sub-v">${totalIn}</span>
+      <span class="dp-sub-k">output_tok</span><span class="dp-sub-v">${totalOut}</span>
+      ${cacheRead ? `<span class="dp-sub-k">cache_read</span><span class="dp-sub-v">${cacheRead}</span>` : ''}
+      ${ms ? `<span class="dp-sub-k">latency</span><span class="dp-sub-v">${msLbl}</span>` : ''}
+      ${msgId ? `<span class="dp-sub-k">msg_id</span><span class="dp-sub-v">${msgId.slice(-12)}</span>` : ''}
+    </div>` : '';
+
+  const profHtml = (() => {
+    if (!gardenProfile) return '';
+    const p = gardenProfile;
+    const fields = [
+      p.zip_code && `zip=${p.zip_code}`,
+      p.hardiness_zone && `zone=${p.hardiness_zone}`,
+      p.soil_type && `soil=${p.soil_type}`,
+      p.sun_exposure && `sun=${p.sun_exposure}`,
+      p.experience_level && `exp=${p.experience_level}`,
+      p.budget && `budget=${p.budget}`,
+      p.goals?.length && `goals=[${p.goals.join(',')}]`,
+      p.known_problems && `issues="${p.known_problems.slice(0,40)}"`,
+    ].filter(Boolean);
+    return fields.length ? `<div class="dp-profile">${fields.map(f=>`<span>${f}</span>`).join('')}</div>` : '';
+  })();
+
+  const block = document.createElement('div'); block.className = 'dp-macro';
+  block.innerHTML = `
+    <div class="dp-macro-header" onclick="const b=document.getElementById('${bodyId}');b.classList.toggle('open');this.querySelector('.dp-c').textContent=b.classList.contains('open')?'▾':'▸'">
+      <span class="dp-macro-ts">[${ts}]</span>
+      <span class="dp-c" style="color:#2e5a2e;flex-shrink:0">▸</span>
+      <span class="dp-macro-prompt">${(prompt||'').slice(0,68).replace(/</g,'&lt;')}${prompt&&prompt.length>68?'…':''}</span>
+      <span class="dp-macro-meta">${modeDot} ${toolCount}t·${rounds||1}r${msLbl?' · '+msLbl:''} ${qBadge}</span>
+    </div>
+    <div class="dp-macro-body" id="${bodyId}">${quantumSummary}${profHtml}${renderRounds()}</div>`;
+  log.prepend(block);
+  while (log.children.length > 40) log.removeChild(log.lastChild);
+}
+
+// ── runStatusCheck (gold) ─────────────────────────────────────────────────────
+// ── Wire devLogTrace + refreshMemory into sendMessage ─────────────────────────
+// Patch sendMessage to add devLogTrace + memory refresh after each response
+const _origSendMessage = typeof sendMessage !== 'undefined' ? sendMessage : null;
+// We'll do this by intercepting the response in the existing sendMessage via window hook
+
+// ── Boot ─────────────────────────────────────────────────────────────────────
+
+function toggleMoreProfile() {
+  const panel = document.getElementById('more-profile');
+  const btn   = document.getElementById('more-toggle');
+  if (!panel || !btn) return;
+  const open = panel.style.display === 'none';
+  panel.style.display = open ? 'block' : 'none';
+  btn.textContent = open ? '− Less detail' : '+ More detail';
+}
+window.toggleMoreProfile = toggleMoreProfile;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GOLD DEMO MODE — elite scenario launcher
+// ═══════════════════════════════════════════════════════════════════════════
+
+const DEMO_META = {
+  'beginner-backyard':  { num:'01', title:'Beginner Backyard',         desc:'First garden, no experience, tight budget, full sun.' },
+  'clay-soil':          { num:'02', title:'Clay Soil Problem Yard',     desc:'Poor drainage, past failures, heavy clay in Grand Rapids.' },
+  'pollinator-native':  { num:'03', title:'Pollinator Native Garden',   desc:'Converting lawn to native pollinator habitat.' },
+  'plant-diagnosis':    { num:'04', title:'Plant Diagnosis',            desc:'Tomatoes, squash, and peppers showing symptoms.' },
+  'nursery-shopping':   { num:'05', title:'Nursery Shopping',           desc:'About to buy — needs a smart list and what to avoid.' },
+  'drought-week':       { num:'06', title:'Drought / Heat Stress',      desc:'100°F+ stretch, water restrictions, containers at risk.' },
+  'shade-yard':         { num:'07', title:'Shady Front Yard',           desc:'North-facing, deep shade, deer pressure, past failures.' },
+  'raised-bed-food':    { num:'08', title:'Raised Bed Food Garden',     desc:'4 new beds, wants max yield, drip irrigation.' },
+  'community-garden':   { num:'09', title:'Community Garden',           desc:'10×10 plot, weekend-only visits, shared tools.' },
+  'public-to-backyard': { num:'10', title:'Public Garden → Backyard',   desc:'Inspired by Longwood — wants a realistic residential version.' },
+};
+
+let activeDemoScenario = null;
+
+function openDemoMode() {
+  const overlay = document.getElementById('demo-overlay');
+  const grid    = document.getElementById('demo-scenarios-grid');
+  if (!overlay || !grid) return;
+
+  // Render scenario cards
+  grid.innerHTML = Object.entries(DEMO_META).map(([id, meta]) =>
+    `<button class="demo-scenario-card" id="dsc-${id}" onclick="selectDemoScenario('${id}')">
+      <div class="dsc-number">${meta.num}</div>
+      <div class="dsc-title">${meta.title}</div>
+      <div class="dsc-desc">${meta.desc}</div>
+    </button>`
+  ).join('');
+
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  activeDemoScenario = null;
+  document.getElementById('demo-prompts-panel').classList.remove('open');
+}
+
+function closeDemoMode() {
+  document.getElementById('demo-overlay')?.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function handleDemoOverlayClick(e) {
+  // Close if clicking the dark backdrop, not the panel
+  if (e.target === document.getElementById('demo-overlay')) closeDemoMode();
+}
+
+function selectDemoScenario(id) {
+  // Highlight selected card
+  document.querySelectorAll('.demo-scenario-card').forEach(c => c.classList.remove('active'));
+  document.getElementById(`dsc-${id}`)?.classList.add('active');
+  activeDemoScenario = id;
+
+  const scenario = SCENARIOS[id];
+  if (!scenario) return;
+
+  // Show prompts panel
+  const panel     = document.getElementById('demo-prompts-panel');
+  const label     = document.getElementById('demo-prompts-label');
+  const list      = document.getElementById('demo-prompt-list');
+  const meta      = DEMO_META[id];
+
+  label.textContent = meta?.title || scenario.title;
+  list.innerHTML = (scenario.prompts || []).map(p =>
+    `<button class="demo-prompt-btn" onclick="fireDemoPrompt('${id}', ${JSON.stringify(p).replace(/'/g, "\\'")})">${p}</button>`
+  ).join('');
+  panel.classList.add('open');
+
+  // Scroll panel into view
+  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function fireDemoPrompt(scenarioId, prompt) {
+  // Load the profile from SCENARIOS data
+  if (typeof loadScenario === 'function') loadScenario(scenarioId);
+
+  // Close overlay
+  closeDemoMode();
+
+  // Switch to chat tab
+  if (typeof switchTab === 'function') switchTab('chat');
+
+  // Fire the prompt
+  setTimeout(() => {
+    if (typeof quickAction === 'function') quickAction(prompt);
+  }, 200);
+}
+
+window.openDemoMode            = openDemoMode;
+window.closeDemoMode           = closeDemoMode;
+window.handleDemoOverlayClick  = handleDemoOverlayClick;
+window.selectDemoScenario      = selectDemoScenario;
+window.fireDemoPrompt          = fireDemoPrompt;
+
+window.switchTab           = switchTab;
+window.loadGardenTab       = loadGardenTab;
+window.loadTasksTab        = loadTasksTab;
+window.loadPlantsTab       = loadPlantsTab;
+window.loadGardenMemory    = loadGardenMemory;
+window.updatePropertyCard  = updatePropertyCard;
+window.handleImageUpload   = handleImageUpload;
+window.clearImagePreview   = clearImagePreview;
+window.sendMessageWithImage = sendMessageWithImage;
+window.devLog              = devLog;
+window.devLogTrace         = devLogTrace;
+window.toggleDevPanel      = toggleDevPanel;
+window.runStatusCheck      = runStatusCheck;
+
+// Load memory on boot
+loadGardenMemory();
+runStatusCheck();
+setInterval(runStatusCheck, 60000);
+
+// Situational awareness — runs on boot and every 30 min
+// Small delay so profile can load from localStorage first
+setTimeout(runSituationalAwareness, 2000);
+setInterval(() => {
+  _notifsShown.clear(); // allow re-push on refresh cycle
+  runSituationalAwareness();
+}, 30 * 60 * 1000);
+
+// Also re-run when ZIP changes (user updates their location)
+document.getElementById('zip')?.addEventListener('change', () => {
+  setTimeout(runSituationalAwareness, 1000);
+});
+(async function restoreSession() {
+  try {
+    const res = await fetch('/api/history/' + sessionId);
+    if (!res.ok) return;
+    const data = await res.json();
+
+    if (data.profile) {
+      if (data.profile.zip_code)     document.getElementById('zip').value = data.profile.zip_code;
+      if (data.profile.soil_type)    document.getElementById('soil').value = data.profile.soil_type;
+      if (data.profile.sun_exposure) document.getElementById('sun').value = data.profile.sun_exposure;
+      if (data.profile.site_name)    document.getElementById('site-name').value = data.profile.site_name;
+      (data.profile.goals || []).forEach(g => {
+        goals.add(g);
+        document.querySelectorAll('.tag').forEach(t => { if (t.dataset.goal === g) t.classList.add('active'); });
+      });
+      updateProfileSummary();
+    }
+
+    if (data.history && data.history.length > 0) {
+      data.history.forEach(turn => {
+        appendMessage(turn.role, turn.content, turn.tools_used || [],
+          (turn.tools_used && turn.tools_used.length) ? 2 : 1);
+        history.push({ role: turn.role, content: turn.content });
+      });
+      history = history.slice(-20);
+    }
+  } catch (e) { /* fresh session */ }
+})();
+
+
+// ══════════════════════════════════════════════════════════════
+// DEVELOPER PANEL + STATUS BAR
+// ══════════════════════════════════════════════════════════════
+
+function toggleDevPanel() {
+  const p = document.getElementById('dev-panel');
+  if (p) p.classList.toggle('open');
+}
+
+function devLog(msg, type = 'info') {
+  const log = document.getElementById('dev-log');
+  if (!log) return;
+  const ts = new Date().toISOString().slice(11, 19);
+  const el = document.createElement('div');
+  el.className = 'dev-log-entry ' + type;
+  el.innerHTML = '<span class="ts">[' + ts + ']</span>' + msg;
+  log.prepend(el);
+  while (log.children.length > 50) log.removeChild(log.lastChild);
+}
+
+function setDot(id, state, label) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.className = 'status-dot ' + state;
+  el.textContent = label;
+}
+
+function setDevItem(id, value, state) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = value;
+  const parent = el.closest('.dev-status-item');
+  if (parent) parent.className = 'dev-status-item ' + (state || 'ok');
+}
+
+async function runStatusCheck() {
+  try {
+    const res = await fetch('/api/status');
+    const s = await res.json();
+    const ok = s.overall_ok;
+    setDevItem('dev-overall', ok ? '✓ ALL SYSTEMS GO' : '✗ DEGRADED', ok ? 'ok' : 'error');
+    setDot('dot-server', s.server?.ok ? 'ok' : 'error', 'Server v' + (s.server?.version || '?'));
+    setDevItem('dev-version', s.server?.version || '?');
+    setDevItem('dev-uptime', (s.server?.uptime_seconds || 0) + 's');
+    setDevItem('dev-env', s.environment?.node_env || '?', s.environment?.node_env === 'production' ? 'ok' : 'warn');
+    setDevItem('dev-liveapis', s.environment?.live_apis ? '✓ true' : '✗ false — set LIVE_APIS=true', s.environment?.live_apis ? 'ok' : 'error');
+    setDot('dot-live', s.environment?.live_apis ? 'ok' : 'error', s.environment?.live_apis ? 'Live APIs ON' : 'Live APIs OFF');
+    setDevItem('dev-key', s.environment?.api_key_set ? '✓ SET' : '✗ MISSING', s.environment?.api_key_set ? 'ok' : 'error');
+    setDot('dot-api', s.anthropic?.ok ? 'ok' : 'error', s.anthropic?.ok ? 'Claude ✓' : 'Claude ✗');
+    setDevItem('dev-persist', (s.persistence?.mode || '?') + ' ' + (s.persistence?.ok ? '✓' : '✗'), s.persistence?.ok ? 'ok' : 'warn');
+    setDot('dot-db', s.persistence?.ok ? 'ok' : 'warn', 'DB: ' + (s.persistence?.mode || '?'));
+    setDot('dot-tools', s.tools?.ok ? 'ok' : 'error', s.tools?.ok ? s.tools.count + ' Tools ✓' : 'Tools ✗');
+    setDevItem('dev-tools', s.tools?.ok ? s.tools.count + ' tools ready' : 'Error: ' + s.tools?.error, s.tools?.ok ? 'ok' : 'error');
+    if (s.tools?.sample) setDevItem('dev-zone', 'ZIP 20770 → Zone ' + s.tools.sample.zone + ' [' + s.tools.sample.mode + ']', s.tools.sample.mode === 'live' ? 'ok' : 'warn');
+    devLog('Status: ' + (ok ? 'ALL OK ✓' : 'DEGRADED ✗'), ok ? 'info' : 'error');
+  } catch (err) {
+    ['dot-server','dot-api','dot-tools','dot-live','dot-db'].forEach(id => setDot(id, 'error', 'Error'));
+    setDevItem('dev-overall', '✗ Cannot reach server: ' + err.message, 'error');
+    devLog('Status check failed: ' + err.message, 'error');
+  }
+}
+
+
+// ── Mobile sidebar ─────────────────────────────────────────────────────────
+function copyMsg(btn) {
+  const bubble = btn.closest('.msg-bubble');
+  const text = bubble ? bubble.innerText.replace(/Copy\n.*/, '').trim() : '';
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 2000);
+  }).catch(() => { btn.textContent = 'Error'; });
+}
+
+function toggleMobileSidebar() {
+  document.querySelector('.sidebar').classList.toggle('open');
+  var o = document.getElementById('mobile-overlay');
+  if (o) o.classList.toggle('show');
+}
+
+// ── ZIP zone lookup ────────────────────────────────────────────────────────
+function lookupZone() {
+  var zip = document.getElementById('zip').value.trim();
+  if (!zip || zip.length < 4) { showError('Please enter a valid ZIP code first.'); return; }
+  quickAction('Look up the USDA hardiness zone for ZIP code ' + zip + '. Give me the zone, frost dates, and top 5 things I can grow there.');
+}
+
+// ── Image upload for plant diagnosis ───────────────────────────────────────
+function handleImageUpload(event) {
+  var file = event.target.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) { showError('Please upload an image file.'); return; }
+  if (file.size > 5242880) { showError('Image too large. Please use an image under 5MB.'); return; }
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    window._pendingImage = { base64: e.target.result.split(',')[1], name: file.name };
+    document.getElementById('msg-input').placeholder = 'Photo ready. Describe the problem or just click Send.';
+    var old = document.getElementById('img-preview');
+    if (old) old.remove();
+    var preview = document.createElement('div');
+    preview.id = 'img-preview';
+    preview.style.cssText = 'padding:8px 24px;background:var(--cream);border-bottom:1px solid var(--sand);display:flex;align-items:center;gap:10px';
+    preview.innerHTML = '<img src="' + e.target.result + '" style="height:52px;border-radius:4px;border:1px solid var(--sand)"><span style="font-size:12px;color:var(--stone)">Photo ready. Describe the problem and send.</span><button onclick="clearImagePreview()" style="margin-left:auto;background:none;border:none;cursor:pointer;color:var(--stone);font-size:16px;font-family:inherit">x</button>';
+    document.querySelector('.input-bar').before(preview);
+    document.getElementById('msg-input').focus();
+  };
+  reader.readAsDataURL(file);
+  event.target.value = '';
+}
+
+function clearImagePreview() {
+  var p = document.getElementById('img-preview');
+  if (p) p.remove();
+  window._pendingImage = null;
+  document.getElementById('msg-input').placeholder = 'Ask anything about your garden...';
+}
+
+async function sendMessageWithImage(text) {
+  if (!window._pendingImage) { sendMessage(text); return; }
+  var input = document.getElementById('msg-input');
+  var msg = text || input.value.trim() || 'What is wrong with this plant?';
+  input.value = '';
+  document.getElementById('send-btn').disabled = true;
+  var imgData = window._pendingImage;
+  clearImagePreview();
+  appendMessage('user', '[Photo] ' + msg);
+  appendTyping();
+  try {
+    var res = await fetch('/api/identify', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ symptom_description: msg, image_base64: imgData.base64, garden_profile: getProfile() })
+    });
+    var data = await res.json();
+    removeTyping();
+    if (!res.ok) { showError(data.error || 'Identification failed'); return; }
+    appendMessage('assistant', data.response, data.toolsUsed || [], data.rounds || 1, data.trace || []);
+    history.push({ role: 'user', content: msg });
+    history.push({ role: 'assistant', content: data.response });
+  } catch (err) {
+    removeTyping();
+    showError('Network error: ' + err.message);
+  } finally {
+    document.getElementById('send-btn').disabled = false;
+    document.getElementById('msg-input').focus();
+  }
+}
+
+// Expose to window so inline onclick handlers work
+window.sendMessage   = sendMessage;
+window.quickAction   = quickAction;
+window.handleKey     = handleKey;
+window.toggleGoal    = toggleGoal;
+window.toggleDevPanel = toggleDevPanel;
+window.toggleMobileSidebar = toggleMobileSidebar;
+window.lookupZone = lookupZone;
+window.handleImageUpload = handleImageUpload;
+window.clearImagePreview = clearImagePreview;
+window.sendMessageWithImage = sendMessageWithImage;
+
+runStatusCheck();
+setInterval(runStatusCheck, 60000);
+</script>
+
+  <!-- Developer panel — fixed overlay, opened via status bar -->
+  <div class="dev-panel" id="dev-panel">
+    <div class="dp-resize" id="dp-resize"></div>
+    <div class="dp-status">
+      <span id="dp-overall" class="dp-status-ok">◌ checking...</span>
+      <span class="dp-stat">v<span id="dp-ver">—</span></span>
+      <span class="dp-stat"><span id="dp-env">—</span></span>
+      <span class="dp-stat">apis:<span id="dp-live">—</span></span>
+      <span class="dp-stat">key:<span id="dp-key">—</span></span>
+      <span class="dp-stat">db:<span id="dp-db">—</span></span>
+      <span class="dp-stat">tools:<span id="dp-tools">—</span></span>
+      <span class="dp-stat" style="margin-left:auto">↑<span id="dp-uptime">—</span>s</span>
+      <button onclick="toggleDevPanel()" style="background:none;border:none;color:#2e5a2e;cursor:pointer;font-size:13px;padding:0 12px;font-family:inherit">✕</button>
+      <span id="dev-overall" style="display:none"></span><span id="dev-version" style="display:none"></span>
+      <span id="dev-uptime" style="display:none"></span><span id="dev-env" style="display:none"></span>
+      <span id="dev-liveapis" style="display:none"></span><span id="dev-key" style="display:none"></span>
+      <span id="dev-persist" style="display:none"></span><span id="dev-tools" style="display:none"></span>
+      <span id="dev-zone" style="display:none"></span>
+    </div>
+    <div class="dp-log" id="dev-log"></div>
+  </div>
+
+  <!-- ═══ GOLD DEMO MODE OVERLAY ═══ -->
+  <div class="notif-stack" id="notif-stack"></div>
+
+  <div class="demo-overlay" id="demo-overlay" onclick="handleDemoOverlayClick(event)">
+    <div class="demo-panel" id="demo-panel">
+      <div class="demo-panel-header">
+        <div>
+          <div class="demo-panel-title">✦ JarDIYn Demo Mode</div>
+          <div class="demo-panel-sub">Each scenario loads a real garden profile and routes your prompt through the live agent. Not a simulation.</div>
+        </div>
+        <button class="demo-close" onclick="closeDemoMode()" aria-label="Close">✕</button>
+      </div>
+
+      <div class="demo-scenarios-grid" id="demo-scenarios-grid">
+        <!-- Populated by JS -->
+      </div>
+
+      <div class="demo-prompts-panel" id="demo-prompts-panel">
+        <div class="demo-prompts-label" id="demo-prompts-label">Select a scenario above</div>
+        <div id="demo-prompt-list"></div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: jardiyn-final
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: LIVE_APIS
+        value: true
+      - key: ENABLE_DEBUG_ROUTES
+        value: true
+      - key: FORCE_FALLBACK_AGENT
+        value: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: ANTHROPIC_MODEL
+        sync: false
