@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: jardiyn-final
+    env: node
+    rootDir: jardiyn-final
+    buildCommand: npm install
+    startCommand: npm start
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: LIVE_APIS
+        value: true
+      - key: ENABLE_DEBUG_ROUTES
+        value: true
+      - key: FORCE_FALLBACK_AGENT
+        value: false
