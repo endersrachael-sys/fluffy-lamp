@@ -1,137 +1,2387 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="JarDIYn turns professional garden knowledge into realistic backyard action." />
-  <title>JarDIYn by GardenHub — Outdoor Confidence Platform</title>
-  <link rel="stylesheet" href="/styles.css" />
+<meta charset="UTF-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JarDIYn by GardenHub — Spatial Garden Intelligence</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌿</text></svg>">
+<style>
+  :root {
+    --green-dark:  #1e3d18;
+    --green:       #2d5a27;
+    --green-light: #4a7a42;
+    --gold:        #b8860b;
+    --gold-light:  #d4a017;
+    --cream:       #f5f0e8;
+    --sand:        #e8dcc8;
+    --stone:       #7a7a6a;
+    --rust:        #b85c38;
+    --ink:         #1a1a14;
+    --white:       #ffffff;
+    --shadow:      0 2px 12px rgba(30,61,24,0.10);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+    background: var(--cream);
+    color: var(--ink);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Header ── */
+  .header {
+    background: var(--green-dark);
+    color: var(--cream);
+    padding: 0 24px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+  .header-brand {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .header-logo {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--cream);
+    letter-spacing: -0.5px;
+  }
+  .header-logo span { color: var(--gold-light); font-style: italic; }
+  .header-sub {
+    font-size: 11px;
+    color: #8ab87a;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  .header-badge {
+    font-size: 10px;
+    background: rgba(255,255,255,0.12);
+    color: #8ab87a;
+    padding: 3px 10px;
+    border-radius: 2px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  /* ── Layout ── */
+  .app {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    flex: 1;
+    min-height: calc(100vh - 56px);
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    background: var(--white);
+    border-right: 1px solid var(--sand);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  .sidebar-section {
+    padding: 16px 18px;
+    border-bottom: 1px solid var(--sand);
+  }
+  .sidebar-title {
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--stone);
+    margin-bottom: 10px;
+    font-weight: 600;
+  }
+  label {
+    display: block;
+    font-size: 11px;
+    color: var(--stone);
+    margin-bottom: 3px;
+    margin-top: 8px;
+  }
+  label:first-of-type { margin-top: 0; }
+  input, select, textarea {
+    width: 100%;
+    padding: 7px 10px;
+    border: 1px solid var(--sand);
+    border-radius: 4px;
+    font-size: 13px;
+    font-family: inherit;
+    background: var(--cream);
+    color: var(--ink);
+    transition: border-color 0.15s;
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--green);
+    background: var(--white);
+  }
+  textarea { resize: vertical; min-height: 56px; }
+
+  .tag-row { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+  .tag {
+    background: var(--cream);
+    border: 1px solid var(--sand);
+    border-radius: 3px;
+    font-size: 11px;
+    padding: 2px 8px;
+    cursor: pointer;
+    color: var(--stone);
+    transition: all 0.15s;
+  }
+  .tag.active { background: var(--green); color: var(--white); border-color: var(--green); }
+
+  .quick-btn {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: 1px solid var(--sand);
+    border-radius: 4px;
+    padding: 7px 10px;
+    font-size: 12px;
+    color: var(--green);
+    cursor: pointer;
+    margin-bottom: 5px;
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+  .quick-btn:hover { background: var(--cream); border-color: var(--green); }
+
+  .profile-display {
+    background: var(--cream);
+    border: 1px solid var(--sand);
+    border-radius: 4px;
+    padding: 8px 10px;
+    font-size: 12px;
+    line-height: 1.7;
+    color: var(--stone);
+    min-height: 40px;
+  }
+  .profile-display strong { color: var(--green); }
+
+  /* ── Main chat area ── */
+  .main {
+    display: flex;
+    flex-direction: column;
+    background: var(--cream);
+  }
+
+  .chat-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* ── Messages ── */
+  .msg {
+    display: flex;
+    gap: 10px;
+    max-width: 820px;
+  }
+  .msg.user { flex-direction: row-reverse; margin-left: auto; }
+  .msg-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: bold;
+  }
+  .msg.user .msg-avatar { background: var(--green); color: var(--white); }
+  .msg.assistant .msg-avatar { background: var(--gold); color: var(--white); }
+  .msg-bubble {
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    line-height: 1.6;
+    max-width: 680px;
+  }
+  .msg.user .msg-bubble {
+    background: var(--green);
+    color: var(--white);
+    border-radius: 8px 2px 8px 8px;
+  }
+  .msg.assistant .msg-bubble {
+    background: var(--white);
+    border: 1px solid var(--sand);
+    border-radius: 2px 8px 8px 8px;
+    box-shadow: var(--shadow);
+  }
+  .msg-bubble p { margin-bottom: 8px; }
+  .msg-bubble p:last-child { margin-bottom: 0; }
+  .msg-bubble ul, .msg-bubble ol { margin: 6px 0 6px 20px; }
+  .msg-bubble li { margin-bottom: 4px; }
+  .msg-bubble h1, .msg-bubble h2, .msg-bubble h3 {
+    color: var(--green);
+    margin: 12px 0 6px;
+    font-size: 14px;
+  }
+  .msg-bubble strong { color: var(--green-dark); }
+  .msg-bubble code {
+    background: var(--cream);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-family: monospace;
+    font-size: 12px;
+  }
+
+  /* ── Tool trace badge ── */
+  .tool-trace {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--sand);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .tool-badge {
+    font-size: 10px;
+    letter-spacing: 0.5px;
+    background: var(--cream);
+    border: 1px solid var(--sand);
+    color: var(--green);
+    padding: 2px 7px;
+    border-radius: 2px;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .tool-badge.active { background: var(--green); color: var(--white); border-color: var(--green); }
+  .rounds-badge {
+    font-size: 10px;
+    color: var(--stone);
+    padding: 2px 7px;
+    border: 1px solid var(--sand);
+    border-radius: 2px;
+  }
+
+  /* ── Typing indicator ── */
+  .typing-msg .msg-bubble {
+    padding: 14px 16px;
+  }
+  .typing-dots { display: flex; gap: 4px; align-items: center; }
+  .typing-dots span {
+    width: 7px; height: 7px;
+    background: var(--stone);
+    border-radius: 50%;
+    animation: dot-bounce 1.2s infinite;
+  }
+  .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes dot-bounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+    30% { transform: translateY(-5px); opacity: 1; }
+  }
+
+  /* ── Welcome screen ── */
+  .welcome {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    gap: 24px;
+    padding: 40px;
+    text-align: center;
+  }
+  .welcome-icon { font-size: 48px; }
+  .welcome h2 { font-size: 24px; color: var(--green); font-weight: 300; }
+  .welcome p { font-size: 14px; color: var(--stone); max-width: 420px; line-height: 1.6; }
+  .welcome-prompts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    max-width: 560px;
+    width: 100%;
+  }
+  .welcome-prompt {
+    background: var(--white);
+    border: 1px solid var(--sand);
+    border-radius: 6px;
+    padding: 12px 14px;
+    text-align: left;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--ink);
+    font-family: inherit;
+    transition: all 0.15s;
+    line-height: 1.4;
+  }
+  .welcome-prompt:hover {
+    border-color: var(--green);
+    box-shadow: var(--shadow);
+  }
+  .welcome-prompt .prompt-icon { font-size: 16px; margin-bottom: 4px; display: block; }
+  .welcome-prompt .prompt-text { color: var(--stone); font-size: 11px; }
+
+  /* ── Input bar ── */
+  .input-bar {
+    padding: 16px 24px;
+    background: var(--white);
+    border-top: 1px solid var(--sand);
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+  }
+  .input-bar textarea {
+    flex: 1;
+    padding: 10px 14px;
+    min-height: 44px;
+    max-height: 120px;
+    border-radius: 6px;
+    font-size: 14px;
+  }
+  .send-btn {
+    height: 44px;
+    padding: 0 20px;
+    background: var(--green);
+    color: var(--white);
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+    font-family: inherit;
+  }
+  .send-btn:hover { background: var(--green-light); }
+  .send-btn:disabled { background: var(--stone); cursor: not-allowed; }
+
+  /* ── Error banner ── */
+  .error-banner {
+    background: #fdf0ec;
+    border: 1px solid var(--rust);
+    border-radius: 6px;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--rust);
+    margin: 0 24px 12px;
+  }
+
+  /* ── Markdown rendering in bubbles ── */
+  .rendered h1 { font-size: 16px; margin: 14px 0 6px; }
+  .rendered h2 { font-size: 14px; margin: 12px 0 5px; }
+  .rendered h3 { font-size: 13px; margin: 10px 0 4px; }
+
+  /* ── Status bar ── */
+  .status-bar {
+    background: #0f1f0c;
+    padding: 5px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 11px;
+    font-family: monospace;
+    border-bottom: 1px solid #1a3a14;
+    flex-wrap: wrap;
+  }
+  .status-dot {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: #4a7a42;
+  }
+  .status-dot::before {
+    content: '●';
+    font-size: 8px;
+  }
+  .status-dot.ok::before    { color: #4caf50; }
+  .status-dot.warn::before  { color: #ff9800; }
+  .status-dot.error::before { color: #f44336; }
+  .status-dot.checking::before { color: #888; animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  .status-bar-right {
+    margin-left: auto;
+    color: #4a7a42;
+    cursor: pointer;
+    text-decoration: underline;
+  }
+
+  /* ── Developer panel ── */
+  .dev-panel {
+    display: none;
+    background: #0a140a;
+    border-bottom: 2px solid #2d5a27;
+    padding: 12px 24px;
+    font-family: monospace;
+    font-size: 12px;
+    color: #8ab87a;
+    max-height: 220px;
+    overflow-y: auto;
+  }
+  .dev-panel.open { display: block; }
+  .dev-panel-title {
+    color: #4caf50;
+    font-weight: bold;
+    margin-bottom: 8px;
+    letter-spacing: 1px;
+  }
+  .dev-log-entry {
+    padding: 2px 0;
+    border-bottom: 1px solid #1a3a14;
+    line-height: 1.5;
+  }
+  .dev-log-entry.tool   { color: #81c784; }
+  .dev-log-entry.api    { color: #64b5f6; }
+  .dev-log-entry.error  { color: #e57373; }
+  .dev-log-entry.info   { color: #8ab87a; }
+  .dev-log-entry .ts    { color: #4a7a42; margin-right: 8px; }
+  .dev-status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .dev-status-item {
+    background: #0f1f0c;
+    border: 1px solid #1a3a14;
+    border-radius: 4px;
+    padding: 6px 10px;
+  }
+  .dev-status-item .label { color: #4a7a42; font-size: 10px; }
+  .dev-status-item .value { color: #8ab87a; font-weight: bold; }
+  .dev-status-item.ok     { border-color: #2d5a27; }
+  .dev-status-item.error  { border-color: #5a2d2d; }
+  .dev-status-item.warn   { border-color: #5a4a2d; }
+
+  .mobile-menu-btn {
+    display: none; background: none; border: none;
+    color: var(--cream); font-size: 22px; cursor: pointer; padding: 4px 10px;
+  }
+  .mobile-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5); z-index: 199;
+  }
+  .mobile-overlay.show { display: block; }
+  @media (max-width: 700px) {
+    .mobile-menu-btn { display: block; }
+    .app { grid-template-columns: 1fr; }
+    .sidebar {
+      position: fixed; left: -320px; top: 0; bottom: 0; width: 300px;
+      z-index: 200; transition: left 0.25s ease;
+      box-shadow: 4px 0 20px rgba(0,0,0,0.3);
+    }
+    .sidebar.open { left: 0; }
+    .welcome-prompts { grid-template-columns: 1fr; }
+  }
+
+  /* ── Tab navigation ── */
+  .tab-bar { display:flex;background:var(--parchment);border-bottom:1px solid var(--sand);padding:0 20px;flex-shrink:0; }
+  .tab-btn { background:none;border:none;border-bottom:2px solid transparent;padding:10px 16px;font-size:12.5px;font-weight:500;color:var(--stone);cursor:pointer;font-family:inherit;transition:all 0.13s;white-space:nowrap;margin-bottom:-1px; }
+  .tab-btn:hover { color:var(--green); }
+  .tab-btn.active { color:var(--green);border-bottom-color:var(--green);font-weight:600; }
+  .tab-badge { display:inline-flex;align-items:center;justify-content:center;background:var(--rust);color:white;border-radius:10px;font-size:9px;font-weight:700;padding:1px 5px;margin-left:4px;min-width:16px; }
+  .tab-panel { display:none;flex:1;overflow-y:auto;flex-direction:column; }
+  .tab-panel.active { display:flex; }
+
+  /* ── Property card (Garden tab) ── */
+  .property-card { margin:20px 24px 0;background:var(--white);border:1px solid var(--sand);border-radius:8px;overflow:hidden;box-shadow:var(--shadow); }
+  .prop-header { background:var(--green-dark);color:var(--cream);padding:14px 20px;display:flex;align-items:center;justify-content:space-between; }
+  .prop-header h3 { font-size:15px;font-weight:600; }
+  .zone-badge { background:var(--gold);color:white;font-size:11px;font-weight:700;padding:3px 10px;border-radius:3px; }
+  .prop-grid { display:grid;grid-template-columns:repeat(4,1fr); }
+  .prop-cell { padding:11px 14px;border-right:1px solid var(--sand);border-bottom:1px solid var(--sand); }
+  .prop-cell:nth-child(4n) { border-right:none; }
+  .prop-cell .pl { font-size:9px;color:var(--stone-light);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px; }
+  .prop-cell .pv { font-size:13px;font-weight:600;color:var(--ink); }
+  .prop-cell .ps { font-size:10px;color:var(--stone);margin-top:2px; }
+
+  /* ── Today widget ── */
+  .today-widget { margin:14px 24px 0;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px; }
+  .today-card { background:var(--white);border:1px solid var(--sand);border-radius:8px;padding:14px 16px;box-shadow:0 1px 4px rgba(30,61,24,0.08); }
+  .today-card .tl { font-size:9px;color:var(--stone-light);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px; }
+  .today-card .tv { font-size:24px;font-weight:700;color:var(--ink);line-height:1; }
+  .today-card .ts { font-size:11px;color:var(--stone);margin-top:4px; }
+  .frost-meter { display:flex;gap:3px;margin-top:8px; }
+  .frost-pip { height:5px;flex:1;border-radius:2px;background:var(--sand); }
+  .frost-pip.on-none { background:#4caf50; }
+  .frost-pip.on-watch { background:#ff9800; }
+  .frost-pip.on-warn  { background:#f44336; }
+  .pollen-bar { height:7px;border-radius:4px;background:var(--sand);margin-top:8px;overflow:hidden; }
+  .pollen-fill { height:100%;border-radius:4px;background:var(--green-light);transition:width 0.4s; }
+
+  /* ── Tasks view ── */
+  .tasks-view { padding:20px 24px;flex:1; }
+  .tasks-section { margin-bottom:20px; }
+  .section-title { font-size:9.5px;color:var(--stone-light);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;font-weight:600; }
+  .task-row { display:flex;align-items:flex-start;gap:10px;padding:11px 14px;background:var(--white);border:1px solid var(--sand);border-radius:6px;margin-bottom:6px;box-shadow:0 1px 4px rgba(30,61,24,0.06);transition:all 0.12s; }
+  .task-row:hover { border-color:var(--green-light); }
+  .task-row.high { border-left:3px solid var(--rust); }
+  .task-row.medium { border-left:3px solid var(--gold); }
+  .tr-check { width:18px;height:18px;flex-shrink:0;border:2px solid var(--sand);border-radius:4px;cursor:pointer;background:none;margin-top:1px;display:flex;align-items:center;justify-content:center;color:transparent;font-size:11px;transition:all 0.1s; }
+  .tr-check:hover { border-color:#4caf50;color:#4caf50; }
+  .tr-title { font-size:13px;color:var(--ink);font-weight:500;margin-bottom:2px; }
+  .tr-meta  { font-size:11px;color:var(--stone); }
+
+  /* ── Plants view ── */
+  .plants-view { padding:20px 24px; }
+  .plant-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-top:12px; }
+  .plant-card { background:var(--white);border:1px solid var(--sand);border-radius:8px;padding:14px;box-shadow:0 1px 4px rgba(30,61,24,0.06);transition:all 0.13s;cursor:pointer; }
+  .plant-card:hover { border-color:var(--green);box-shadow:var(--shadow);transform:translateY(-2px); }
+  .plant-icon { font-size:26px;margin-bottom:6px; }
+  .plant-name { font-size:13px;font-weight:600;color:var(--ink); }
+  .plant-sci  { font-size:10.5px;color:var(--stone);font-style:italic; }
+  .plant-loc  { font-size:10.5px;color:var(--stone-light);margin-top:4px; }
+  .plant-tag  { display:inline-block;font-size:9px;font-weight:600;text-transform:uppercase;padding:2px 6px;border-radius:2px;margin-top:5px;background:#e8f5e9;color:#2e7d32; }
+
+  /* ── Garden memory sidebar ── */
+  .mem-task { display:flex;align-items:flex-start;gap:6px;padding:5px 7px;background:rgba(255,255,255,0.05);border:1px solid var(--nb-border);border-radius:3px;margin-bottom:3px;font-size:10.5px;color:var(--nb-text);line-height:1.3; }
+  .mem-task.high { border-left:2px solid #e05a3a; }
+  .mem-task.medium { border-left:2px solid var(--gold); }
+  .mem-check { width:12px;height:12px;flex-shrink:0;border:1px solid var(--nb-label);border-radius:2px;cursor:pointer;background:none;color:transparent;font-size:9px;display:flex;align-items:center;justify-content:center;transition:all 0.1s;margin-top:1px; }
+  .mem-check:hover { border-color:#4caf50;color:#4caf50; }
+  .diag-chip { display:inline-flex;gap:3px;background:rgba(200,80,50,0.1);border:1px solid rgba(200,80,50,0.2);border-radius:3px;padding:2px 6px;font-size:9.5px;color:#c85032;margin:1px;cursor:pointer; }
+
+  /* ── Enhanced dev panel ── */
+  .dev-panel { display:none;position:fixed;bottom:0;left:0;right:0;height:50vh;min-height:280px;max-height:600px;background:#07100a;border-top:2px solid #1c2e1a;font-family:'JetBrains Mono','Fira Code',monospace;font-size:11px;color:#7ab87a;z-index:300;flex-direction:column;box-shadow:0 -4px 24px rgba(0,0,0,0.5); }
+  .dev-panel.open { display:flex; }
+  .dp-resize { height:4px;background:#1c2e1a;cursor:ns-resize;flex-shrink:0; }
+  .dp-resize:hover { background:#2d5a27; }
+  .dp-status { display:flex;align-items:center;gap:10px;padding:5px 16px;background:#050d07;border-bottom:1px solid #1c2e1a;flex-shrink:0;flex-wrap:wrap; }
+  .dp-status-ok  { color:#4caf50;font-weight:700; }
+  .dp-status-err { color:#f44336;font-weight:700; }
+  .dp-stat { color:#3d6a3a;font-size:10px; }
+  .dp-stat span { color:#5a9a5a; }
+  .dp-log { flex:1;overflow-y:auto;padding:4px 0;scrollbar-width:thin;scrollbar-color:#1c2e1a transparent; }
+  .dp-log-line { padding:1px 16px;font-size:10px;line-height:1.6;border-bottom:1px solid #0a140a; }
+  .dp-log-line.tool  { color:#4a8042; } .dp-log-line.api { color:#4a7ab0; }
+  .dp-log-line.error { color:#a04040; } .dp-log-line.info { color:#2e5a2e; }
+  .dp-log-line .dp-ts { color:#1e3e1e;margin-right:6px; }
+  .dp-macro { border-bottom:1px solid #0f1a0e; }
+  .dp-macro-header { display:flex;align-items:baseline;gap:8px;padding:5px 16px;cursor:pointer;background:#07100a;transition:background 0.1s; }
+  .dp-macro-header:hover { background:#0d1a0c; }
+  .dp-macro-ts { color:#2e5a2e;font-size:10px;flex-shrink:0; }
+  .dp-macro-prompt { color:#6ab06a;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+  .dp-macro-meta { color:#3d6a3a;font-size:10px;flex-shrink:0; }
+  .dp-macro-body { display:none;padding:0 0 4px; }
+  .dp-macro-body.open { display:block; }
+  .dp-round { margin:3px 16px 3px 24px;border-left:2px solid #1a3018;padding-left:10px; }
+  .dp-round-hdr { font-size:9.5px;color:#2e5a2e;letter-spacing:1px;text-transform:uppercase;padding:2px 0;display:flex;align-items:center;gap:6px; }
+  .dp-stop-end { color:#4caf50; } .dp-stop-tool { color:#ff9800; } .dp-stop-max { color:#f44336; }
+  .dp-tool { display:flex;align-items:baseline;flex-wrap:wrap;gap:5px;padding:2px 0;font-size:10.5px; }
+  .dp-tool-arrow { color:#1e3e1e; } .dp-tool-name { color:#81c784;font-weight:700; }
+  .dp-mode-live { background:#0f2e0f;color:#4caf50;padding:1px 5px;border-radius:2px;font-size:9px;font-weight:700; }
+  .dp-mode-sand { background:#2a2200;color:#ffa726;padding:1px 5px;border-radius:2px;font-size:9px;font-weight:700; }
+  .dp-mode-unk  { background:#1a1a1a;color:#666;padding:1px 5px;border-radius:2px;font-size:9px; }
+  .dp-mode-err  { background:#2e0808;color:#ef5350;padding:1px 5px;border-radius:2px;font-size:9px;font-weight:700; }
+  .dp-source { color:#2a5028;font-size:9.5px; }
+  .dp-args { display:flex;flex-wrap:wrap;gap:4px;padding:1px 0 2px 16px; }
+  .dp-arg { background:#0a180a;border:1px solid #1a3018;border-radius:2px;padding:1px 6px;font-size:9.5px;color:#3d6a3a; }
+  .dp-arg-key { color:#2e5a2e; } .dp-arg-val { color:#5a9a5a; }
+  .dp-reasoning { padding:2px 0 2px 4px;font-size:10px;color:#2a4a2a;font-style:italic;border-left:2px solid #0f2010;margin:2px 0;line-height:1.4; }
+  .dp-direct { color:#2a5028;padding:2px 0;font-size:10px; }
+  .dp-subatomic { display:flex;flex-wrap:wrap;gap:3px 8px;padding:2px 0 3px 20px;border-left:2px solid #0a1a0a;margin:1px 0 3px 16px; }
+  .dp-sub-pair { display:inline-flex;gap:3px;align-items:baseline; }
+  .dp-sub-k { color:#1e4020;font-size:9px; } .dp-sub-v { color:#3a7038;font-size:9.5px;font-weight:500; }
+  .dp-quantum { font-size:8.5px;color:#1a3a3a;background:#040f10;border:1px solid #0a2020;padding:1px 5px;border-radius:2px;margin-left:4px; }
+  .dp-quantum-sm { font-size:8.5px;color:#1e4040;margin-left:auto; }
+  .dp-quantum-line { display:flex;flex-wrap:wrap;gap:3px 10px;padding:3px 16px 4px;background:#040f0d;border-bottom:1px solid #0a1a0a;margin-bottom:3px; }
+  .dp-quantum-line .dp-sub-k { color:#124040; } .dp-quantum-line .dp-sub-v { color:#1a6060; }
+  .dp-profile { margin:4px 16px 4px 24px;padding:4px 8px;background:#050d07;border:1px solid #122010;border-radius:2px;font-size:9.5px;color:#2e5a2e;display:flex;flex-wrap:wrap;gap:4px 10px; }
+  .dp-profile span { color:#4a8042; }
+</style>
+
 </head>
 <body>
-  <div id="debugPanel" class="debug-panel hidden" aria-live="polite"></div>
 
-  <header class="site-header">
-    <div class="brand-lockup">
-      <div class="brand-mark">J</div>
-      <div>
-        <p class="eyebrow">JarDIYn by GardenHub</p>
-        <p class="brand-subtitle">Outdoor confidence platform</p>
+<!-- ── HEADER ── -->
+<header class="header">
+  <button class="mobile-menu-btn" onclick="toggleMobileSidebar()" aria-label="Open garden profile sidebar" aria-expanded="false">&#9776;</button>
+  <div class="header-brand">
+    <div class="header-logo"><span>Jar</span>DIYn</div>
+    <div class="header-sub">by GardenHub</div>
+  </div>
+  <div class="header-badge">Spatial Garden Intelligence</div>
+</header>
+
+<!-- ── STATUS BAR ── -->
+<div class="status-bar" id="status-bar">
+  <span class="status-dot checking" id="dot-server">Server</span>
+  <span class="status-dot checking" id="dot-api">Claude API</span>
+  <span class="status-dot checking" id="dot-tools">Tools</span>
+  <span class="status-dot checking" id="dot-live">Live APIs</span>
+  <span class="status-dot checking" id="dot-db">Persistence</span>
+  <span class="status-bar-right" onclick="toggleDevPanel()">⚙ Developer Panel</span>
+</div>
+
+
+<div class="mobile-overlay" id="mobile-overlay" onclick="toggleMobileSidebar()"></div>
+<div class="app">
+
+  <!-- ── SIDEBAR ── -->
+  <aside class="sidebar">
+
+    <!-- Garden Profile -->
+    <div class="sidebar-section">
+      <div class="sidebar-title">🌱 Garden Profile</div>
+      <label>Site Name</label>
+      <input type="text" id="site-name" placeholder="e.g. Backyard Garden" value="My Garden">
+      <label>ZIP Code</label>
+      <div style="display:flex;gap:5px">
+        <input type="text" id="zip" placeholder="e.g. 22030" maxlength="5" style="flex:1">
+        <button onclick="lookupZone()" style="padding:7px 10px;background:var(--green);color:white;border:none;border-radius:4px;cursor:pointer;font-size:11px;white-space:nowrap;font-family:inherit">Look up</button>
+      </div>
+      <label>Soil Type</label>
+      <select id="soil">
+        <option value="">Unknown — look it up</option>
+        <option value="clay loam">Clay Loam</option>
+        <option value="silt loam">Silt Loam</option>
+        <option value="sandy loam">Sandy Loam</option>
+        <option value="loam">Loam</option>
+        <option value="sandy">Sandy</option>
+        <option value="clay">Clay</option>
+      </select>
+      <label>Sun Exposure</label>
+      <select id="sun">
+        <option value="full_sun">Full Sun (6+ hrs)</option>
+        <option value="partial_shade">Partial Shade (3–6 hrs)</option>
+        <option value="full_shade">Full Shade (&lt;3 hrs)</option>
+      </select>
+      <label>Goals</label>
+      <div class="tag-row">
+        <div class="tag" data-goal="grow vegetables" onclick="toggleGoal(this)">🥕 Vegetables</div>
+        <div class="tag" data-goal="attract pollinators" onclick="toggleGoal(this)">🐝 Pollinators</div>
+        <div class="tag" data-goal="low maintenance" onclick="toggleGoal(this)">😌 Low Maintenance</div>
+        <div class="tag" data-goal="native plants" onclick="toggleGoal(this)">🌿 Native Plants</div>
+        <div class="tag" data-goal="cut flowers" onclick="toggleGoal(this)">💐 Cut Flowers</div>
+        <div class="tag" data-goal="herbs and edibles" onclick="toggleGoal(this)">🌿 Herbs</div>
+      </div>
+
+      <label style="margin-top:10px">Experience Level</label>
+      <select id="experience">
+        <option value="beginner">Beginner</option>
+        <option value="some" selected>Some experience</option>
+        <option value="experienced">Experienced</option>
+      </select>
+
+      <label>Budget</label>
+      <select id="budget">
+        <option value="tight">Tight ($ under $100)</option>
+        <option value="moderate" selected>Moderate ($100–500)</option>
+        <option value="generous">Generous ($500+)</option>
+      </select>
+
+      <label>Maintenance Tolerance</label>
+      <select id="maintenance">
+        <option value="low" selected>Low (weekend only)</option>
+        <option value="medium">Medium (a few hours/week)</option>
+        <option value="high">High (daily attention)</option>
+      </select>
+
+      <label>Water Access</label>
+      <select id="water-access">
+        <option value="hose">Garden hose</option>
+        <option value="drip">Drip irrigation</option>
+        <option value="sprinkler">Sprinkler system</option>
+        <option value="hand">Hand-watered only</option>
+      </select>
+
+      <label>Drainage</label>
+      <select id="drainage">
+        <option value="">Unknown</option>
+        <option value="good">Good — drains quickly</option>
+        <option value="slow">Slow — puddles after rain</option>
+        <option value="poor">Poor — standing water</option>
+      </select>
+
+      <label>Deer / Pest Pressure</label>
+      <select id="pest-pressure">
+        <option value="low">Low / none</option>
+        <option value="medium" selected>Medium</option>
+        <option value="high">Heavy deer or rabbits</option>
+      </select>
+
+      <label>Known Problems</label>
+      <textarea id="known-problems" rows="2" placeholder="e.g. plants died last year, heavy clay, slope erosion" style="width:100%;padding:7px;font-size:12px;border:1px solid var(--sand);background:var(--cream);color:var(--ink);font-family:inherit;border-radius:4px;resize:vertical"></textarea>
+
+      <label>Past Failures</label>
+      <textarea id="past-failures" rows="2" placeholder="e.g. tomatoes wilted, lavender rotted, hostas chewed" style="width:100%;padding:7px;font-size:12px;border:1px solid var(--sand);background:var(--cream);color:var(--ink);font-family:inherit;border-radius:4px;resize:vertical"></textarea>
+    </div>
+
+    <!-- Active Profile Summary -->
+    <div class="sidebar-section">
+      <div class="sidebar-title">📋 Active Profile</div>
+      <div class="profile-display" id="profile-summary">Fill in your garden details above to get personalized advice.</div>
+      <div id="profile-saved" style="display:none;font-size:11px;color:var(--green);margin-top:6px;text-align:center">&#10003; Profile saved</div>
+    </div>
+
+    <!-- Demo Scenarios (P0 Build) -->
+    <div class="sidebar-section">
+      <div class="sidebar-title">🎬 Demo Scenarios</div>
+      <p style="font-size:10.5px;color:var(--stone);margin:4px 0 8px;line-height:1.4">Preloads a garden context and routes a real prompt through the live agent — not a simulation.</p>
+      <select id="scenario-picker" onchange="loadScenario(this.value)" style="width:100%;padding:7px;font-size:12px;border:1px solid var(--sand);background:var(--cream);color:var(--ink);font-family:inherit;border-radius:4px;margin-bottom:6px">
+        <option value="">Choose a scenario…</option>
+        <option value="beginner-backyard">01 · Beginner Backyard</option>
+        <option value="clay-soil">02 · Clay Soil Problem Yard</option>
+        <option value="pollinator-native">03 · Pollinator Native Garden</option>
+        <option value="plant-diagnosis">04 · Plant Diagnosis</option>
+        <option value="nursery-shopping">05 · Nursery Shopping</option>
+        <option value="drought-week">06 · Drought / Heat Stress Week</option>
+        <option value="shade-yard">07 · Shady Front Yard</option>
+        <option value="raised-bed-food">08 · Raised Bed Food Garden</option>
+        <option value="community-garden">09 · Community Garden</option>
+        <option value="public-to-backyard">10 · Public Garden → Backyard</option>
+      </select>
+      <div id="scenario-prompts" style="display:none">
+        <div id="scenario-title" style="font-size:11px;color:var(--green-dark);font-weight:600;margin-bottom:5px"></div>
+        <div id="scenario-prompt-buttons" style="display:flex;flex-direction:column;gap:5px"></div>
       </div>
     </div>
-    <nav class="top-nav" aria-label="Main navigation">
-      <a href="#passport">Garden Passport</a>
-      <a href="#demo">Demo</a>
-      <a href="#ask">Ask</a>
-      <a href="#roadmap">Roadmap</a>
-    </nav>
-  </header>
 
-  <main>
-    <section class="hero section-shell">
-      <div class="hero-copy">
-        <p class="eyebrow">Professional garden intelligence, translated</p>
-        <h1>Know your land. Design with confidence. Grow beautifully.</h1>
-        <p class="hero-lede">JarDIYn helps you understand your actual yard, avoid costly planting mistakes, check your plan, and get realistic next steps before you buy the wrong plants.</p>
-        <div class="hero-actions">
-          <a class="button primary" href="#passport">Start Garden Passport</a>
-          <button class="button" data-action="load-demo">Try Demo Garden</button>
-          <button class="button ghost" data-action="plan-check">Check My Plan</button>
-        </div>
+    <!-- Garden Memory -->
+    <div class="sidebar-section" id="memory-section">
+      <div class="sidebar-title">Garden Memory</div>
+      <div id="mem-tasks"><div style="font-size:10px;color:var(--stone-light)">No tasks yet</div></div>
+      <div id="mem-diagnoses" style="margin-top:6px"></div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="sidebar-section">
+      <div class="sidebar-title">⚡ Quick Actions</div>
+      <button class="quick-btn" onclick="runPlanCheck()" style="background:var(--green);color:white;border-color:var(--green);font-weight:600">🎯 Plan Check Mode</button>
+      <button class="quick-btn" onclick="generateGardenPlan()" style="background:var(--gold);color:white;border-color:var(--gold);font-weight:600">📑 Generate Garden Plan</button>
+      <button class="quick-btn" onclick="quickAction('What should I plant this month for my zone and soil?')">🌱 What to plant now</button>
+      <button class="quick-btn" onclick="quickAction('Generate my monthly DIY garden report.')">📋 Monthly report</button>
+      <button class="quick-btn" onclick="quickAction('Should I water today? Check the weather for my area.')">💧 Watering check</button>
+      <button class="quick-btn" onclick="quickAction('Look up low-maintenance perennials that work in my zone, soil, and sun conditions.')">🔍 Plant recommendations</button>
+      <button class="quick-btn" onclick="quickAction('My plant leaves are yellowing and I see small bugs on the undersides. What should I do?')">🐛 Diagnose a problem</button>
+      <button class="quick-btn" onclick="quickAction('Check the pollen forecast for my area and tell me if today is a good day to work in the garden.')">🌸 Pollen check</button>
+      <button class="quick-btn" onclick="quickAction('Check for any active NOAA frost or freeze alerts for my area.')">🌨️ Frost alerts</button>
+      <button class="quick-btn" onclick="quickAction('How much rain has my area had in the last 2 weeks? Should I adjust watering?')">📊 Recent rainfall</button>
+    </div>
+
+    <!-- Agent transparency -->
+    <div class="sidebar-section">
+      <div class="sidebar-title">🤖 How It Works</div>
+      <div style="font-size:11px;color:var(--stone);line-height:1.6;">
+        JarDIYn uses an agentic loop — Claude reads your question and autonomously decides which tools to call (or none at all). No hardcoded routing. The agent may call:
+        <br><br>
+        <strong style="color:var(--green)">identify_plant</strong> — diagnose symptoms<br>
+        <strong style="color:var(--green)">get_garden_zone</strong> — USDA zone &amp; frost<br>
+        <strong style="color:var(--green)">get_soil_data</strong> — SoilGrids (ISRIC)<br>
+        <strong style="color:var(--green)">get_weather_forecast</strong> — Open-Meteo/NOAA<br>
+        <strong style="color:var(--green)">get_frost_alerts</strong> — NOAA NWS alerts<br>
+        <strong style="color:var(--green)">get_pollen_forecast</strong> — pollen levels<br>
+        <strong style="color:var(--green)">get_historical_weather</strong> — recent rain<br>
+        <strong style="color:var(--green)">generate_diy_report</strong> — monthly report<br>
+        <strong style="color:var(--green)">lookup_plant_database</strong> — OpenFarm + iNaturalist<br>
+        <br>Tool calls appear below each response.
       </div>
-      <aside class="hero-card" aria-label="What JarDIYn does">
-        <h2>What this proves</h2>
-        <ul class="clean-list">
-          <li><strong>Understands your yard</strong><span>soil, sun, water, goals, budget, past failures</span></li>
-          <li><strong>Flags what may fail</strong><span>before money and confidence are lost</span></li>
-          <li><strong>Shows sources used</strong><span>profile, tools, live/fallback status, confidence</span></li>
-        </ul>
-      </aside>
-    </section>
+    </div>
 
-    <section id="passport" class="section-shell two-col">
-      <div>
-        <p class="eyebrow">Step 1</p>
-        <h2>Garden Passport</h2>
-        <p class="muted">This is the yard memory layer. MVP uses browser localStorage and optional server session memory. Future accounts can move the same shape into cloud storage.</p>
-        <form id="passportForm" class="passport-form">
-          <label>Site name<input name="site_name" placeholder="Backyard, front bed, balcony..." /></label>
-          <label>ZIP code<input name="zip_code" inputmode="numeric" maxlength="5" placeholder="49503" /></label>
-          <label>USDA zone<input name="hardiness_zone" placeholder="Unknown — JarDIYn can estimate" /></label>
-          <label>Soil type<select name="soil_type"><option value="">Unknown</option><option>clay</option><option>clay loam</option><option>loam</option><option>sandy loam</option><option>silt loam</option><option>sandy</option></select></label>
-          <label>Sun exposure<select name="sun_exposure"><option value="">Unknown</option><option value="full_sun">Full sun</option><option value="partial_shade">Partial shade</option><option value="full_shade">Full shade</option></select></label>
-          <label>Water access<select name="water_access"><option value="">Unknown</option><option>easy hose access</option><option>limited watering</option><option>rain only</option><option>irrigation</option></select></label>
-          <label>Experience level<select name="experience_level"><option value="beginner">Beginner</option><option value="intermediate">Intermediate</option><option value="experienced">Experienced</option></select></label>
-          <label>Budget<select name="budget"><option value="low">Low</option><option value="moderate" selected>Moderate</option><option value="high">High</option></select></label>
-          <label>Maintenance tolerance<select name="maintenance_tolerance"><option value="low" selected>Low</option><option value="medium">Medium</option><option value="high">High</option></select></label>
-          <label>Drainage<select name="drainage"><option value="unknown">Unknown</option><option value="poor drainage">Poor / stays wet</option><option value="average drainage">Average</option><option value="fast drainage">Fast / dries out</option></select></label>
-          <label>Deer / pest pressure<select name="deer_pressure"><option value="unknown">Unknown</option><option value="low">Low</option><option value="moderate">Moderate</option><option value="high">High</option></select></label>
-          <label class="wide">Goals<input name="goals" placeholder="pollinators, native plants, low maintenance" /></label>
-          <label class="wide">Known problems<input name="known_problems" placeholder="heavy clay, deer, drainage, shade, heat stress" /></label>
-          <label class="wide">Past failures<input name="past_failures" placeholder="lavender died, tomatoes got spots, front bed failed" /></label>
-          <div class="form-actions wide">
-            <button type="submit" class="button primary">Save Garden Passport</button>
-            <button type="button" class="button" id="resetPassport">Reset</button>
+  </aside>
+
+  <!-- ── MAIN AREA ── -->
+  <main class="main">
+
+      <!-- ─── Tab bar ─── -->
+      <div class="tab-bar" role="tablist">
+        <button class="tab-btn active" role="tab" aria-selected="true"  data-tab="chat"   onclick="switchTab('chat')">💬 Chat</button>
+        <button class="tab-btn"        role="tab" aria-selected="false" data-tab="garden" onclick="switchTab('garden')">🌿 Garden</button>
+        <button class="tab-btn"        role="tab" aria-selected="false" data-tab="tasks"  onclick="switchTab('tasks')">✅ Tasks<span class="tab-badge" id="task-count-badge" style="display:none">0</span></button>
+        <button class="tab-btn"        role="tab" aria-selected="false" data-tab="plants" onclick="switchTab('plants')">🌱 Plants</button>
+      </div>
+
+      <!-- ─── CHAT tab ─── -->
+      <div class="tab-panel active" id="tab-chat" role="tabpanel">
+        <div class="chat-area" id="chat-area">
+          <div class="welcome" id="welcome">
+            <div style="font-size:42px;font-weight:800;color:var(--green-dark);letter-spacing:-1px;margin-bottom:4px">JarDIYn</div>
+            <div style="font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--stone-light);margin-bottom:20px">Spatial Garden Intelligence</div>
+            <div id="todays-priorities" style="width:100%;max-width:560px;margin-bottom:16px;display:none">
+              <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--stone-light);margin-bottom:8px">Today in your garden</div>
+              <div id="priority-tasks" style="display:flex;flex-direction:column;gap:6px"></div>
+            </div>
+            <p style="font-size:14px;color:var(--stone);max-width:400px;line-height:1.65;margin-bottom:20px" id="welcome-desc">
+              Real soil data, USDA zones, live weather — so you know <strong style="color:var(--ink)">exactly what to do next in your yard.</strong>
+            </p>
+            <div class="welcome-prompts">
+              <button class="welcome-prompt" onclick="quickAction('What should I do in my garden this week? Check my zone, weather, and soil conditions.')">
+                <span style="font-size:20px;margin-bottom:5px;display:block">📍</span>
+                <strong style="font-size:13px;display:block;color:var(--ink);margin-bottom:2px">This week in my garden</strong>
+                <span style="font-size:11px;color:var(--stone)">Zone + live weather + soil → next actions</span>
+              </button>
+              <button class="welcome-prompt" onclick="quickAction('My tomato leaves have yellow spots and bugs on the undersides. What is wrong and how do I treat it safely?')">
+                <span style="font-size:20px;margin-bottom:5px;display:block">🔍</span>
+                <strong style="font-size:13px;display:block;color:var(--ink);margin-bottom:2px">Diagnose a plant problem</strong>
+                <span style="font-size:11px;color:var(--stone)">Describe symptoms or upload a photo</span>
+              </button>
+              <button class="welcome-prompt" onclick="quickAction('What should I plant right now for my zone, soil, and sun conditions? Give me a specific list.')">
+                <span style="font-size:20px;margin-bottom:5px;display:block">🌱</span>
+                <strong style="font-size:13px;display:block;color:var(--ink);margin-bottom:2px">What to plant right now</strong>
+                <span style="font-size:11px;color:var(--stone)">Zone + season + goals → curated list</span>
+              </button>
+              <button class="welcome-prompt" onclick="quickAction('Generate my monthly DIY garden report with priorities, weather context, and what to watch this month.')">
+                <span style="font-size:20px;margin-bottom:5px;display:block">📋</span>
+                <strong style="font-size:13px;display:block;color:var(--ink);margin-bottom:2px">Monthly garden report</strong>
+                <span style="font-size:11px;color:var(--stone)">Tasks, warnings, and local timing</span>
+              </button>
+            </div>
           </div>
-        </form>
-      </div>
-      <aside class="status-card">
-        <h3>Active Profile</h3>
-        <div id="profileSummary" class="profile-summary muted">No Garden Passport saved yet.</div>
-      </aside>
-    </section>
-
-    <section id="demo" class="section-shell">
-      <div class="section-heading-row">
-        <div>
-          <p class="eyebrow">Step 2</p>
-          <h2>Demo Scenario Launcher</h2>
-          <p class="muted">These scenarios preload sample garden contexts and prompt ideas. Responses go through the same backend as the main app.</p>
         </div>
-        <button class="button" data-action="load-demo">Load Clay Soil Demo</button>
+        <div class="input-bar">
+          <div style="flex:1;position:relative">
+            <textarea id="msg-input" placeholder="Ask anything about your garden..." rows="1" maxlength="2000"
+              aria-label="Message input"
+              style="width:100%;padding:10px 40px 10px 14px;min-height:44px;max-height:120px;border-radius:5px;font-size:14px;border:1px solid var(--sand);background:var(--cream);color:var(--ink);font-family:inherit;resize:none;transition:border-color 0.15s"></textarea>
+            <label for="img-upload" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--stone-light);font-size:18px" title="Upload plant photo">📷</label>
+            <input type="file" id="img-upload" accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif" style="display:none" onchange="handleImageUpload(event)">
+          </div>
+          <button class="send-btn" id="send-btn" onclick="window._pendingImage ? sendMessageWithImage() : sendMessage()">Send</button>
+        </div>
+        <div id="error-banner" class="error-banner" style="display:none"></div>
       </div>
-      <div id="scenarioGrid" class="scenario-grid"></div>
-      <div id="promptChips" class="prompt-chips" aria-label="Scenario prompts"></div>
-    </section>
 
-    <section id="ask" class="section-shell two-col ask-layout">
+      <!-- ─── GARDEN tab ─── -->
+      <div class="tab-panel" id="tab-garden" role="tabpanel">
+        <div style="flex:1;overflow-y:auto;padding-bottom:24px">
+          <div class="property-card" id="property-card">
+            <div class="prop-header">
+              <div>
+                <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.45);margin-bottom:3px">Garden Profile</div>
+                <h3 id="prop-name">My Garden</h3>
+              </div>
+              <div class="zone-badge" id="prop-zone">Zone —</div>
+            </div>
+            <div class="prop-grid">
+              <div class="prop-cell"><div class="pl">Soil</div><div class="pv" id="prop-soil">—</div></div>
+              <div class="prop-cell"><div class="pl">Sun</div><div class="pv" id="prop-sun">—</div></div>
+              <div class="prop-cell"><div class="pl">Goals</div><div class="pv" id="prop-goals" style="font-size:11px;font-weight:500">—</div></div>
+              <div class="prop-cell"><div class="pl">Experience</div><div class="pv" id="prop-exp">—</div><div class="ps" id="prop-budget"></div></div>
+            </div>
+          </div>
+
+          <div class="today-widget">
+            <div class="today-card">
+              <div class="tl">Weather Now</div>
+              <div class="tv" id="g-temp">—°</div>
+              <div class="ts" id="g-cond">Fill ZIP to load</div>
+            </div>
+            <div class="today-card">
+              <div class="tl">Frost Risk</div>
+              <div class="tv" id="g-frost" style="font-size:14px;padding-top:4px">—</div>
+              <div class="frost-meter">
+                <div class="frost-pip" id="fp1"></div><div class="frost-pip" id="fp2"></div>
+                <div class="frost-pip" id="fp3"></div><div class="frost-pip" id="fp4"></div>
+              </div>
+            </div>
+            <div class="today-card">
+              <div class="tl">Pollen</div>
+              <div class="tv" id="g-pollen" style="font-size:14px;padding-top:4px">—</div>
+              <div class="pollen-bar"><div class="pollen-fill" id="pollen-fill" style="width:0%"></div></div>
+              <div class="ts" id="g-pollen-type" style="margin-top:4px"></div>
+            </div>
+          </div>
+
+          <div style="margin:20px 24px 0">
+            <div class="section-title">Diagnosis History</div>
+            <div id="g-diagnoses"><div style="color:var(--stone);font-size:13px">No diagnoses yet. Describe a problem in Chat to get started.</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── TASKS tab ─── -->
+      <div class="tab-panel" id="tab-tasks" role="tabpanel">
+        <div class="tasks-view">
+          <div class="tasks-section">
+            <div class="section-title">Due today &amp; overdue</div>
+            <div id="tasks-urgent"><div style="color:var(--stone);font-size:13px">No urgent tasks.</div></div>
+          </div>
+          <div class="tasks-section">
+            <div class="section-title">Upcoming</div>
+            <div id="tasks-upcoming"><div style="color:var(--stone);font-size:13px">No upcoming tasks. JarDIYn creates tasks automatically from diagnoses and plans.</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── PLANTS tab ─── -->
+      <div class="tab-panel" id="tab-plants" role="tabpanel">
+        <div class="plants-view">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div class="section-title" style="margin-bottom:0">Plant Inventory</div>
+            <button onclick="promptAddPlant()" style="background:var(--green);color:white;border:none;border-radius:4px;padding:6px 14px;font-size:12px;cursor:pointer;font-family:inherit">+ Add Plant</button>
+          </div>
+          <div class="plant-grid" id="plant-grid">
+            <div style="color:var(--stone);font-size:13px;grid-column:1/-1;margin-top:12px">No plants yet. Add them as you work with JarDIYn.</div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let history = [];
+let goals = new Set();
+
+// Persistent session — survives refresh via the server's SQLite store
+let sessionId = localStorage.getItem('jardiyn_session');
+if (!sessionId) {
+  sessionId = 'sess_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+  localStorage.setItem('jardiyn_session', sessionId);
+}
+
+// ── Profile ───────────────────────────────────────────────────────────────
+function getProfile() {
+  const zip  = document.getElementById('zip').value.trim();
+  const soil = document.getElementById('soil').value;
+  const sun  = document.getElementById('sun').value;
+  const name = document.getElementById('site-name').value.trim() || 'My Garden';
+  const get  = (id, dflt = '') => (document.getElementById(id)?.value || dflt).trim();
+  return {
+    site_name:           name,
+    zip_code:            zip || undefined,
+    soil_type:           soil || undefined,
+    sun_exposure:        sun,
+    goals:               [...goals],
+    plant_inventory:     [],
+    // Extended Garden Passport (P0 from roadmap)
+    experience_level:    get('experience', 'some'),
+    budget:              get('budget', 'moderate'),
+    maintenance_tolerance: get('maintenance', 'low'),
+    water_access:        get('water-access', 'hose'),
+    drainage:            get('drainage') || undefined,
+    pest_pressure:       get('pest-pressure', 'medium'),
+    known_problems:      get('known-problems') || undefined,
+    past_failures:       get('past-failures') || undefined,
+  };
+}
+
+function toggleGoal(el) {
+  const g = el.dataset.goal;
+  if (goals.has(g)) { goals.delete(g); el.classList.remove('active'); }
+  else { goals.add(g); el.classList.add('active'); }
+  updateProfileSummary();
+}
+
+function showProfileSaved() {
+  const el = document.getElementById('profile-saved');
+  if (!el) return;
+  el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 2000);
+}
+
+// ── localStorage persistence (P0 from roadmap) ──────────────────────────────
+// Doc says: "Use localStorage for MVP persistence, but structure data so it
+// can later move to cloud accounts." This matches that contract exactly.
+function saveProfileLocal() {
+  try {
+    const p = getProfile();
+    localStorage.setItem('jardiyn_garden_passport', JSON.stringify({
+      userId: 'local-demo-user',
+      propertyId: 'demo-property-001',
+      gardenPassport: p,
+      propertyPassport: {},
+      plans: [],
+      history: [],
+      sharedWith: [],
+      savedAt: new Date().toISOString()
+    }));
+  } catch (err) { console.warn('saveProfileLocal failed', err); }
+}
+
+function loadProfileLocal() {
+  try {
+    const raw = localStorage.getItem('jardiyn_garden_passport');
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    const p = data.gardenPassport || {};
+    const setIf = (id, val) => {
+      const el = document.getElementById(id);
+      if (el && val != null) el.value = val;
+    };
+    setIf('site-name', p.site_name);
+    setIf('zip', p.zip_code);
+    setIf('soil', p.soil_type);
+    setIf('sun', p.sun_exposure);
+    setIf('experience', p.experience_level);
+    setIf('budget', p.budget);
+    setIf('maintenance', p.maintenance_tolerance);
+    setIf('water-access', p.water_access);
+    setIf('drainage', p.drainage);
+    setIf('pest-pressure', p.pest_pressure);
+    setIf('known-problems', p.known_problems);
+    setIf('past-failures', p.past_failures);
+    if (Array.isArray(p.goals)) {
+      goals = new Set(p.goals);
+      document.querySelectorAll('.tag').forEach(t => {
+        if (goals.has(t.dataset.goal)) t.classList.add('active');
+      });
+    }
+    return true;
+  } catch (err) {
+    console.warn('loadProfileLocal failed', err);
+    return false;
+  }
+}
+
+// ── Demo Scenarios (P0 from roadmap — 10 scenarios × 5 prompts) ─────────────
+// Each scenario preloads a Garden Passport and offers 5 ready-to-send prompts.
+// The prompt goes through the real /api/chat — these are not fake simulations.
+const SCENARIOS = {
+  'beginner-backyard': {
+    title: 'Beginner Backyard Garden',
+    profile: { zip_code: '22030', soil_type: 'loam', sun_exposure: 'full_sun',
+      experience_level: 'beginner', budget: 'tight', maintenance_tolerance: 'low',
+      goals: ['attract pollinators', 'low maintenance'],
+      known_problems: 'Never gardened before. Worried I will kill everything.' },
+    prompts: [
+      "I have never gardened before. What is the simplest thing I can plant this season that will probably succeed?",
+      "What are the 3 most common beginner mistakes I should avoid?",
+      "Give me a 30-day beginner plan with weekend-sized tasks.",
+      "What tools do I actually need vs what stores try to sell beginners?",
+      "What plants are forgiving if I forget to water them?",
+    ]
+  },
+  'clay-soil': {
+    title: 'Clay Soil Problem Yard',
+    profile: { zip_code: '49503', soil_type: 'clay', sun_exposure: 'partial_shade',
+      experience_level: 'some', budget: 'moderate', maintenance_tolerance: 'low',
+      drainage: 'slow',
+      goals: ['low maintenance', 'attract pollinators'],
+      known_problems: 'Heavy clay soil, plants failed last year, poor drainage.',
+      past_failures: 'Lavender rotted, tomatoes wilted, lost 4 perennials' },
+    prompts: [
+      "What will probably fail in my clay soil?",
+      "What plants actually thrive in heavy clay?",
+      "How do I improve clay soil without overcomplicating it?",
+      "What should I avoid buying at the nursery for clay soil?",
+      "Create a realistic 30-day recovery plan for my failed yard.",
+    ]
+  },
+  'pollinator-native': {
+    title: 'Pollinator Native Garden',
+    profile: { zip_code: '20770', soil_type: 'loam', sun_exposure: 'full_sun',
+      experience_level: 'some', budget: 'moderate', maintenance_tolerance: 'medium',
+      goals: ['attract pollinators', 'native plants'],
+      known_problems: 'Want to support bees and butterflies but unsure which natives' },
+    prompts: [
+      "Which native pollinator plants are best for my zone?",
+      "Plan a bloom-time sequence so pollinators have food spring through fall.",
+      "What should I avoid that looks pollinator-friendly but actually isn't?",
+      "How do I convert part of my lawn to a pollinator strip?",
+      "What invasive species do I need to remove before planting natives?",
+    ]
+  },
+  'plant-diagnosis': {
+    title: 'Plant Diagnosis',
+    profile: { zip_code: '37027', soil_type: 'silt loam', sun_exposure: 'partial_shade',
+      experience_level: 'some', budget: 'moderate', maintenance_tolerance: 'medium',
+      goals: ['grow vegetables'],
+      known_problems: 'Tomato leaves yellowing, white spots on squash, holes in pepper leaves' },
+    prompts: [
+      "My tomato leaves are yellowing from the bottom up. What is going wrong?",
+      "White powdery spots on my squash leaves — what is it and how do I treat it safely?",
+      "Something is eating holes in my pepper plants overnight. How do I figure out what?",
+      "When should I worry vs when is yellowing normal?",
+      "What is the safest first treatment I can try before chemicals?",
+    ]
+  },
+  'nursery-shopping': {
+    title: 'Nursery Shopping Assistant',
+    profile: { zip_code: '02138', soil_type: 'sandy loam', sun_exposure: 'full_sun',
+      experience_level: 'beginner', budget: 'tight', maintenance_tolerance: 'low',
+      goals: ['low maintenance', 'native plants'],
+      known_problems: 'About to go to nursery, want a shopping list and know what to avoid' },
+    prompts: [
+      "Build me a smart nursery shopping list for my zone and soil.",
+      "What should I avoid buying at the nursery that looks tempting but won't survive here?",
+      "How do I tell a healthy plant from a stressed one before buying?",
+      "What questions should I ask the nursery staff?",
+      "Compare 3 things that would actually thrive in my conditions.",
+    ]
+  },
+  'drought-week': {
+    title: 'Drought / Heat Stress Week',
+    profile: { zip_code: '85016', soil_type: 'sandy', sun_exposure: 'full_sun',
+      experience_level: 'some', budget: 'moderate', maintenance_tolerance: 'medium',
+      water_access: 'drip',
+      goals: ['low maintenance'],
+      known_problems: 'Heat wave, plants stressed, water restrictions' },
+    prompts: [
+      "We are in a 100°F+ stretch. Which of my plants are most at risk?",
+      "How much water should I give and when during a heat wave?",
+      "Should I prune, mulch, or shade-cloth right now?",
+      "What plants should I plan to replace with more heat-tolerant options?",
+      "How can I tell heat stress from underwatering vs disease?",
+    ]
+  },
+  'shade-yard': {
+    title: 'Shady Front Yard',
+    profile: { zip_code: '97214', soil_type: 'clay loam', sun_exposure: 'full_shade',
+      experience_level: 'some', budget: 'moderate', maintenance_tolerance: 'low',
+      goals: ['low maintenance', 'native plants'],
+      known_problems: 'North-facing yard, almost no direct sun, hostas chewed by deer',
+      past_failures: 'Lavender, roses, anything that needed sun',
+      pest_pressure: 'high' },
+    prompts: [
+      "What actually thrives in deep shade besides hostas?",
+      "What deer-resistant shade plants work in my zone?",
+      "How do I design a shade garden that isn't just green-on-green?",
+      "What ground covers work in shade where grass won't grow?",
+      "Convert my failing shade lawn into something that actually works.",
+    ]
+  },
+  'raised-bed-food': {
+    title: 'Raised Bed Food Garden',
+    profile: { zip_code: '80301', soil_type: 'loam', sun_exposure: 'full_sun',
+      experience_level: 'some', budget: 'moderate', maintenance_tolerance: 'medium',
+      water_access: 'drip',
+      goals: ['grow vegetables', 'herbs and edibles'],
+      known_problems: 'Building 4 raised beds, want maximum yield' },
+    prompts: [
+      "Plan a 4-bed rotation for vegetables in my zone with max yield.",
+      "What is the ideal soil mix for new raised beds?",
+      "Which crops pair well together and which fight each other?",
+      "Build me a sowing calendar for spring through fall.",
+      "What pest and disease issues are most common in raised beds?",
+    ]
+  },
+  'community-garden': {
+    title: 'Community Garden Plot',
+    profile: { zip_code: '60614', soil_type: 'silt loam', sun_exposure: 'full_sun',
+      experience_level: 'some', budget: 'tight', maintenance_tolerance: 'medium',
+      goals: ['grow vegetables', 'attract pollinators'],
+      known_problems: '10x10 community plot, weekly visits, share tools, need quick wins' },
+    prompts: [
+      "I have a 10x10 community garden plot I can only visit on weekends. What should I grow?",
+      "What plants forgive missed waterings between visits?",
+      "How do I avoid the most common community garden mistakes?",
+      "What should I grow that the whole community will benefit from?",
+      "Create a one-page plot plan with planting dates.",
+    ]
+  },
+  'public-to-backyard': {
+    title: 'Public Garden → Backyard Translation',
+    profile: { zip_code: '19046', soil_type: 'loam', sun_exposure: 'full_sun',
+      experience_level: 'some', budget: 'generous', maintenance_tolerance: 'medium',
+      goals: ['attract pollinators', 'cut flowers'],
+      known_problems: 'Inspired by Longwood Gardens but have a normal-sized yard and budget' },
+    prompts: [
+      "I loved the perennial borders at Longwood. How do I translate that to my normal yard?",
+      "What parts of public garden design don't translate to small yards?",
+      "Give me a backyard-scale plant palette inspired by an English border.",
+      "What is the realistic maintenance for that kind of garden?",
+      "Build phases so I can do this over 2 years instead of all at once.",
+    ]
+  },
+};
+
+function loadScenario(id) {
+  const promptsEl = document.getElementById('scenario-prompts');
+  const buttonsEl = document.getElementById('scenario-prompt-buttons');
+  const titleEl = document.getElementById('scenario-title');
+  if (!id) { promptsEl.style.display = 'none'; return; }
+  const scenario = SCENARIOS[id];
+  if (!scenario) return;
+
+  // Apply profile to all form fields
+  const p = scenario.profile;
+  const setVal = (fid, v) => { const el = document.getElementById(fid); if (el && v != null) el.value = v; };
+  setVal('site-name', scenario.title);
+  setVal('zip', p.zip_code);
+  setVal('soil', p.soil_type);
+  setVal('sun', p.sun_exposure);
+  setVal('experience', p.experience_level);
+  setVal('budget', p.budget);
+  setVal('maintenance', p.maintenance_tolerance);
+  setVal('water-access', p.water_access || 'hose');
+  setVal('drainage', p.drainage || '');
+  setVal('pest-pressure', p.pest_pressure || 'medium');
+  setVal('known-problems', p.known_problems || '');
+  setVal('past-failures', p.past_failures || '');
+
+  // Apply goals
+  goals = new Set(p.goals || []);
+  document.querySelectorAll('.tag').forEach(t => {
+    if (goals.has(t.dataset.goal)) t.classList.add('active');
+    else t.classList.remove('active');
+  });
+
+  updateProfileSummary();
+  saveProfileLocal();
+  showProfileSaved();
+
+  // Render prompt buttons
+  titleEl.textContent = scenario.title + ' — try a prompt:';
+  buttonsEl.innerHTML = '';
+  scenario.prompts.forEach(prompt => {
+    const btn = document.createElement('button');
+    btn.className = 'quick-btn';
+    btn.style.cssText = 'font-size:11px;line-height:1.35;text-align:left;padding:8px 10px';
+    btn.textContent = prompt;
+    btn.onclick = () => quickAction(prompt);
+    buttonsEl.appendChild(btn);
+  });
+  promptsEl.style.display = 'block';
+
+  if (typeof devLog === 'function')
+    devLog('Loaded scenario: ' + scenario.title, 'info');
+}
+
+// ── Plan Check Mode (P0 from roadmap) ───────────────────────────────────────
+// Forces structured "what looks good / what may fail / next 3 actions" output.
+function runPlanCheck() {
+  const p = getProfile();
+  const profileSummary = [
+    p.zip_code && ('ZIP ' + p.zip_code),
+    p.soil_type,
+    p.sun_exposure?.replace('_',' '),
+    p.experience_level + ' gardener',
+    p.budget + ' budget',
+    p.maintenance_tolerance + ' maintenance tolerance',
+    p.drainage && (p.drainage + ' drainage'),
+    p.pest_pressure !== 'low' && (p.pest_pressure + ' pest pressure'),
+    p.goals?.length && ('goals: ' + p.goals.join(', ')),
+    p.known_problems && ('known problems: ' + p.known_problems),
+    p.past_failures && ('past failures: ' + p.past_failures),
+  ].filter(Boolean).join(' · ');
+
+  const prompt =
+    `PLAN CHECK MODE: Review my garden situation honestly. My profile: ${profileSummary || 'minimal info'}.\n\n` +
+    `Format your response in EXACTLY this structure with these section headers:\n\n` +
+    `## ✅ What Looks Good\n(2–4 specific positives about what they have going for them)\n\n` +
+    `## ⚠️ What May Fail\n(2–4 specific risks based on their conditions and goals)\n\n` +
+    `## ❓ What Needs More Context\n(1–2 specific pieces of info that would change the recommendation)\n\n` +
+    `## 🔧 What I Would Change\n(2–3 specific changes, in order of priority)\n\n` +
+    `## 🎯 Next 3 Actions\n(3 numbered, time-bound, weekend-sized next steps)\n\n` +
+    `Use real data — call tools for zone, soil, weather, frost as needed. Be direct but supportive. ` +
+    `Correct the plan, not the person.`;
+  quickAction(prompt);
+}
+
+// ── Generate Garden Plan (P0 from roadmap) ──────────────────────────────────
+// Forces the 12-section structured deliverable.
+function generateGardenPlan() {
+  const p = getProfile();
+  const profileSummary = [
+    p.zip_code && ('ZIP ' + p.zip_code),
+    p.soil_type,
+    p.sun_exposure?.replace('_',' '),
+    p.experience_level + ' gardener',
+    p.budget + ' budget',
+    p.maintenance_tolerance + ' maintenance',
+    p.water_access + ' watering',
+    p.drainage && (p.drainage + ' drainage'),
+    p.pest_pressure !== 'low' && (p.pest_pressure + ' deer/pest pressure'),
+    p.goals?.length && ('goals: ' + p.goals.join(', ')),
+    p.known_problems && ('known problems: ' + p.known_problems),
+    p.past_failures && ('past failures: ' + p.past_failures),
+  ].filter(Boolean).join(' · ');
+
+  const prompt =
+    `GENERATE GARDEN PLAN: Create a complete, structured garden plan for me.\n\n` +
+    `Profile: ${profileSummary || 'minimal — make reasonable defaults explicit'}\n\n` +
+    `Format your response with EXACTLY these section headers, in this order:\n\n` +
+    `## 📍 Site Summary\n(2–3 sentences — zone, conditions, your read on the site)\n\n` +
+    `## 🎯 Main Goal\n(1 sentence — the priority outcome)\n\n` +
+    `## 🌱 Recommended Plants\n(5–8 plants, formatted as: **Common Name** (Latin) — why it works here)\n\n` +
+    `## 🚫 Avoid List\n(3–5 plants that look tempting but will fail in these conditions, with reason)\n\n` +
+    `## 🪨 Soil Prep\n(Specific amendments and method, 3–5 numbered steps)\n\n` +
+    `## 💧 Watering Guidance\n(Schedule + signs of over/under-watering for this site)\n\n` +
+    `## 🗓️ Weekend Tasks\n(4–6 numbered, weekend-sized tasks for the next month)\n\n` +
+    `## 🛒 Shopping List\n(Itemized list with approximate quantities)\n\n` +
+    `## ⚠️ Safety Notes\n(Any pest, toxicity, allergen, or tool-safety callouts)\n\n` +
+    `## 📚 Sources Used\n(Briefly which tools/data informed this plan)\n\n` +
+    `## 🌿 What to Ask a Local Nursery\n(3 specific questions to verify locally)\n\n` +
+    `## 🤝 When to Call a Professional\n(When this is beyond DIY — be honest)\n\n` +
+    `Use real tools — call zone, soil, weather, plant database as needed. Ground everything in their actual conditions.`;
+  quickAction(prompt);
+}
+
+window.loadScenario = loadScenario;
+window.runPlanCheck = runPlanCheck;
+window.generateGardenPlan = generateGardenPlan;
+
+function updateProfileSummary() {
+  const p = getProfile();
+  const lines = [];
+  if (p.zip_code) lines.push(`<strong>ZIP:</strong> ${p.zip_code}`);
+  if (p.soil_type) lines.push(`<strong>Soil:</strong> ${p.soil_type}`);
+  lines.push(`<strong>Sun:</strong> ${p.sun_exposure.replace('_', ' ')}`);
+  lines.push(`<strong>Experience:</strong> ${p.experience_level}`);
+  lines.push(`<strong>Budget:</strong> ${p.budget}`);
+  lines.push(`<strong>Maint:</strong> ${p.maintenance_tolerance}`);
+  if (p.drainage) lines.push(`<strong>Drainage:</strong> ${p.drainage}`);
+  if (p.pest_pressure && p.pest_pressure !== 'low') lines.push(`<strong>Pests:</strong> ${p.pest_pressure}`);
+  if (p.goals.length) lines.push(`<strong>Goals:</strong> ${p.goals.join(', ')}`);
+  if (p.known_problems) lines.push(`<strong>Issues:</strong> ${p.known_problems.slice(0,60)}${p.known_problems.length>60?'…':''}`);
+  document.getElementById('profile-summary').innerHTML =
+    lines.length ? lines.join('<br>') : 'Fill in your garden details above.';
+}
+['zip','soil','sun','site-name','experience','budget','maintenance','water-access','drainage','pest-pressure','known-problems','past-failures'].forEach(id =>
+  document.getElementById(id)?.addEventListener('change', () => { updateProfileSummary(); showProfileSaved(); saveProfileLocal(); }));
+['zip','site-name','known-problems','past-failures'].forEach(id =>
+  document.getElementById(id)?.addEventListener('input', () => { updateProfileSummary(); saveProfileLocal(); }));
+
+// ── Markdown renderer (simple) ─────────────────────────────────────────────
+function renderMarkdown(text) {
+  return text
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>\n?)+/g, s => `<ul>${s}</ul>`)
+    .replace(/\n\n/g, '</p><p>')
+    .replace(/^(?!<[hulo])/gm, '')
+    .replace(/\n/g, '<br>');
+}
+
+// ── Append message bubble ──────────────────────────────────────────────────
+function appendMessage(role, text, toolsUsed = [], rounds = 0, trace = []) {
+  const welcome = document.getElementById('welcome');
+  if (welcome) welcome.remove();
+
+  const chat = document.getElementById('chat-area');
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+
+  const avatar = role === 'user' ? 'You' : 'J';
+  const now = new Date();
+  const ts = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+  let traceHTML = '';
+  if (role === 'assistant' && toolsUsed.length > 0) {
+    const toolLabels = {
+      'identify_plant': 'Plant ID',
+      'get_garden_zone': 'USDA Zone',
+      'get_soil_data': 'SoilGrids',
+      'get_weather_forecast': 'NOAA Weather',
+      'generate_diy_report': 'DIY Report',
+      'lookup_plant_database': 'Plant Database',
+      'get_frost_alerts': 'NOAA Frost Alerts',
+      'get_pollen_forecast': 'Pollen Forecast',
+      'get_historical_weather': 'Rain History'
+    };
+    // Build map of tool name -> mode from trace
+    const toolMode = {};
+    const toolSource = {};
+    (trace || []).forEach(t => {
+      if (t.step === 'tool_execution' && t.tool) {
+        toolMode[t.tool] = t.mode || 'unknown';
+        if (t.source) toolSource[t.tool] = t.source;
+      }
+    });
+    const badges = toolsUsed.map(t => {
+      const mode = toolMode[t] || 'unknown';
+      const dot = mode === 'live' ? '🟢' : mode === 'sandbox' ? '🟡' : '⚪';
+      const label = toolLabels[t] || t.replace(/_/g,' ');
+      const title = toolSource[t] ? `${t} · ${mode.toUpperCase()} · ${toolSource[t]}` : `${t} · ${mode}`;
+      return `<span class="tool-badge active" title="${title}">${dot} ${label}</span>`;
+    }).join('');
+    // Compute overall confidence based on live ratio
+    const liveCount = toolsUsed.filter(t => toolMode[t] === 'live').length;
+    const conf = liveCount === toolsUsed.length ? 'high (all live data)'
+               : liveCount > 0 ? `medium (${liveCount}/${toolsUsed.length} live)`
+               : 'mock data (sandbox)';
+    traceHTML = `<div class="tool-trace">${badges}<span class="rounds-badge">${rounds} round${rounds!==1?'s':''}</span><span class="rounds-badge" style="background:var(--cream)">confidence: ${conf}</span></div>`;
+  } else if (role === 'assistant') {
+    traceHTML = `<div class="tool-trace"><span class="rounds-badge">no tools — direct answer (${rounds} round)</span></div>`;
+  }
+
+  div.innerHTML = `
+    <div class="msg-avatar">${avatar}</div>
+    <div class="msg-bubble rendered">
+      <p>${renderMarkdown(text)}</p>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
+        ${role==='assistant' ? '<button onclick="copyMsg(this)" style="background:none;border:1px solid var(--sand);border-radius:3px;padding:2px 8px;font-size:10px;color:var(--stone);cursor:pointer;font-family:inherit" title="Copy response">Copy</button>' : '<span></span>'}
+        <span style="font-size:10px;color:#9a9a8a">${ts}</span>
+      </div>
+      ${traceHTML}
+    </div>`;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+  return div;
+}
+
+function appendTyping() {
+  const chat = document.getElementById('chat-area');
+  const div = document.createElement('div');
+  div.className = 'msg assistant typing-msg';
+  div.id = 'typing-indicator';
+  div.innerHTML = `
+    <div class="msg-avatar">J</div>
+    <div class="msg-bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>`;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function removeTyping() {
+  document.getElementById('typing-indicator')?.remove();
+}
+
+function showError(msg) {
+  const b = document.getElementById('error-banner');
+  b.textContent = msg;
+  b.style.display = 'block';
+  setTimeout(() => b.style.display = 'none', 8000);
+}
+
+// ── Send message ───────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════
+// DEVELOPER PANEL + STATUS BAR
+// ══════════════════════════════════════════════════════════════
+
+function toggleDevPanel() {
+  document.getElementById('dev-panel').classList.toggle('open');
+}
+
+function devLog(msg, type = 'info') {
+  const log = document.getElementById('dev-log');
+  if (!log) return;
+  const ts = new Date().toISOString().slice(11, 19);
+  const el = document.createElement('div');
+  el.className = `dev-log-entry ${type}`;
+  el.innerHTML = `<span class="ts">[${ts}]</span>${msg}`;
+  log.prepend(el);
+  while (log.children.length > 50) log.removeChild(log.lastChild);
+}
+
+function setDot(id, state, label) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.className = `status-dot ${state}`;
+  el.textContent = label;
+}
+
+function setDevItem(id, value, state = 'ok') {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = value;
+  const parent = el.closest('.dev-status-item');
+  if (parent) parent.className = `dev-status-item ${state}`;
+}
+
+async function runStatusCheck() {
+  devLog('Running system status check...', 'info');
+  try {
+    const res = await fetch('/api/status');
+    const s = await res.json();
+    const ok = s.overall_ok;
+
+    setDevItem('dev-overall', ok ? '✓ ALL SYSTEMS GO' : '✗ DEGRADED — see items below', ok ? 'ok' : 'error');
+    setDot('dot-server', s.server.ok ? 'ok' : 'error', `Server v${s.server.version}`);
+    setDevItem('dev-version', s.server.version);
+    setDevItem('dev-uptime', `${s.server.uptime_seconds}s`);
+
+    const envOk = s.environment.node_env === 'production';
+    setDevItem('dev-env', s.environment.node_env, envOk ? 'ok' : 'warn');
+
+    setDevItem('dev-liveapis',
+      s.environment.live_apis ? '✓ true' : '✗ false — set LIVE_APIS=true in Render',
+      s.environment.live_apis ? 'ok' : 'error');
+    setDot('dot-live', s.environment.live_apis ? 'ok' : 'error',
+      s.environment.live_apis ? 'Live APIs ON' : 'Live APIs OFF');
+
+    setDevItem('dev-key',
+      s.environment.api_key_set ? '✓ SET' : '✗ MISSING — add ANTHROPIC_API_KEY in Render',
+      s.environment.api_key_set ? 'ok' : 'error');
+
+    setDot('dot-api', s.anthropic.ok ? 'ok' : 'error',
+      s.anthropic.ok ? 'Claude ✓' : 'Claude ✗');
+    if (!s.anthropic.ok)
+      devLog(`Claude API error: ${s.anthropic.error}`, 'error');
+    else
+      devLog('Claude API: connected and responding ✓', 'api');
+
+    setDevItem('dev-persist',
+      `${s.persistence.mode} ${s.persistence.ok ? '✓' : '✗'}`,
+      s.persistence.ok ? 'ok' : 'warn');
+    setDot('dot-db', s.persistence.ok ? 'ok' : 'warn', `DB: ${s.persistence.mode}`);
+
+    setDot('dot-tools', s.tools.ok ? 'ok' : 'error',
+      s.tools.ok ? `${s.tools.count} Tools ✓` : 'Tools ✗');
+    setDevItem('dev-tools',
+      s.tools.ok ? `${s.tools.count} tools ready` : `Error: ${s.tools.error}`,
+      s.tools.ok ? 'ok' : 'error');
+
+    if (s.tools.sample) {
+      setDevItem('dev-zone',
+        `ZIP 20770 → Zone ${s.tools.sample.zone} [${s.tools.sample.mode}]`,
+        s.tools.sample.mode === 'live' ? 'ok' : 'warn');
+      devLog(`Tool test → Zone ${s.tools.sample.zone} (${s.tools.sample.mode})`, 'tool');
+    }
+
+    devLog(`Check complete — ${ok ? 'ALL OK' : 'DEGRADED'}`, ok ? 'info' : 'error');
+  } catch (err) {
+    ['dot-server','dot-api','dot-tools','dot-live','dot-db'].forEach(id =>
+      setDot(id, 'error', 'Error'));
+    setDevItem('dev-overall', `✗ Cannot reach server: ${err.message}`, 'error');
+    devLog(`Status check failed: ${err.message}`, 'error');
+  }
+}
+
+// Log every chat request in dev panel
+const _origSend = sendMessage;
+window._devWrapSend = function(text) {
+  devLog(`→ Sending: "${(text || document.getElementById('msg-input')?.value || '').slice(0,60)}"`, 'api');
+};
+
+
+
+async function sendMessage(text) {
+  const input = document.getElementById('msg-input');
+  const msg = text || input.value.trim();
+  if (!msg) return;
+
+  input.value = '';
+  input.style.height = '';
+  document.getElementById('send-btn').disabled = true;
+  document.getElementById('error-banner').style.display = 'none';
+
+  appendMessage('user', msg);
+  appendTyping();
+  devLog(`→ POST /api/chat: "${msg.slice(0,60)}"`, 'api');
+
+  const profile = getProfile();
+  const _reqStart = Date.now();
+  const body = { message: msg, garden_profile: profile, history, session_id: sessionId };
+
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    removeTyping();
+
+    if (!res.ok) {
+      const errMsg = data.error || 'Server error — check that ANTHROPIC_API_KEY is set.';
+      showError(errMsg);
+      devLog(`✗ Error ${res.status}: ${errMsg}`, 'error');
+      if (data.detail) devLog(`  Detail: ${data.detail}`, 'error');
+      return;
+    }
+
+    const responseText = data.response || 'I encountered an issue generating a response. Please try again.';
+    appendMessage('assistant', responseText, data.toolsUsed || [], data.rounds || 1, data.trace || []);
+    if (typeof devLogTrace === 'function') devLogTrace(msg, data.toolsUsed||[], data.trace||[], data.rounds||1, Date.now()-_reqStart, profile);
+    if (typeof refreshMemoryAfterResponse === 'function') refreshMemoryAfterResponse();
+    const toolStr = data.toolsUsed?.length ? data.toolsUsed.join(', ') : 'none';
+    devLog(`← Response: ${data.rounds} round(s) | tools: [${toolStr}]`, 'tool');
+    if (data.toolsUsed?.length === 0)
+      devLog('  ↳ Model answered directly — no tools called (PS-02 agentic proof)', 'info');
+
+    // Maintain conversation history for multi-turn
+    history.push({ role: 'user', content: msg });
+    history.push({ role: 'assistant', content: data.response });
+    // Keep last 10 turns to avoid context overflow
+    if (history.length > 20) history = history.slice(-20);
+
+  } catch (err) {
+    removeTyping();
+    showError('Network error: ' + err.message);
+  } finally {
+    document.getElementById('send-btn').disabled = false;
+    input.focus();
+  }
+}
+
+function quickAction(text) {
+  document.getElementById('msg-input').value = text;
+  sendMessage(text);
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+// Auto-resize textarea
+document.getElementById('msg-input').addEventListener('input', function() {
+  this.style.height = '';
+  this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+  const counter = document.getElementById('char-count');
+  if (counter) counter.textContent = this.value.length + '/2000';
+});
+
+// Restore from localStorage if available (doc P0 requirement)
+loadProfileLocal();
+updateProfileSummary();
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GOLD TIER JS — Tab Navigation, Garden Tab, Memory, Dev Lens, Photo Pipeline
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── Tab switching ────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.tab === tab);
+    b.setAttribute('aria-selected', b.dataset.tab === tab);
+  });
+  document.querySelectorAll('.tab-panel').forEach(p => {
+    p.classList.toggle('active', p.id === 'tab-' + tab);
+  });
+  if (tab === 'garden')  loadGardenTab();
+  if (tab === 'tasks')   loadTasksTab();
+  if (tab === 'plants')  loadPlantsTab();
+}
+window.switchTab = switchTab;
+
+// ── Update property card from sidebar profile ────────────────────────────────
+function updatePropertyCard() {
+  const p = typeof getProfile === 'function' ? getProfile() : {};
+  const setText = (id, v) => { const el = document.getElementById(id); if (el && v) el.textContent = v; };
+  setText('prop-name', p.site_name || 'My Garden');
+  setText('prop-zone', p.hardiness_zone ? 'Zone ' + p.hardiness_zone : 'Zone —');
+  setText('prop-soil', p.soil_type || '—');
+  setText('prop-sun',  p.sun_exposure ? p.sun_exposure.replace('_',' ') : '—');
+  setText('prop-goals', p.goals?.join(', ') || '—');
+  setText('prop-exp',   p.experience_level || '—');
+  setText('prop-budget', p.budget ? 'Budget: ' + p.budget : '');
+}
+
+// ── Load Garden tab — property card + live weather/frost/pollen widgets ──────
+async function loadGardenTab() {
+  updatePropertyCard();
+  const p = typeof getProfile === 'function' ? getProfile() : {};
+  if (!p.zip_code) return;
+
+  // Weather
+  try {
+    const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${p.zip_code}&count=1&format=json`);
+    const geoData = await geoRes.json();
+    const loc = geoData.results?.[0];
+    if (!loc) return;
+    const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current=temperature_2m,relative_humidity_2m,weathercode&temperature_unit=fahrenheit&wind_speed_unit=mph`);
+    const wData = await wRes.json();
+    const cur = wData.current;
+    if (cur) {
+      const el_t = document.getElementById('g-temp');
+      const el_c = document.getElementById('g-cond');
+      if (el_t) el_t.textContent = Math.round(cur.temperature_2m) + '°F';
+      if (el_c) el_c.textContent = `${cur.relative_humidity_2m}% humidity`;
+    }
+
+    // Frost risk from 7-day min temp
+    const fRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&daily=temperature_2m_min&temperature_unit=fahrenheit&forecast_days=7`);
+    const fData = await fRes.json();
+    const minTemps = fData.daily?.temperature_2m_min || [];
+    const minLow = Math.min(...minTemps);
+    const frostLevel = minLow <= 28 ? 'warning' : minLow <= 35 ? 'watch' : 'none';
+    const frostLabels = { none: 'No Risk', watch: 'Watch', warning: '⚠ Freeze' };
+    const el_f = document.getElementById('g-frost');
+    if (el_f) el_f.textContent = frostLabels[frostLevel];
+    ['fp1','fp2','fp3','fp4'].forEach((id, i) => {
+      const pip = document.getElementById(id);
+      if (!pip) return;
+      pip.className = 'frost-pip';
+      if (frostLevel === 'warning' && i <= 3) pip.classList.add('on-warn');
+      else if (frostLevel === 'watch' && i <= 1) pip.classList.add('on-watch');
+      else if (frostLevel === 'none' && i === 0) pip.classList.add('on-none');
+    });
+
+    // Pollen
+    const pRes = await fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${loc.latitude}&longitude=${loc.longitude}&hourly=grass_pollen,birch_pollen,mugwort_pollen&forecast_days=1`);
+    const pData = await pRes.json();
+    const grass = pData.hourly?.grass_pollen?.[12] || 0;
+    const birch = pData.hourly?.birch_pollen?.[12] || 0;
+    const weed  = pData.hourly?.mugwort_pollen?.[12] || 0;
+    const maxPollen = Math.max(grass, birch, weed);
+    const pollenLabel = maxPollen < 10 ? 'Low' : maxPollen < 50 ? 'Moderate' : maxPollen < 200 ? 'High' : 'Very High';
+    const pollenPct   = Math.min(100, (maxPollen / 300) * 100);
+    const el_p = document.getElementById('g-pollen');
+    const el_pt = document.getElementById('g-pollen-type');
+    const el_pf = document.getElementById('pollen-fill');
+    if (el_p) el_p.textContent = pollenLabel;
+    if (el_pt) el_pt.textContent = grass > birch && grass > weed ? 'Grass dominant' : birch > weed ? 'Tree dominant' : 'Weed dominant';
+    if (el_pf) el_pf.style.width = pollenPct + '%';
+  } catch (err) {
+    console.warn('[garden tab] live data failed:', err.message);
+  }
+
+  // Diagnoses
+  loadGardenDiagnoses();
+}
+
+async function loadGardenDiagnoses() {
+  if (!window.sessionId) return;
+  try {
+    const res = await fetch(`/api/garden/${window.sessionId}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    renderDiagnosesInGardenTab(data.diagnoses || []);
+  } catch {}
+}
+
+function renderDiagnosesInGardenTab(diagnoses) {
+  const el = document.getElementById('g-diagnoses');
+  if (!el) return;
+  if (!diagnoses.length) {
+    el.innerHTML = '<div style="color:var(--stone);font-size:13px">No diagnoses yet.</div>';
+    return;
+  }
+  el.innerHTML = diagnoses.map(d => {
+    const date = d.created_at ? new Date(d.created_at).toLocaleDateString('en',{month:'short',day:'numeric'}) : '';
+    return `<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--white);border:1px solid var(--sand);border-radius:6px;margin-bottom:6px;cursor:pointer"
+      onclick="quickAction('Follow up on ${d.suspected_issue} diagnosis — what should I check now?');switchTab('chat')">
+      <span style="font-size:18px;flex-shrink:0">🔍</span>
       <div>
-        <p class="eyebrow">Step 3</p>
-        <h2>Ask JarDIYn</h2>
-        <p class="muted">Use normal language. The agent decides whether to answer directly, use profile context, call tools, or label a feature as roadmap-only.</p>
-        <div class="quick-actions" id="quickActions"></div>
-        <label class="ask-box-label" for="messageInput">Your question or plan</label>
-        <textarea id="messageInput" rows="7" placeholder="Example: I want a low-maintenance pollinator bed in clay soil. What will fail and what should I buy first?"></textarea>
-        <div class="form-actions">
-          <button id="sendMessage" class="button primary">Send</button>
-          <button id="planCheck" class="button">Plan Check Mode</button>
-          <button id="gardenPlan" class="button ghost">Generate Garden Plan</button>
-        </div>
+        <div style="font-size:13px;font-weight:500;color:var(--ink);text-transform:capitalize">${d.suspected_issue}</div>
+        <div style="font-size:11px;color:var(--stone);margin-top:2px">${date} · Confidence: ${d.confidence || 'medium'} · <span style="color:var(--green);text-decoration:underline">Follow up →</span></div>
       </div>
-      <aside>
-        <div class="response-card" id="responseCard">
-          <h3>Response</h3>
-          <div id="responseOutput" class="response-output muted">Your answer will appear here.</div>
-          <details id="traceDetails" class="trace-details hidden">
-            <summary>Sources and technical trace</summary>
-            <div id="traceOutput"></div>
-          </details>
-        </div>
-      </aside>
-    </section>
+    </div>`;
+  }).join('');
+}
 
-    <section id="roadmap" class="section-shell roadmap">
-      <p class="eyebrow">Future roadmap, clearly not live</p>
-      <h2>From Garden Passport to Property Intelligence</h2>
-      <div class="roadmap-grid">
-        <div><h3>Now</h3><p>Garden Passport, Plan Check, Garden Plan, source/tool trace, demo scenarios.</p></div>
-        <div><h3>Next</h3><p>Accounts, saved properties, Garden Recovery Mode, local pilots, professional handoff reports.</p></div>
-        <div><h3>Later</h3><p>Municipal GIS import, public property layers, satellite/drone add-ons, partner marketplace, The Crew community.</p></div>
+// ── Tasks tab ────────────────────────────────────────────────────────────────
+async function loadTasksTab() {
+  if (!window.sessionId) return;
+  try {
+    const res = await fetch(`/api/garden/${window.sessionId}`);
+    if (!res.ok) return;
+    const { tasks } = await res.json();
+    renderTasksTab(tasks || []);
+    updateTaskBadge(tasks?.filter(t => t.status === 'pending').length || 0);
+  } catch {}
+}
+
+function renderTasksTab(tasks) {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 2);
+  const urgent   = tasks.filter(t => t.status === 'pending' && t.due_date && new Date(t.due_date) <= tomorrow);
+  const upcoming = tasks.filter(t => t.status === 'pending' && (!t.due_date || new Date(t.due_date) > tomorrow));
+
+  const renderTask = t => {
+    const due = t.due_date ? new Date(t.due_date) : null;
+    const overdue = due && due < today;
+    const dueStr  = due ? (overdue ? '⚠ Overdue' : due.toLocaleDateString('en',{weekday:'short',month:'short',day:'numeric'})) : 'No due date';
+    return `<div class="task-row ${t.priority || 'medium'}">
+      <button class="tr-check" onclick="doCompleteTask('${t.id}')" title="Mark done">✓</button>
+      <div>
+        <div class="tr-title">${t.title}</div>
+        <div class="tr-meta">${dueStr}${t.reason ? ' · ' + t.reason.slice(0,60) : ''}</div>
       </div>
-      <p class="fine-print">JarDIYn does not replace surveys, permits, engineering, arborist review, pesticide labels, poison control, or licensed professional judgment.</p>
-    </section>
-  </main>
+    </div>`;
+  };
 
-  <footer class="site-footer">JarDIYn by GardenHub · Build proof first · Debug view: add <code>?debug=true</code></footer>
-  <script src="/app.js" type="module"></script>
+  const urgentEl   = document.getElementById('tasks-urgent');
+  const upcomingEl = document.getElementById('tasks-upcoming');
+  if (urgentEl)   urgentEl.innerHTML   = urgent.length   ? urgent.map(renderTask).join('')   : '<div style="color:var(--stone);font-size:13px">No urgent tasks.</div>';
+  if (upcomingEl) upcomingEl.innerHTML = upcoming.length ? upcoming.map(renderTask).join('') : '<div style="color:var(--stone);font-size:13px">No upcoming tasks yet.</div>';
+}
+
+async function doCompleteTask(taskId) {
+  try {
+    await fetch(`/api/tasks/${window.sessionId}/${taskId}/complete`, { method: 'POST' });
+    loadTasksTab();
+    loadGardenMemory();
+  } catch {}
+}
+window.doCompleteTask = doCompleteTask;
+
+function updateTaskBadge(count) {
+  const badge = document.getElementById('task-count-badge');
+  if (!badge) return;
+  badge.style.display = count > 0 ? 'inline-flex' : 'none';
+  badge.textContent = count;
+}
+
+// ── Plants tab ───────────────────────────────────────────────────────────────
+async function loadPlantsTab() {
+  if (!window.sessionId) return;
+  try {
+    const res = await fetch(`/api/garden/${window.sessionId}`);
+    if (!res.ok) return;
+    const { plants } = await res.json();
+    renderPlantsTab(plants || []);
+  } catch {}
+}
+
+function renderPlantsTab(plants) {
+  const grid = document.getElementById('plant-grid');
+  if (!grid) return;
+  if (!plants.length) {
+    grid.innerHTML = '<div style="color:var(--stone);font-size:13px;grid-column:1/-1;margin-top:12px">No plants yet.</div>';
+    return;
+  }
+  const icons = {'vegetable':'🥕','tomato':'🍅','rose':'🌹','herb':'🌿','tree':'🌳','flower':'🌸','shrub':'🌿','fern':'🌿','grass':'🌾','default':'🌱'};
+  grid.innerHTML = plants.map(p => {
+    const iconKey = Object.keys(icons).find(k => p.common_name?.toLowerCase().includes(k)) || 'default';
+    return `<div class="plant-card" onclick="quickAction('Tell me about ${p.common_name} care for my conditions and what I should do this week.')">
+      <div class="plant-icon">${icons[iconKey]}</div>
+      <div class="plant-name">${p.common_name}</div>
+      ${p.scientific_name ? `<div class="plant-sci">${p.scientific_name}</div>` : ''}
+      ${p.location ? `<div class="plant-loc">📍 ${p.location}</div>` : ''}
+      <div class="plant-tag">${p.status || 'active'}</div>
+    </div>`;
+  }).join('');
+}
+
+function promptAddPlant() {
+  const name = prompt('Plant name (e.g. "Tomato", "Black-Eyed Susan"):');
+  if (!name) return;
+  const loc = prompt('Location in garden (optional, e.g. "Back bed", "Container"):') || '';
+  addPlantToInventory(name, '', loc);
+}
+window.promptAddPlant = promptAddPlant;
+
+// ── Garden Memory sidebar ────────────────────────────────────────────────────
+async function loadGardenMemory() {
+  if (!window.sessionId) return;
+  try {
+    const res = await fetch(`/api/garden/${window.sessionId}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    renderSidebarMemory(data.tasks || [], data.diagnoses || []);
+    renderTodaysPriorities(data.tasks || [], data.diagnoses || []);
+    updateTaskBadge((data.tasks || []).filter(t => t.status === 'pending').length);
+  } catch (err) { console.warn('[memory]', err.message); }
+}
+
+function renderSidebarMemory(tasks, diagnoses) {
+  const tasksEl = document.getElementById('mem-tasks');
+  const diagEl  = document.getElementById('mem-diagnoses');
+  const pending = tasks.filter(t => t.status === 'pending').slice(0, 5);
+  if (tasksEl) {
+    tasksEl.innerHTML = pending.length
+      ? pending.map(t => `<div class="mem-task ${t.priority||'medium'}">
+          <button class="mem-check" onclick="doCompleteTask('${t.id}');event.stopPropagation()" title="Done">✓</button>
+          <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10.5px">${t.title}</div>
+        </div>`).join('')
+      : '<div style="font-size:10px;color:var(--stone-light)">No pending tasks</div>';
+  }
+  if (diagEl) {
+    diagEl.innerHTML = diagnoses.slice(0,3).map(d =>
+      `<span class="diag-chip" onclick="quickAction('Follow up on ${d.suspected_issue}');switchTab(\'chat\')" title="Click to follow up">🔍 ${d.suspected_issue}</span>`
+    ).join('');
+  }
+}
+
+function renderTodaysPriorities(tasks, diagnoses) {
+  const el   = document.getElementById('todays-priorities');
+  const list = document.getElementById('priority-tasks');
+  const desc = document.getElementById('welcome-desc');
+  if (!el || !list) return;
+  const today    = new Date(); today.setHours(0,0,0,0);
+  const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 2);
+  const urgent = tasks.filter(t => t.status === 'pending' && t.due_date && new Date(t.due_date) <= tomorrow).slice(0, 4);
+  const overdueFollowUps = diagnoses.filter(d => d.status === 'open' && d.follow_up_date && new Date(d.follow_up_date) <= new Date()).slice(0, 2);
+  if (!urgent.length && !overdueFollowUps.length) return;
+  if (desc) desc.style.display = 'none';
+  el.style.display = 'block';
+  list.innerHTML = [
+    ...urgent.map(t => {
+      const due = new Date(t.due_date); const overdue = due < today;
+      const icon = t.priority === 'high' ? '🔴' : '🟡';
+      return `<button style="display:flex;align-items:center;gap:10px;background:var(--white);border:1px solid var(--sand);border-${t.priority==='high'?'left:3px solid #e05a3a':'left:3px solid var(--gold)'};border-radius:6px;padding:10px 14px;text-align:left;cursor:pointer;font-family:inherit;width:100%;box-shadow:0 1px 4px rgba(30,61,24,0.06);transition:all 0.12s"
+        onclick="quickAction('Task: ${t.title} — what exactly should I do and what should I look for?');switchTab('chat')">
+        <span style="font-size:16px">${icon}</span>
+        <div>
+          <div style="font-size:12.5px;font-weight:600;color:var(--ink)">${t.title}</div>
+          <div style="font-size:10.5px;color:var(--stone);margin-top:1px">${overdue ? '⚠ Overdue' : due.toLocaleDateString('en',{weekday:'short',month:'short',day:'numeric'})}</div>
+        </div>
+      </button>`;
+    }),
+    ...overdueFollowUps.map(d =>
+      `<button style="display:flex;align-items:center;gap:10px;background:var(--white);border:1px solid var(--sand);border-left:3px solid #e05a3a;border-radius:6px;padding:10px 14px;text-align:left;cursor:pointer;font-family:inherit;width:100%;box-shadow:0 1px 4px rgba(30,61,24,0.06)"
+        onclick="quickAction('Time to check on the ${d.suspected_issue} — 3 days since diagnosis. What should I see?');switchTab('chat')">
+        <span style="font-size:16px">🔍</span>
+        <div>
+          <div style="font-size:12.5px;font-weight:600;color:var(--ink)">Follow up: ${d.suspected_issue}</div>
+          <div style="font-size:10.5px;color:var(--stone);margin-top:1px">Check treatment progress</div>
+        </div>
+      </button>`
+    )
+  ].join('');
+}
+
+async function addPlantToInventory(commonName, sci, loc) {
+  if (!commonName || !window.sessionId) return;
+  await fetch(`/api/plants/${window.sessionId}`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ common_name: commonName, scientific_name: sci, location: loc })
+  });
+  loadGardenMemory();
+}
+window.addPlantToInventory = addPlantToInventory;
+
+function refreshMemoryAfterResponse() { setTimeout(loadGardenMemory, 800); }
+window.refreshMemoryAfterResponse = refreshMemoryAfterResponse;
+
+// ── Garden tab: update property card whenever profile changes ─────────────────
+// Patch into the existing updateProfileSummary call chain
+const _origUpdatePS = typeof updateProfileSummary === 'function' ? updateProfileSummary : null;
+// We'll call updatePropertyCard after sidebar profile changes via event delegation
+
+// ── Photo pipeline — normalizePlantPhotoToJpeg ────────────────────────────────
+const ALLOWED_IMG = ['image/jpeg','image/png','image/webp','image/gif'];
+const MAX_PX = 1600, JPEG_Q = 0.85, MAX_BYTES = 10*1024*1024;
+
+async function normalizePlantPhotoToJpeg(file) {
+  if (!file) throw new Error('No file selected.');
+  if (file.size > MAX_BYTES) throw new Error('Image too large. Please use an image under 10MB.');
+  const declared = file.type || 'unknown';
+  if (file.type && !ALLOWED_IMG.includes(file.type) && !file.type.startsWith('image/heic') && !file.type.startsWith('image/heif'))
+    throw new Error('Unsupported format: ' + declared);
+  let bmp;
+  try { bmp = await createImageBitmap(file); }
+  catch { throw new Error("We couldn\u2019t process this photo. Please try another image."); }
+  const { width: w, height: h } = bmp;
+  const scale = Math.min(1, MAX_PX / Math.max(w, h));
+  const tw = Math.round(w*scale), th = Math.round(h*scale);
+  const canvas = document.createElement('canvas');
+  canvas.width = tw; canvas.height = th;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#fff'; ctx.fillRect(0,0,tw,th);
+  ctx.drawImage(bmp, 0, 0, tw, th);
+  bmp.close?.();
+  const blob = await new Promise((res,rej) => canvas.toBlob(b => b ? res(b) : rej(new Error('Encode failed')), 'image/jpeg', JPEG_Q));
+  const b64  = await new Promise((res,rej) => { const fr = new FileReader(); fr.onload = () => res(fr.result.split(',')[1]); fr.onerror = rej; fr.readAsDataURL(blob); });
+  return { base64: b64, media_type: 'image/jpeg', width: tw, height: th, bytes: blob.size, declared_type: declared, preview_url: URL.createObjectURL(blob) };
+}
+
+function handleImageUpload(event) {
+  const file = event.target.files[0]; event.target.value = '';
+  if (!file) return;
+  const input = document.getElementById('msg-input');
+  input.placeholder = 'Processing photo\u2026';
+  normalizePlantPhotoToJpeg(file).then(n => {
+    window._pendingImage = { base64: n.base64, media_type: n.media_type, name: file.name, width: n.width, height: n.height, bytes: n.bytes, preview_url: n.preview_url };
+    input.placeholder = 'Photo ready — describe the problem or click Send.';
+    document.getElementById('img-preview')?.remove();
+    const prev = document.createElement('div'); prev.id = 'img-preview';
+    prev.style.cssText = 'padding:8px 24px;background:var(--cream);border-bottom:1px solid var(--sand);display:flex;align-items:center;gap:10px';
+    prev.innerHTML = `<img src="${n.preview_url}" style="height:50px;border-radius:4px;border:1px solid var(--sand)">` +
+      `<span style="font-size:12px;color:var(--stone)">Photo ready — ${n.width}×${n.height}, ${Math.round(n.bytes/1024)}KB</span>` +
+      `<button onclick="clearImagePreview()" style="margin-left:auto;background:none;border:none;cursor:pointer;color:var(--stone-light);font-size:17px">×</button>`;
+    const inputBar = document.querySelector('.input-bar');
+    if (inputBar) inputBar.before(prev);
+    input.focus();
+  }).catch(err => {
+    input.placeholder = 'Ask anything about your garden...';
+    if (typeof showError === 'function') showError(err.message);
+  });
+}
+
+function clearImagePreview() {
+  document.getElementById('img-preview')?.remove();
+  if (window._pendingImage?.preview_url) URL.revokeObjectURL(window._pendingImage.preview_url);
+  window._pendingImage = null;
+  const input = document.getElementById('msg-input');
+  if (input) input.placeholder = 'Ask anything about your garden...';
+}
+
+async function sendMessageWithImage(text) {
+  if (!window._pendingImage) { if (typeof sendMessage === 'function') sendMessage(text); return; }
+  const input = document.getElementById('msg-input');
+  const msg = text || input.value.trim() || 'What is wrong with this plant?';
+  input.value = '';
+  const btn = document.getElementById('send-btn'); if (btn) btn.disabled = true;
+  const img = window._pendingImage; clearImagePreview();
+  if (typeof appendMessage === 'function') appendMessage('user', '[Photo] ' + msg);
+  if (typeof appendTyping === 'function') appendTyping();
+  try {
+    const res = await fetch('/api/identify', { method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ symptom_description: msg, image_base64: img.base64, image_media_type: img.media_type, garden_profile: getProfile(), session_id: window.sessionId }) });
+    const data = await res.json();
+    if (typeof removeTyping === 'function') removeTyping();
+    if (!res.ok) { if (typeof showError === 'function') showError(data.error || "Couldn\u2019t process photo."); return; }
+    if (typeof appendMessage === 'function') appendMessage('assistant', data.response, data.toolsUsed||[], data.rounds||1, data.trace||[]);
+    if (typeof devLogTrace === 'function') devLogTrace('[Photo] ' + msg, data.toolsUsed||[], data.trace||[], data.rounds||1, null, getProfile());
+    refreshMemoryAfterResponse();
+  } catch (err) {
+    if (typeof removeTyping === 'function') removeTyping();
+    if (typeof showError === 'function') showError('Network error: ' + err.message);
+  } finally {
+    if (btn) btn.disabled = false;
+    input.focus();
+  }
+}
+
+// ── Dev panel toggle ──────────────────────────────────────────────────────────
+function toggleDevPanel() {
+  document.getElementById('dev-panel')?.classList.toggle('open');
+}
+
+// ── Dev panel resize ──────────────────────────────────────────────────────────
+(function() {
+  const handle = document.getElementById('dp-resize');
+  const panel  = document.getElementById('dev-panel');
+  if (!handle || !panel) return;
+  let drag = false, startY = 0, startH = 0;
+  handle.addEventListener('mousedown', e => { drag=true; startY=e.clientY; startH=panel.offsetHeight; document.body.style.userSelect='none'; });
+  document.addEventListener('mousemove', e => { if (!drag) return; panel.style.height = Math.min(Math.max(startH+(startY-e.clientY),180),window.innerHeight*0.85)+'px'; });
+  document.addEventListener('mouseup', () => { drag=false; document.body.style.userSelect=''; });
+})();
+
+// ── devLog & devLogTrace ──────────────────────────────────────────────────────
+function devLog(msg, type='info') {
+  const log = document.getElementById('dev-log'); if (!log) return;
+  const ts = new Date().toISOString().slice(11,19);
+  const el = document.createElement('div'); el.className = `dp-log-line ${type}`;
+  el.innerHTML = `<span class="dp-ts">[${ts}]</span>${msg}`;
+  log.prepend(el);
+  while (log.children.length > 120) log.removeChild(log.lastChild);
+}
+
+function devLogTrace(prompt, toolsUsed, trace, rounds, ms, gardenProfile) {
+  const log = document.getElementById('dev-log'); if (!log) return;
+  const ts = new Date().toISOString().slice(11,19);
+  const bodyId = 'dp-' + Date.now();
+  const msLbl  = ms ? `${(ms/1000).toFixed(1)}s` : '';
+  const roundEntries = (trace||[]).filter(t => t.round != null);
+  const execByTool   = {};
+  (trace||[]).forEach(t => { if (t.step==='tool_execution') execByTool[t.tool]=t; });
+  let totalIn=0, totalOut=0;
+  roundEntries.forEach(r => { if (r.usage) { totalIn+=r.usage.input_tokens||0; totalOut+=r.usage.output_tokens||0; } });
+  const modelShort = (roundEntries[0]?.model||'').replace('claude-','').replace(/-\d{8}$/,'');
+  const toolCount = toolsUsed ? toolsUsed.length : 0;
+  const liveCount = Object.values(execByTool).filter(t=>t.mode==='live').length;
+  const allLive = toolCount>0 && liveCount===toolCount;
+  const modeDot = toolCount===0 ? '<span style="color:#2e5a2e">◌</span>' : allLive ? '<span style="color:#4caf50">●</span>' : '<span style="color:#ff9800">◑</span>';
+  const qBadge = (totalIn+totalOut)>0 ? `<span class="dp-quantum">${totalIn}→${totalOut}t${modelShort?' · '+modelShort:''}</span>` : '';
+
+  function renderRounds() {
+    if (!roundEntries.length) return `<div class="dp-round"><div class="dp-round-hdr"><span>round 1</span><span class="dp-stop-end">end_turn ✓</span></div><div class="dp-direct">↳ direct answer — no tools called</div></div>`;
+    return roundEntries.map(r => {
+      const stopCls = r.stop_reason==='end_turn'?'dp-stop-end':r.stop_reason==='tool_use'?'dp-stop-tool':'dp-stop-max';
+      const stopLbl = r.stop_reason==='end_turn'?'end_turn ✓':r.stop_reason==='tool_use'?'tool_use →':(r.stop_reason||'?');
+      const usageLine = r.usage ? `<span class="dp-quantum-sm">↑${r.usage.input_tokens}t ↓${r.usage.output_tokens}t</span>` : '';
+      const blocksHtml = (r.content_blocks||[]).map(b => {
+        if (b.type==='text'&&b.text?.trim()) {
+          const safe = b.text.slice(0,180).replace(/</g,'&lt;').replace(/>/g,'&gt;');
+          return `<div class="dp-reasoning">↳ ${safe}${b.text.length>180?'…':''}</div>`;
+        }
+        if (b.type==='tool_use') {
+          const exec = execByTool[b.name]||{};
+          const mode = exec.mode||'unknown';
+          const modeCls = mode==='live'?'dp-mode-live':mode==='sandbox'?'dp-mode-sand':'dp-mode-unk';
+          const args = Object.entries(b.input||{}).slice(0,5).map(([k,v])=>
+            `<span class="dp-arg"><span class="dp-arg-key">${k}</span>=<span class="dp-arg-val">${String(v).slice(0,40).replace(/</g,'&lt;')}</span></span>`).join('');
+          const subHtml = exec.subatomic && Object.keys(exec.subatomic).length
+            ? `<div class="dp-subatomic">${Object.entries(exec.subatomic).filter(([k])=>!['generated_at','tool'].includes(k)).slice(0,8).map(([k,v])=>
+                `<span class="dp-sub-pair"><span class="dp-sub-k">${k}</span><span class="dp-sub-v">${String(v).slice(0,50).replace(/</g,'&lt;')}</span></span>`).join('')}</div>` : '';
+          return `<div class="dp-tool"><span class="dp-tool-arrow">↳</span><span class="dp-tool-name">${b.name}</span><span class="${modeCls}">${mode.toUpperCase()}</span>${exec.ok===false?'<span class="dp-mode-err">ERR</span>':''}${exec.source?`<span class="dp-source">${exec.source}</span>`:''}</div>${args?`<div class="dp-args">${args}</div>`:''}${subHtml}`;
+        }
+        return '';
+      }).join('');
+      return `<div class="dp-round"><div class="dp-round-hdr"><span>round ${r.round}</span><span class="${stopCls}">${stopLbl}</span>${usageLine}</div>${blocksHtml}</div>`;
+    }).join('');
+  }
+
+  const profHtml = (() => {
+    if (!gardenProfile) return '';
+    const p = gardenProfile;
+    const fields = [p.zip_code&&`zip=${p.zip_code}`,p.soil_type&&`soil=${p.soil_type}`,p.sun_exposure&&`sun=${p.sun_exposure}`,p.goals?.length&&`goals=[${p.goals.join(',')}]`].filter(Boolean);
+    return fields.length ? `<div class="dp-profile">${fields.map(f=>`<span>${f}</span>`).join('')}</div>` : '';
+  })();
+
+  const block = document.createElement('div'); block.className = 'dp-macro';
+  block.innerHTML = `
+    <div class="dp-macro-header" onclick="const b=document.getElementById('${bodyId}');b.classList.toggle('open');this.querySelector('.dp-c').textContent=b.classList.contains('open')?'▾':'▸'">
+      <span class="dp-macro-ts">[${ts}]</span>
+      <span class="dp-c" style="color:#2e5a2e;flex-shrink:0">▸</span>
+      <span class="dp-macro-prompt">${(prompt||'').slice(0,68).replace(/</g,'&lt;')}${prompt&&prompt.length>68?'…':''}</span>
+      <span class="dp-macro-meta">${modeDot} ${toolCount}t·${rounds||1}r${msLbl?' · '+msLbl:''} ${qBadge}</span>
+    </div>
+    <div class="dp-macro-body" id="${bodyId}">${profHtml}${renderRounds()}</div>`;
+  log.prepend(block);
+  while (log.children.length > 40) log.removeChild(log.lastChild);
+}
+
+// ── runStatusCheck (gold) ─────────────────────────────────────────────────────
+async function runStatusCheck() {
+  devLog('System check…', 'info');
+  try {
+    const res = await fetch('/api/status');
+    const s   = await res.json();
+    const ok  = s.overall_ok;
+    const setText = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
+    const overall = document.getElementById('dp-overall');
+    if (overall) { overall.textContent = ok?'● ALL OK':'● DEGRADED'; overall.className=ok?'dp-status-ok':'dp-status-err'; }
+    setText('dp-ver',    s.server?.version||'?');
+    setText('dp-uptime', s.server?.uptime_seconds??'?');
+    setText('dp-env',    s.environment?.node_env||'?');
+    setText('dp-live',   s.environment?.live_apis?'LIVE':'SANDBOX');
+    setText('dp-key',    s.environment?.api_key_set?'✓':'✗');
+    setText('dp-db',     s.persistence?.mode||'?');
+    setText('dp-tools',  s.tools?.count??'?');
+    // status bar dots
+    const setDot = (id, state, label) => {
+      const el = document.getElementById(id); if (!el) return;
+      el.className = `status-dot ${state}`;
+      el.textContent = label;
+    };
+    setDot('dot-server', s.server?.ok?'ok':'error', `v${s.server?.version}`);
+    setDot('dot-api',    s.anthropic?.ok?'ok':'error', s.anthropic?.ok?'Claude ✓':'Claude ✗');
+    setDot('dot-live',   s.environment?.live_apis?'ok':'error', s.environment?.live_apis?'Live ✓':'Sandbox');
+    setDot('dot-db',     s.persistence?.ok?'ok':'warn', `DB:${s.persistence?.mode}`);
+    setDot('dot-tools',  s.tools?.ok?'ok':'error', `${s.tools?.count||0} tools`);
+    if (s.tools?.sample) devLog(`tool test → get_garden_zone(${s.tools.sample.zip}) = Zone ${s.tools.sample.zone} [${s.tools.sample.mode}]`, 'tool');
+    if (!s.anthropic?.ok) devLog(`Claude API: ${s.anthropic?.error}`, 'error');
+    else devLog(`Claude ✓ · key set · sonnet-4-6`, 'api');
+    devLog(`status=${ok?'OK':'DEGRADED'} · db=${s.persistence?.mode}`, ok?'info':'error');
+  } catch (err) {
+    devLog(`status check failed: ${err.message}`, 'error');
+  }
+}
+
+// ── Wire devLogTrace + refreshMemory into sendMessage ─────────────────────────
+// Patch sendMessage to add devLogTrace + memory refresh after each response
+const _origSendMessage = typeof sendMessage !== 'undefined' ? sendMessage : null;
+// We'll do this by intercepting the response in the existing sendMessage via window hook
+
+// ── Boot ─────────────────────────────────────────────────────────────────────
+window.switchTab           = switchTab;
+window.loadGardenTab       = loadGardenTab;
+window.loadTasksTab        = loadTasksTab;
+window.loadPlantsTab       = loadPlantsTab;
+window.loadGardenMemory    = loadGardenMemory;
+window.updatePropertyCard  = updatePropertyCard;
+window.handleImageUpload   = handleImageUpload;
+window.clearImagePreview   = clearImagePreview;
+window.sendMessageWithImage = sendMessageWithImage;
+window.devLog              = devLog;
+window.devLogTrace         = devLogTrace;
+window.toggleDevPanel      = toggleDevPanel;
+window.runStatusCheck      = runStatusCheck;
+
+// Load memory on boot
+loadGardenMemory();
+runStatusCheck();
+setInterval(runStatusCheck, 60000);
+(async function restoreSession() {
+  try {
+    const res = await fetch('/api/history/' + sessionId);
+    if (!res.ok) return;
+    const data = await res.json();
+
+    if (data.profile) {
+      if (data.profile.zip_code)     document.getElementById('zip').value = data.profile.zip_code;
+      if (data.profile.soil_type)    document.getElementById('soil').value = data.profile.soil_type;
+      if (data.profile.sun_exposure) document.getElementById('sun').value = data.profile.sun_exposure;
+      if (data.profile.site_name)    document.getElementById('site-name').value = data.profile.site_name;
+      (data.profile.goals || []).forEach(g => {
+        goals.add(g);
+        document.querySelectorAll('.tag').forEach(t => { if (t.dataset.goal === g) t.classList.add('active'); });
+      });
+      updateProfileSummary();
+    }
+
+    if (data.history && data.history.length > 0) {
+      data.history.forEach(turn => {
+        appendMessage(turn.role, turn.content, turn.tools_used || [],
+          (turn.tools_used && turn.tools_used.length) ? 2 : 1);
+        history.push({ role: turn.role, content: turn.content });
+      });
+      history = history.slice(-20);
+    }
+  } catch (e) { /* fresh session */ }
+})();
+
+
+// ══════════════════════════════════════════════════════════════
+// DEVELOPER PANEL + STATUS BAR
+// ══════════════════════════════════════════════════════════════
+
+function toggleDevPanel() {
+  const p = document.getElementById('dev-panel');
+  if (p) p.classList.toggle('open');
+}
+
+function devLog(msg, type = 'info') {
+  const log = document.getElementById('dev-log');
+  if (!log) return;
+  const ts = new Date().toISOString().slice(11, 19);
+  const el = document.createElement('div');
+  el.className = 'dev-log-entry ' + type;
+  el.innerHTML = '<span class="ts">[' + ts + ']</span>' + msg;
+  log.prepend(el);
+  while (log.children.length > 50) log.removeChild(log.lastChild);
+}
+
+function setDot(id, state, label) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.className = 'status-dot ' + state;
+  el.textContent = label;
+}
+
+function setDevItem(id, value, state) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = value;
+  const parent = el.closest('.dev-status-item');
+  if (parent) parent.className = 'dev-status-item ' + (state || 'ok');
+}
+
+async function runStatusCheck() {
+  try {
+    const res = await fetch('/api/status');
+    const s = await res.json();
+    const ok = s.overall_ok;
+    setDevItem('dev-overall', ok ? '✓ ALL SYSTEMS GO' : '✗ DEGRADED', ok ? 'ok' : 'error');
+    setDot('dot-server', s.server?.ok ? 'ok' : 'error', 'Server v' + (s.server?.version || '?'));
+    setDevItem('dev-version', s.server?.version || '?');
+    setDevItem('dev-uptime', (s.server?.uptime_seconds || 0) + 's');
+    setDevItem('dev-env', s.environment?.node_env || '?', s.environment?.node_env === 'production' ? 'ok' : 'warn');
+    setDevItem('dev-liveapis', s.environment?.live_apis ? '✓ true' : '✗ false — set LIVE_APIS=true', s.environment?.live_apis ? 'ok' : 'error');
+    setDot('dot-live', s.environment?.live_apis ? 'ok' : 'error', s.environment?.live_apis ? 'Live APIs ON' : 'Live APIs OFF');
+    setDevItem('dev-key', s.environment?.api_key_set ? '✓ SET' : '✗ MISSING', s.environment?.api_key_set ? 'ok' : 'error');
+    setDot('dot-api', s.anthropic?.ok ? 'ok' : 'error', s.anthropic?.ok ? 'Claude ✓' : 'Claude ✗');
+    setDevItem('dev-persist', (s.persistence?.mode || '?') + ' ' + (s.persistence?.ok ? '✓' : '✗'), s.persistence?.ok ? 'ok' : 'warn');
+    setDot('dot-db', s.persistence?.ok ? 'ok' : 'warn', 'DB: ' + (s.persistence?.mode || '?'));
+    setDot('dot-tools', s.tools?.ok ? 'ok' : 'error', s.tools?.ok ? s.tools.count + ' Tools ✓' : 'Tools ✗');
+    setDevItem('dev-tools', s.tools?.ok ? s.tools.count + ' tools ready' : 'Error: ' + s.tools?.error, s.tools?.ok ? 'ok' : 'error');
+    if (s.tools?.sample) setDevItem('dev-zone', 'ZIP 20770 → Zone ' + s.tools.sample.zone + ' [' + s.tools.sample.mode + ']', s.tools.sample.mode === 'live' ? 'ok' : 'warn');
+    devLog('Status: ' + (ok ? 'ALL OK ✓' : 'DEGRADED ✗'), ok ? 'info' : 'error');
+  } catch (err) {
+    ['dot-server','dot-api','dot-tools','dot-live','dot-db'].forEach(id => setDot(id, 'error', 'Error'));
+    setDevItem('dev-overall', '✗ Cannot reach server: ' + err.message, 'error');
+    devLog('Status check failed: ' + err.message, 'error');
+  }
+}
+
+
+// ── Mobile sidebar ─────────────────────────────────────────────────────────
+function copyMsg(btn) {
+  const bubble = btn.closest('.msg-bubble');
+  const text = bubble ? bubble.innerText.replace(/Copy\n.*/, '').trim() : '';
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 2000);
+  }).catch(() => { btn.textContent = 'Error'; });
+}
+
+function toggleMobileSidebar() {
+  document.querySelector('.sidebar').classList.toggle('open');
+  var o = document.getElementById('mobile-overlay');
+  if (o) o.classList.toggle('show');
+}
+
+// ── ZIP zone lookup ────────────────────────────────────────────────────────
+function lookupZone() {
+  var zip = document.getElementById('zip').value.trim();
+  if (!zip || zip.length < 4) { showError('Please enter a valid ZIP code first.'); return; }
+  quickAction('Look up the USDA hardiness zone for ZIP code ' + zip + '. Give me the zone, frost dates, and top 5 things I can grow there.');
+}
+
+// ── Image upload for plant diagnosis ───────────────────────────────────────
+function handleImageUpload(event) {
+  var file = event.target.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) { showError('Please upload an image file.'); return; }
+  if (file.size > 5242880) { showError('Image too large. Please use an image under 5MB.'); return; }
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    window._pendingImage = { base64: e.target.result.split(',')[1], name: file.name };
+    document.getElementById('msg-input').placeholder = 'Photo ready. Describe the problem or just click Send.';
+    var old = document.getElementById('img-preview');
+    if (old) old.remove();
+    var preview = document.createElement('div');
+    preview.id = 'img-preview';
+    preview.style.cssText = 'padding:8px 24px;background:var(--cream);border-bottom:1px solid var(--sand);display:flex;align-items:center;gap:10px';
+    preview.innerHTML = '<img src="' + e.target.result + '" style="height:52px;border-radius:4px;border:1px solid var(--sand)"><span style="font-size:12px;color:var(--stone)">Photo ready. Describe the problem and send.</span><button onclick="clearImagePreview()" style="margin-left:auto;background:none;border:none;cursor:pointer;color:var(--stone);font-size:16px;font-family:inherit">x</button>';
+    document.querySelector('.input-bar').before(preview);
+    document.getElementById('msg-input').focus();
+  };
+  reader.readAsDataURL(file);
+  event.target.value = '';
+}
+
+function clearImagePreview() {
+  var p = document.getElementById('img-preview');
+  if (p) p.remove();
+  window._pendingImage = null;
+  document.getElementById('msg-input').placeholder = 'Ask anything about your garden...';
+}
+
+async function sendMessageWithImage(text) {
+  if (!window._pendingImage) { sendMessage(text); return; }
+  var input = document.getElementById('msg-input');
+  var msg = text || input.value.trim() || 'What is wrong with this plant?';
+  input.value = '';
+  document.getElementById('send-btn').disabled = true;
+  var imgData = window._pendingImage;
+  clearImagePreview();
+  appendMessage('user', '[Photo] ' + msg);
+  appendTyping();
+  try {
+    var res = await fetch('/api/identify', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ symptom_description: msg, image_base64: imgData.base64, garden_profile: getProfile() })
+    });
+    var data = await res.json();
+    removeTyping();
+    if (!res.ok) { showError(data.error || 'Identification failed'); return; }
+    appendMessage('assistant', data.response, data.toolsUsed || [], data.rounds || 1, data.trace || []);
+    history.push({ role: 'user', content: msg });
+    history.push({ role: 'assistant', content: data.response });
+  } catch (err) {
+    removeTyping();
+    showError('Network error: ' + err.message);
+  } finally {
+    document.getElementById('send-btn').disabled = false;
+    document.getElementById('msg-input').focus();
+  }
+}
+
+// Expose to window so inline onclick handlers work
+window.sendMessage   = sendMessage;
+window.quickAction   = quickAction;
+window.handleKey     = handleKey;
+window.toggleGoal    = toggleGoal;
+window.toggleDevPanel = toggleDevPanel;
+window.toggleMobileSidebar = toggleMobileSidebar;
+window.lookupZone = lookupZone;
+window.handleImageUpload = handleImageUpload;
+window.clearImagePreview = clearImagePreview;
+window.sendMessageWithImage = sendMessageWithImage;
+
+runStatusCheck();
+setInterval(runStatusCheck, 60000);
+</script>
+
+  <!-- Developer panel — fixed overlay, opened via status bar -->
+  <div class="dev-panel" id="dev-panel">
+    <div class="dp-resize" id="dp-resize"></div>
+    <div class="dp-status">
+      <span id="dp-overall" class="dp-status-ok">◌ checking...</span>
+      <span class="dp-stat">v<span id="dp-ver">—</span></span>
+      <span class="dp-stat"><span id="dp-env">—</span></span>
+      <span class="dp-stat">apis:<span id="dp-live">—</span></span>
+      <span class="dp-stat">key:<span id="dp-key">—</span></span>
+      <span class="dp-stat">db:<span id="dp-db">—</span></span>
+      <span class="dp-stat">tools:<span id="dp-tools">—</span></span>
+      <span class="dp-stat" style="margin-left:auto">↑<span id="dp-uptime">—</span>s</span>
+      <button onclick="toggleDevPanel()" style="background:none;border:none;color:#2e5a2e;cursor:pointer;font-size:13px;padding:0 12px;font-family:inherit">✕</button>
+      <span id="dev-overall" style="display:none"></span><span id="dev-version" style="display:none"></span>
+      <span id="dev-uptime" style="display:none"></span><span id="dev-env" style="display:none"></span>
+      <span id="dev-liveapis" style="display:none"></span><span id="dev-key" style="display:none"></span>
+      <span id="dev-persist" style="display:none"></span><span id="dev-tools" style="display:none"></span>
+      <span id="dev-zone" style="display:none"></span>
+    </div>
+    <div class="dp-log" id="dev-log"></div>
+  </div>
 </body>
 </html>
