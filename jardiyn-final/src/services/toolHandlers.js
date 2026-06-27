@@ -1,502 +1,436 @@
-/**
- * JarDIYn — Tool Handlers
- * ========================
- * Requirement 6: When the model emits a tool_use block, this module
- * executes the named tool and returns a structured result that is
- * appended to the message thread as a tool_result block.
- *
- * Each handler:
- *  - Accepts the raw `input` object from the model's tool_use block
- *  - Calls the real external API (or a clearly-labeled sandbox mock)
- *  - Returns a plain JS object that is JSON-serialized into tool_result.content
- *  - Attaches provenance fields so every AI output is traceable
- *
- * To swap sandbox → production: replace the body of each handler
- * with a real HTTP call. The agentic loop in agentLoop.js does not
- * change — only these handlers do.
- */
-
 import { TOOL_LABELS } from "./tools.js";
-import { liveGardenZone, liveWeatherForecast, liveSoilData, liveGeocodeZip, liveFrostAlerts, livePollenForecast, liveOpenFarmCrop, liveINaturalistTaxa, liveWikipediaPlant, liveHistoricalWeather, LIVE_MODE } from "./liveApis.js";
 
-// ─── Resolve coordinates: use lat/lng if present, else geocode the ZIP ────────
-async function resolveCoords(input) {
-  if (input.latitude != null && input.longitude != null)
-    return { latitude: input.latitude, longitude: input.longitude };
-  if (input.zip_code) {
-    const geo = await liveGeocodeZip(input.zip_code);
-    if (geo) return { latitude: geo.latitude, longitude: geo.longitude };
-  }
-  return { latitude: null, longitude: null };
+const LIVE_APIS = process.env.LIVE_APIS !== "false";
+const FETCH_TIMEOUT_MS = 4500;
+
+function timeoutSignal(ms = FETCH_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), ms);
+  return { signal: controller.signal, cancel: () => clearTimeout(timeout) };
 }
 
-// ─── Provenance helper ────────────────────────────────────────────────────────
-function provenance(source, mode = "sandbox") {
+async function safeFetchJson(url) {
+  if (!LIVE_APIS) return null;
+  const { signal, cancel } = timeoutSignal();
+  try {
+    const res = await fetch(url, { signal, headers: { "user-agent": "JarDIYn/3.0" } });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  } finally {
+    cancel();
+  }
+}
+
+function provenance(source, status = "fallback-estimate", confidence = "medium") {
   return {
     source,
-    mode,              // "sandbox" | "live"
+    status,
+    confidence,
     generated_at: new Date().toISOString(),
-    contains_estimates: mode === "sandbox"
+    note: status.includes("fallback") ? "Fallback estimates are useful for planning but should be checked locally." : "Live public data source used where available."
   };
 }
 
-// ─── Handler: identify_plant ──────────────────────────────────────────────────
-/**
- * Calls Plant.id API (or sandbox mock) to identify species / pest / disease.
- * Returns candidates ranked by confidence with organic remedy.
- *
- * Production swap: POST https://api.plant.id/v3/identification
- *   with image in base64 and optional lat/lng for geo filtering.
- */
-export async function handleIdentifyPlant(input) {
-  console.log(`[tool] identify_plant called — symptom: "${input.symptom_description?.slice(0, 60)}"`);
+function normalizeZip(zip) {
+  return String(zip || "").trim().slice(0, 5);
+}
 
-  // ── Sandbox mock (replace with real Plant.id API call in production) ──
-  const zone = input.garden_zone || "unknown";
-  const hasBrowning = input.symptom_description?.toLowerCase().includes("brown");
-  const hasYellowing = input.symptom_description?.toLowerCase().includes("yellow");
-  const hasBugs = input.symptom_description?.toLowerCase().includes("bug") ||
-                  input.symptom_description?.toLowerCase().includes("pest");
-
-  let candidates;
-  if (hasBugs) {
-    candidates = [
-      { species: "Aphid (Aphididae)", confidence: 0.82, type: "pest",
-        remedy: "Spray with neem oil solution (2 tsp / quart water) every 7 days. Introduce ladybugs." },
-      { species: "Spider mite (Tetranychidae)", confidence: 0.61, type: "pest",
-        remedy: "Increase humidity, apply insecticidal soap. Isolate affected plants." }
-    ];
-  } else if (hasYellowing) {
-    candidates = [
-      { species: "Nitrogen deficiency", confidence: 0.79, type: "deficiency",
-        remedy: "Apply balanced organic fertilizer (10-10-10). Top-dress with compost." },
-      { species: "Overwatering / root rot", confidence: 0.65, type: "condition",
-        remedy: "Reduce watering frequency. Ensure drainage. Check roots for rot." }
-    ];
-  } else if (hasBrowning) {
-    candidates = [
-      { species: "Leaf scorch (environmental)", confidence: 0.74, type: "condition",
-        remedy: "Provide afternoon shade. Increase watering. Mulch root zone." },
-      { species: "Fungal leaf spot (Cercospora)", confidence: 0.58, type: "disease",
-        remedy: "Remove affected leaves. Apply copper fungicide. Improve air circulation." }
-    ];
-  } else {
-    candidates = [
-      { species: "Unidentified — image or description needed", confidence: 0.30, type: "unknown",
-        remedy: "Please provide an image or more detailed symptom description." }
-    ];
-  }
-
-  const topConfidence = candidates[0].confidence;
+async function geocodeZip(zip) {
+  const z = normalizeZip(zip);
+  if (!z) return null;
+  const data = await safeFetchJson(`https://api.zippopotam.us/us/${encodeURIComponent(z)}`);
+  const place = data?.places?.[0];
+  if (!place) return null;
   return {
-    tool: "identify_plant",
-    label: TOOL_LABELS.identify_plant,
-    candidates,
-    top_confidence: topConfidence,
-    needs_human_review: topConfidence < 0.6,
-    zone_context: zone,
-    provenance: provenance("plant.id/sandbox")
+    zip: z,
+    city: place["place name"],
+    state: place["state abbreviation"],
+    latitude: Number(place.latitude),
+    longitude: Number(place.longitude),
+    source: "zippopotam.us"
   };
 }
 
-// ─── Handler: get_garden_zone ─────────────────────────────────────────────────
-/**
- * Looks up USDA hardiness zone and frost dates.
- *
- * Production swap: POST https://phzmapi.org/ or USDA Plant Hardiness API
- *   with lat/lng or ZIP code.
- */
-export async function handleGetGardenZone(input) {
-  console.log(`[tool] get_garden_zone called — zip: ${input.zip_code}, lat: ${input.latitude}`);
-
-  // ── Try live USDA PHZM API first (falls back to mock on any failure) ──
-  const live = await liveGardenZone(input.zip_code);
-  if (live) { console.log(`[tool] get_garden_zone → LIVE (${live.hardiness_zone})`); return live; }
-
-  // ── Sandbox mock: returns realistic zone data keyed to ZIP prefix ──
-  const zip = input.zip_code || "";
-  const prefix = parseInt(zip.slice(0, 2), 10) || 0;
-
-  let zone, first_frost, last_frost, avg_rainfall_inches, microclimate_note;
-
-  if (prefix <= 19 || (prefix >= 60 && prefix <= 69)) {
-    // Northeast / Midwest
-    zone = "6a"; first_frost = "2024-10-15"; last_frost = "2025-04-20";
-    avg_rainfall_inches = 42; microclimate_note = "Cold winters; spring arrives late April.";
-  } else if (prefix >= 90 && prefix <= 96) {
-    // California / Pacific Southwest
-    zone = "10a"; first_frost = null; last_frost = "2025-01-15";
-    avg_rainfall_inches = 14; microclimate_note = "Mild winters; summer drought; marine layer influence.";
-  } else if (prefix >= 30 && prefix <= 39) {
-    // Southeast
-    zone = "8a"; first_frost = "2024-11-20"; last_frost = "2025-03-01";
-    avg_rainfall_inches = 50; microclimate_note = "Humid subtropical; long growing season.";
-  } else {
-    // Default mid-Atlantic
-    zone = "7b"; first_frost = "2024-11-05"; last_frost = "2025-03-25";
-    avg_rainfall_inches = 44; microclimate_note = "Moderate four-season climate.";
+async function resolveLocation(input = {}) {
+  if (Number.isFinite(input.latitude) && Number.isFinite(input.longitude)) {
+    return { latitude: Number(input.latitude), longitude: Number(input.longitude), source: "user-coordinates" };
   }
+  if (input.zip_code) return await geocodeZip(input.zip_code);
+  return null;
+}
 
+function estimateZoneByZip(zip) {
+  const z = normalizeZip(zip);
+  const prefix = Number(z.slice(0, 2));
+  if (!prefix) return { zone: "unknown", region: "unknown", lastFrost: null, firstFrost: null };
+  if (prefix >= 48 && prefix <= 49) return { zone: "6a/6b", region: "West Michigan / Great Lakes", lastFrost: "late April to mid-May", firstFrost: "early to mid-October" };
+  if (prefix >= 10 && prefix <= 19) return { zone: "6b/7a", region: "Northeast / Mid-Atlantic", lastFrost: "mid-April", firstFrost: "late October" };
+  if (prefix >= 30 && prefix <= 39) return { zone: "7b/8a", region: "Southeast", lastFrost: "March", firstFrost: "November" };
+  if (prefix >= 60 && prefix <= 69) return { zone: "5b/6a", region: "Upper Midwest", lastFrost: "late April to May", firstFrost: "October" };
+  if (prefix >= 90 && prefix <= 96) return { zone: "9b/10a", region: "California / Pacific", lastFrost: "low frost risk in many coastal areas", firstFrost: "variable" };
+  if (prefix >= 73 && prefix <= 79) return { zone: "7b/8a", region: "Southern Plains", lastFrost: "March to April", firstFrost: "October to November" };
+  return { zone: "7a", region: "general U.S. planning estimate", lastFrost: "spring", firstFrost: "fall" };
+}
+
+export async function handleGetGardenZone(input = {}) {
+  const location = await resolveLocation(input);
+  const zip = normalizeZip(input.zip_code || location?.zip);
+  const estimate = estimateZoneByZip(zip);
   return {
     tool: "get_garden_zone",
     label: TOOL_LABELS.get_garden_zone,
-    hardiness_zone: zone,
-    first_frost,
-    last_frost,
-    avg_rainfall_inches,
-    microclimate_note,
-    provenance: provenance("usda-phzm/sandbox")
-  };
-}
-
-// ─── Handler: get_soil_data ───────────────────────────────────────────────────
-/**
- * Returns soil type and health data from USDA Web Soil Survey.
- *
- * Production swap: USDA SoilWeb API
- *   GET https://casoilresource.lawr.ucdavis.edu/api/json/
- *   with lat/lng parameters.
- */
-export async function handleGetSoilData(input) {
-  console.log(`[tool] get_soil_data called — lat: ${input.latitude}, zip: ${input.zip_code}`);
-
-  // ── Try live SoilGrids API first (falls back to mock on any failure) ──
-  const coords = await resolveCoords(input);
-  const live = await liveSoilData(coords.latitude, coords.longitude);
-  if (live) { console.log(`[tool] get_soil_data → LIVE (${live.texture})`); return live; }
-
-  // ── Sandbox mock ──
-  return {
-    tool: "get_soil_data",
-    label: TOOL_LABELS.get_soil_data,
-    soil_series: "Chillum silt loam (sandbox estimate)",
-    texture: "silt loam",
-    ph_range: { min: 6.0, max: 6.8 },
-    drainage_class: "well drained",
-    lcc: "IIe",
-    organic_matter_pct: 2.4,
-    amendment_suggestions: [
-      "Add 2–3 inches of compost annually to improve structure",
-      "Consider lime application if pH drops below 6.0",
-      "Mulch to retain moisture during dry periods"
+    hardiness_zone: estimate.zone,
+    region: estimate.region,
+    last_frost_window: estimate.lastFrost,
+    first_frost_window: estimate.firstFrost,
+    location,
+    microclimate_notes: [
+      "Use this as planning context, not a measured site survey.",
+      "Buildings, slope, wind exposure, paved surfaces, and lake effects can shift real garden conditions."
     ],
-    provenance: provenance("usda-ssurgo/sandbox")
+    user_safe_summary: `Planning estimate: ${estimate.region}, zone ${estimate.zone}. Confirm with local extension or USDA map before high-cost plant purchases.`,
+    provenance: provenance("ZIP/region fallback + optional public geocoding", location ? "live-or-fallback" : "fallback-estimate", "medium")
   };
 }
 
-// ─── Handler: get_weather_forecast ───────────────────────────────────────────
-/**
- * Returns current conditions and 7-day forecast.
- *
- * Production swap: OpenWeatherMap One Call API 3.0
- *   GET https://api.openweathermap.org/data/3.0/onecall
- *   with lat, lon, and API key.
- */
-export async function handleGetWeatherForecast(input) {
-  console.log(`[tool] get_weather_forecast called — lat: ${input.latitude}, zip: ${input.zip_code}`);
-
-  // ── Try live Open-Meteo API first (falls back to mock on any failure) ──
-  const coords = await resolveCoords(input);
-  const live = await liveWeatherForecast(coords.latitude, coords.longitude);
-  if (live) { console.log(`[tool] get_weather_forecast → LIVE (${live.watering_recommendation})`); return live; }
-
-  const today = new Date();
-  const days = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(today);
-    d.setDate(d.getDate() + i);
-    const precip = [20, 10, 60, 80, 30, 10, 15][i];
-    return {
-      date: d.toISOString().split("T")[0],
-      high_f: 72 + Math.round(Math.random() * 10 - 5),
-      low_f:  54 + Math.round(Math.random() * 8 - 4),
-      precip_chance_pct: precip,
-      conditions: precip > 50 ? "rainy" : precip > 25 ? "partly cloudy" : "sunny"
-    };
-  });
-
-  const rainDays = days.filter(d => d.precip_chance_pct > 50).length;
-  const watering = rainDays >= 3 ? "skip" : rainDays >= 1 ? "light" : "normal";
-
-  return {
-    tool: "get_weather_forecast",
-    label: TOOL_LABELS.get_weather_forecast,
-    current: { temp_f: 68, humidity_pct: 62, conditions: "partly cloudy" },
-    forecast: days,
-    frost_warning: false,
-    watering_recommendation: watering,
-    watering_explanation: rainDays >= 3
-      ? "Significant rain expected this week — skip irrigation."
-      : rainDays >= 1
-        ? "Some rain expected — reduce watering by half."
-        : "Dry week ahead — maintain normal watering schedule.",
-    provenance: provenance("openweathermap/sandbox")
-  };
-}
-
-// ─── Handler: generate_diy_report ────────────────────────────────────────────
-/**
- * Generates a personalized DIY garden report.
- * In production this calls Claude again with a specialist report prompt
- * and RAG context. Here it returns a structured sandbox report.
- *
- * Production swap: call Claude with src/prompts/report.md system prompt
- *   plus garden profile + season context.
- */
-export async function handleGenerateDiyReport(input) {
-  console.log(`[tool] generate_diy_report called — zone: ${input.garden_profile?.hardiness_zone}`);
-
-  const profile = input.garden_profile || {};
-  const zone = profile.hardiness_zone || "7b";
-  const month = input.month || new Date().getMonth() + 1;
-  const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-  const monthName = monthNames[month - 1];
-
-  const report_markdown = `
-# JarDIYn Garden Report — ${monthName}
-**Site:** ${profile.site_name || "Your Garden"} · **Zone:** ${zone}
-
-## Priority Actions This Month
-1. Check soil moisture at 2-inch depth before each watering
-2. Scout for early pest activity on new growth
-3. Apply balanced organic fertilizer if plants show slow growth
-
-## Soil Health
-Your ${profile.soil_type || "soil"} is entering the active growing season.
-${month >= 3 && month <= 5 ? "Spring: incorporate compost now before planting." : ""}
-${month >= 6 && month <= 8 ? "Summer: mulch heavily to retain moisture." : ""}
-${month >= 9 && month <= 11 ? "Fall: plant cover crops to rebuild organic matter." : ""}
-
-## Watering Guide
-${zone >= "9" ? "Water deeply 2× per week in warm months." : "Water when top 2 inches of soil are dry."}
-Morning watering reduces fungal risk.
-
-## Pest Watch
-- Aphids: check undersides of leaves on new growth
-- Slugs: set beer traps after rain events
-- ${month >= 6 ? "Japanese beetles: hand-pick in morning when sluggish" : "Overwintering eggs: inspect soil near plant bases"}
-
-## Seasonal Tasks
-${month <= 3 || month === 12 ? "- Start seeds indoors 6–8 weeks before last frost\n- Order seeds and bare-root plants now" : ""}
-${month >= 4 && month <= 6 ? "- Harden off seedlings before transplanting\n- Apply pre-emergent weed barrier" : ""}
-${month >= 7 && month <= 9 ? "- Harvest regularly to encourage production\n- Begin planting fall crops" : ""}
-`.trim();
-
-  return {
-    tool: "generate_diy_report",
-    label: TOOL_LABELS.generate_diy_report,
-    report_markdown,
-    summary: `${monthName} priorities for Zone ${zone}: soil moisture, pest scouting, and seasonal planting tasks.`,
-    priority_actions: [
-      "Check soil moisture before watering",
-      "Scout for early pest activity",
-      "Apply organic fertilizer if growth is slow"
-    ],
-    model_version: "claude-sonnet-4-6",
-    prompt_version: "report-v1.0",
-    confidence: 0.84,
-    citations: ["USDA Plant Hardiness Zone Map", "University Extension IPM Guidelines"],
-    provenance: provenance("jardiyn-report-engine/sandbox")
-  };
-}
-
-// ─── Handler: lookup_plant_database ──────────────────────────────────────────
-/**
- * Searches for zone-appropriate plants.
- *
- * Production swap: Trefle API (https://trefle.io/api/v1/plants)
- *   with zone, sun, water filter params.
- */
-export async function handleLookupPlantDatabase(input) {
-  console.log(`[tool] lookup_plant_database called — zone: ${input.hardiness_zone}, query: ${input.search_query}`);
-
-  // ── Try OpenFarm for specific crop queries ──────────────────────────────
-  const searchTerm = input.search_query || input.plant_type || "vegetables";
-  if (LIVE_MODE && searchTerm) {
-    try {
-      const farm = await liveOpenFarmCrop(searchTerm);
-      if (farm) {
-        // Also get iNaturalist species confirmation
-        const taxon = await liveINaturalistTaxa(farm.name);
-        // Get Wikipedia summary for the top result
-        const wiki = taxon?.matches?.[0]
-          ? await liveWikipediaPlant(taxon.matches[0].name)
-          : null;
-
-        console.log(`[tool] lookup_plant_database → LIVE (OpenFarm + iNaturalist)`);
-        return {
-          tool: "lookup_plant_database",
-          source: "OpenFarm + iNaturalist",
-          mode: "live",
-          search_term: searchTerm,
-          zone_filter: input.hardiness_zone,
-          primary_result: {
-            name:               farm.name,
-            description:        farm.description,
-            sun_requirements:   farm.sun_requirements,
-            water_requirements: farm.water_requirements,
-            sowing_method:      farm.sowing_method,
-            height:             farm.height,
-            tags:               farm.tags
-          },
-          species_confirmation: taxon?.top_match || null,
-          observations_count:   taxon?.matches?.[0]?.observations_count || null,
-          care_summary:         wiki?.extract || null,
-          wikipedia_url:        wiki?.url || null,
-          provenance: { source: "openfarm.cc + inaturalist.org", mode: "live", generated_at: new Date().toISOString() }
-        };
-      }
-    } catch (e) {
-      console.warn("[lookup_plant_database] live lookup failed, falling back to local list:", e.message);
+export async function handleGetSoilProfile(input = {}) {
+  const location = await resolveLocation(input);
+  if (location?.latitude && location?.longitude) {
+    const lon = encodeURIComponent(location.longitude);
+    const lat = encodeURIComponent(location.latitude);
+    const url = `https://rest.isric.org/soilgrids/v2.0/properties/query?lon=${lon}&lat=${lat}&property=clay&property=sand&property=silt&property=phh2o&depth=0-5cm&value=mean`;
+    const soil = await safeFetchJson(url);
+    const layers = soil?.properties?.layers || [];
+    if (layers.length) {
+      const getVal = name => layers.find(l => l.name === name)?.depths?.[0]?.values?.mean;
+      const clay = getVal("clay");
+      const sand = getVal("sand");
+      const silt = getVal("silt");
+      const phRaw = getVal("phh2o");
+      const ph = phRaw ? Math.round((phRaw / 10) * 10) / 10 : null;
+      const texture = clay > 350 ? "clay-heavy" : sand > 550 ? "sandy" : silt > 450 ? "silty/loam" : "mixed loam";
+      return {
+        tool: "get_soil_profile",
+        label: TOOL_LABELS.get_soil_profile,
+        texture,
+        clay_g_per_kg: clay ?? null,
+        sand_g_per_kg: sand ?? null,
+        silt_g_per_kg: silt ?? null,
+        ph_estimate: ph,
+        drainage_context: input.drainage || "not user-reported",
+        amendment_suggestions: buildSoilSuggestions(texture, input.drainage),
+        user_safe_summary: `SoilGrids-style estimate suggests ${texture}. Treat as regional context; confirm with a soil test before major amendments.`,
+        provenance: provenance("SoilGrids public API", "live", "medium")
+      };
     }
   }
 
-  // ── Fallback: curated local list ───────────────────────────────────────
-  const zoneNum = parseInt(String(input.hardiness_zone || "7b").replace(/[ab]$/, ""), 10) || 7;
-  const allPlants = [
-    { common_name: "Purple Coneflower",    latin_name: "Echinacea purpurea",    zone_range: "3-9",  water_needs: "low",    sun_needs: "full_sun",      bloom_season: "summer", mature_height_ft: 3, companion_plants: ["Black-eyed Susan", "Bee balm"] },
-    { common_name: "Bee Balm",             latin_name: "Monarda didyma",        zone_range: "4-9",  water_needs: "medium", sun_needs: "full_sun",      bloom_season: "summer", mature_height_ft: 4, companion_plants: ["Coneflower", "Yarrow"] },
-    { common_name: "Coral Bells",          latin_name: "Heuchera sanguinea",    zone_range: "4-9",  water_needs: "low",    sun_needs: "partial_shade", bloom_season: "spring", mature_height_ft: 1.5, companion_plants: ["Hostas", "Ferns"] },
-    { common_name: "Tomato (Bush)",        latin_name: "Solanum lycopersicum",  zone_range: "3-11", water_needs: "high",   sun_needs: "full_sun",      bloom_season: "summer", mature_height_ft: 3, companion_plants: ["Basil", "Marigold"] },
-    { common_name: "Rosemary",             latin_name: "Salvia rosmarinus",     zone_range: "7-11", water_needs: "low",    sun_needs: "full_sun",      bloom_season: "spring", mature_height_ft: 4, companion_plants: ["Lavender", "Sage"] },
-    { common_name: "Oakleaf Hydrangea",    latin_name: "Hydrangea quercifolia", zone_range: "5-9",  water_needs: "medium", sun_needs: "partial_shade", bloom_season: "summer", mature_height_ft: 8, companion_plants: ["Hostas", "Ferns"] },
-    { common_name: "Lavender",             latin_name: "Lavandula angustifolia",zone_range: "5-9",  water_needs: "low",    sun_needs: "full_sun",      bloom_season: "summer", mature_height_ft: 2, companion_plants: ["Rosemary", "Sage"] },
-    { common_name: "Black-eyed Susan",     latin_name: "Rudbeckia hirta",       zone_range: "3-9",  water_needs: "low",    sun_needs: "full_sun",      bloom_season: "summer", mature_height_ft: 2, companion_plants: ["Coneflower", "Bee balm"] },
-    { common_name: "Hosta",               latin_name: "Hosta spp.",            zone_range: "3-9",  water_needs: "medium", sun_needs: "partial_shade", bloom_season: "summer", mature_height_ft: 2, companion_plants: ["Ferns", "Astilbe"] },
-    { common_name: "Serviceberry",        latin_name: "Amelanchier canadensis", zone_range: "4-9",  water_needs: "low",    sun_needs: "full_sun",      bloom_season: "spring", mature_height_ft: 20, companion_plants: ["Native grasses"] },
-    { common_name: "Sweet Potato Vine",   latin_name: "Ipomoea batatas",       zone_range: "9-11", water_needs: "medium", sun_needs: "full_sun",      bloom_season: "summer", mature_height_ft: 1, companion_plants: ["Marigold", "Zucchini"] },
-    { common_name: "Basil",              latin_name: "Ocimum basilicum",       zone_range: "2-11", water_needs: "medium", sun_needs: "full_sun",      bloom_season: "summer", mature_height_ft: 2, companion_plants: ["Tomato", "Pepper"] },
-  ];
+  const userSoil = input.user_soil || input.soil_type || "unknown";
+  const texture = userSoil === "unknown" ? "unknown / user should verify" : userSoil;
+  return {
+    tool: "get_soil_profile",
+    label: TOOL_LABELS.get_soil_profile,
+    texture,
+    drainage_context: input.drainage || "unknown",
+    amendment_suggestions: buildSoilSuggestions(texture, input.drainage),
+    user_safe_summary: `Using user-provided/fallback soil context: ${texture}. A real soil test is recommended for pH and nutrient decisions.`,
+    provenance: provenance("Garden Passport + fallback soil guidance", "user-provided-or-fallback", "medium")
+  };
+}
 
-  function zoneInRange(range) {
-    const [lo, hi] = range.split("-").map(Number);
-    return zoneNum >= lo && zoneNum <= hi;
+function buildSoilSuggestions(texture = "", drainage = "") {
+  const t = String(texture).toLowerCase();
+  const d = String(drainage).toLowerCase();
+  const suggestions = [];
+  if (t.includes("clay") || d.includes("poor")) {
+    suggestions.push("Avoid working clay when wet; it compacts easily.");
+    suggestions.push("Add compost and mulch over time rather than trying to 'fix' everything in one weekend.");
+    suggestions.push("Choose clay-tolerant plants and consider raised beds for drainage-sensitive herbs/vegetables.");
+  } else if (t.includes("sand")) {
+    suggestions.push("Add compost to improve water and nutrient retention.");
+    suggestions.push("Use mulch to reduce moisture swings.");
+    suggestions.push("Prefer drought-tolerant plants unless irrigation is reliable.");
+  } else {
+    suggestions.push("Add compost annually and mulch exposed soil.");
+    suggestions.push("Use a soil test before applying lime, sulfur, or fertilizer.");
+    suggestions.push("Match plants to actual drainage, not just soil name.");
+  }
+  return suggestions;
+}
+
+export async function handleGetWeatherContext(input = {}) {
+  const location = await resolveLocation(input);
+  if (location?.latitude && location?.longitude) {
+    const lat = encodeURIComponent(location.latitude);
+    const lon = encodeURIComponent(location.longitude);
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,precipitation,weather_code&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum&temperature_unit=fahrenheit&forecast_days=7&timezone=auto`;
+    const weather = await safeFetchJson(url);
+    if (weather?.daily?.time) {
+      const days = weather.daily.time.map((date, i) => ({
+        date,
+        high_f: weather.daily.temperature_2m_max?.[i],
+        low_f: weather.daily.temperature_2m_min?.[i],
+        precip_probability_pct: weather.daily.precipitation_probability_max?.[i],
+        precip_inches: weather.daily.precipitation_sum?.[i]
+      }));
+      const rainDays = days.filter(d => (d.precip_probability_pct || 0) >= 50 || (d.precip_inches || 0) > 0.15).length;
+      const lows = days.map(d => d.low_f).filter(Number.isFinite);
+      const frostRisk = lows.some(v => v <= 36);
+      const heatRisk = days.some(d => (d.high_f || 0) >= 88);
+      return {
+        tool: "get_weather_context",
+        label: TOOL_LABELS.get_weather_context,
+        location,
+        current: weather.current || null,
+        forecast: days,
+        rain_signal: rainDays >= 3 ? "wet week" : rainDays >= 1 ? "some rain expected" : "dry week",
+        frost_risk: frostRisk,
+        heat_risk: heatRisk,
+        watering_recommendation: rainDays >= 3 ? "skip or reduce watering" : rainDays >= 1 ? "check soil before watering" : "water normally if soil is dry",
+        user_safe_summary: frostRisk ? "Cold lows are possible; protect tender plants." : heatRisk ? "Heat stress is possible; water deeply in the morning and mulch." : "No major frost/heat signal from the 7-day context.",
+        provenance: provenance("Open-Meteo public forecast", "live", "medium-high")
+      };
+    }
   }
 
-  let matches = allPlants.filter(p => zoneInRange(p.zone_range));
-  if (input.sun_exposure)  matches = matches.filter(p => !input.sun_exposure || p.sun_needs === input.sun_exposure || p.sun_needs === "full_sun");
-  if (input.water_needs)   matches = matches.filter(p => p.water_needs === input.water_needs);
-  if (input.search_query)  {
-    const q = input.search_query.toLowerCase();
-    const scored = matches.map(p => ({
-      ...p,
-      score: (p.common_name.toLowerCase().includes(q) ? 2 : 0) +
-             (p.companion_plants.some(c => c.toLowerCase().includes(q)) ? 1 : 0)
-    })).sort((a,b) => b.score - a.score);
-    matches = scored.filter(p => p.score > 0).length > 0
-      ? scored.filter(p => p.score > 0)
-      : matches;
-  }
+  return {
+    tool: "get_weather_context",
+    label: TOOL_LABELS.get_weather_context,
+    rain_signal: "unknown",
+    frost_risk: false,
+    heat_risk: false,
+    watering_recommendation: "Check soil moisture 2 inches deep before watering.",
+    user_safe_summary: "Weather data was unavailable, so use the soil-moisture check before watering.",
+    provenance: provenance("fallback weather guidance", "fallback-estimate", "low-medium")
+  };
+}
+
+const PLANTS = [
+  { common: "Purple coneflower", latin: "Echinacea purpurea", zones: [3, 9], sun: ["full_sun", "partial_shade"], soil: ["loam", "clay loam", "clay", "sandy loam"], water: "low", goals: ["pollinators", "native plants", "low maintenance"], notes: "Durable pollinator plant; tolerate average soils once established." },
+  { common: "Black-eyed Susan", latin: "Rudbeckia hirta", zones: [3, 9], sun: ["full_sun", "partial_shade"], soil: ["loam", "clay loam", "clay"], water: "low", goals: ["pollinators", "native plants", "cut flowers"], notes: "Strong beginner plant; can self-seed." },
+  { common: "Bee balm", latin: "Monarda fistulosa", zones: [3, 9], sun: ["full_sun", "partial_shade"], soil: ["loam", "clay loam"], water: "medium", goals: ["pollinators", "native plants"], notes: "Excellent for bees/hummingbirds; give airflow to reduce mildew." },
+  { common: "Little bluestem", latin: "Schizachyrium scoparium", zones: [3, 9], sun: ["full_sun"], soil: ["sandy loam", "loam", "clay loam"], water: "low", goals: ["native plants", "low maintenance"], notes: "Good structure and winter interest; avoid wet heavy shade." },
+  { common: "Oakleaf hydrangea", latin: "Hydrangea quercifolia", zones: [5, 9], sun: ["partial_shade"], soil: ["loam", "clay loam"], water: "medium", goals: ["low maintenance", "curb appeal"], notes: "Shrub option for part shade; needs room." },
+  { common: "Coral bells", latin: "Heuchera spp.", zones: [4, 9], sun: ["partial_shade", "full_shade"], soil: ["loam", "clay loam"], water: "medium", goals: ["low maintenance", "curb appeal"], notes: "Good edge plant for shade; avoid soggy crowns." },
+  { common: "Hosta", latin: "Hosta spp.", zones: [3, 9], sun: ["partial_shade", "full_shade"], soil: ["loam", "clay loam"], water: "medium", goals: ["low maintenance"], notes: "Reliable shade plant but deer love it." },
+  { common: "Tomato", latin: "Solanum lycopersicum", zones: [3, 11], sun: ["full_sun"], soil: ["loam", "sandy loam"], water: "high", goals: ["vegetables"], notes: "Needs consistent watering, airflow, and 6+ hours sun." },
+  { common: "Basil", latin: "Ocimum basilicum", zones: [10, 11], sun: ["full_sun"], soil: ["loam", "sandy loam"], water: "medium", goals: ["herbs", "vegetables"], notes: "Annual in cold zones; hates frost." },
+  { common: "Sedge", latin: "Carex spp.", zones: [4, 9], sun: ["partial_shade", "full_shade"], soil: ["loam", "clay loam", "clay"], water: "medium", goals: ["native plants", "low maintenance"], notes: "Useful matrix/groundcover option for shade depending on species." }
+];
+
+function zoneNumber(zone = "") {
+  const n = parseInt(String(zone).match(/\d+/)?.[0] || "6", 10);
+  return Number.isFinite(n) ? n : 6;
+}
+
+export async function handleLookupPlantDatabase(input = {}) {
+  const zone = zoneNumber(input.hardiness_zone);
+  const sun = input.sun_exposure;
+  const soil = String(input.soil_type || "").toLowerCase();
+  const goals = (input.goals || []).map(g => String(g).toLowerCase());
+  const q = String(input.search_query || "").toLowerCase();
+  let scored = PLANTS.map(p => {
+    let score = 0;
+    if (zone >= p.zones[0] && zone <= p.zones[1]) score += 3;
+    if (!sun || p.sun.includes(sun)) score += 2;
+    if (!soil || p.soil.some(s => soil.includes(s) || s.includes(soil))) score += 1;
+    score += goals.filter(g => p.goals.includes(g)).length;
+    if (q && `${p.common} ${p.latin} ${p.notes}`.toLowerCase().includes(q)) score += 2;
+    return { ...p, score };
+  }).filter(p => p.score >= 3).sort((a, b) => b.score - a.score);
+
+  if (!scored.length) scored = PLANTS.slice(0, 5).map(p => ({ ...p, score: 1 }));
 
   return {
     tool: "lookup_plant_database",
-    source: "JarDIYn curated list",
-    mode: "sandbox",
-    zone_filter: input.hardiness_zone,
-    result_count: matches.length,
-    matching_plants: matches.slice(0, 8),
-    provenance: provenance("plant-db/sandbox")
+    label: TOOL_LABELS.lookup_plant_database,
+    matching_plants: scored.slice(0, 8).map(p => ({
+      common_name: p.common,
+      latin_name: p.latin,
+      zone_range: `${p.zones[0]}-${p.zones[1]}`,
+      sun_needs: p.sun,
+      water_needs: p.water,
+      goals: p.goals,
+      notes: p.notes,
+      match_score: p.score
+    })),
+    avoid_notes: buildAvoidNotes(input),
+    user_safe_summary: "Curated plant matches based on zone/sun/soil/goals. Confirm availability and local invasiveness with a local nursery or Extension office.",
+    provenance: provenance("JarDIYn curated starter plant cache", "curated-fallback", "medium")
   };
 }
 
+function buildAvoidNotes(profile = {}) {
+  const notes = [];
+  const soil = String(profile.soil_type || "").toLowerCase();
+  const sun = String(profile.sun_exposure || "").toLowerCase();
+  const problems = String((profile.known_problems || []).join(" ")).toLowerCase();
+  if (soil.includes("clay") || problems.includes("drain")) notes.push("Avoid drainage-sensitive Mediterranean herbs directly in wet clay unless raised or amended.");
+  if (sun.includes("shade")) notes.push("Avoid full-sun vegetables and prairie plants in deep shade.");
+  if (String(profile.deer_pressure || "").toLowerCase().includes("high")) notes.push("Avoid hosta/tulips/daylilies without deer protection.");
+  if (!notes.length) notes.push("Avoid buying plants before confirming mature size, light, water, and maintenance fit.");
+  return notes;
+}
 
-// ─── Handler: get_frost_alerts ───────────────────────────────────────────────
-/**
- * Checks NOAA/NWS for active frost & freeze alerts.
- * Live via api.weather.gov; falls back to a sandbox response.
- */
-export async function handleGetFrostAlerts(input) {
-  console.log(`[tool] get_frost_alerts called — lat: ${input.latitude}, zip: ${input.zip_code}`);
-
-  // ── Try live NOAA/NWS first (falls back to mock on any failure) ──
-  const coords = await resolveCoords(input);
-  const live = await liveFrostAlerts(coords.latitude, coords.longitude);
-  if (live) { console.log(`[tool] get_frost_alerts → LIVE (risk: ${live.frost_risk})`); return live; }
-
-  // ── Sandbox mock: seasonal frost risk estimate ──
-  const month = new Date().getMonth() + 1;
-  const coldSeason = month <= 3 || month >= 11;
+export async function handleDiagnosePlantIssue(input = {}) {
+  const s = String(input.symptom_description || "").toLowerCase();
+  const likely = [];
+  if (/yellow|chlorosis/.test(s)) likely.push({ cause: "watering/drainage imbalance or nutrient stress", confidence: "medium", first_check: "Check soil moisture 2 inches down and inspect drainage before fertilizing." });
+  if (/spot|spots|blotch|mildew|fung/.test(s)) likely.push({ cause: "leaf disease or airflow problem", confidence: "medium", first_check: "Remove worst leaves, avoid overhead watering, improve airflow, and photograph progression." });
+  if (/bug|pest|holes|chew|aphid|mite/.test(s)) likely.push({ cause: "insect pressure", confidence: "medium", first_check: "Inspect undersides of leaves in morning; identify pest before spraying." });
+  if (/wilt|droop|dying|dead/.test(s)) likely.push({ cause: "transplant shock, water stress, root issue, or heat stress", confidence: "medium-low", first_check: "Check root zone moisture and recent heat/watering changes." });
+  if (!likely.length) likely.push({ cause: "insufficient context", confidence: "low", first_check: "Provide plant name, photo, watering pattern, sun exposure, and how fast symptoms appeared." });
   return {
-    tool: "get_frost_alerts",
-    label: TOOL_LABELS.get_frost_alerts,
-    frost_risk: coldSeason,
-    active_alerts: coldSeason
-      ? [{ event: "Frost Advisory (estimated)", severity: "Minor",
-           headline: "Seasonal frost risk — verify with local forecast",
-           expires: null }]
-      : [],
-    protection_advice: coldSeason
-      ? "Frost is possible this season. Cover tender plants overnight and water soil before a freeze."
-      : "Low frost risk this time of year for most zones.",
-    provenance: provenance("noaa-nws/sandbox")
+    tool: "diagnose_plant_issue",
+    label: TOOL_LABELS.diagnose_plant_issue,
+    likely_causes: likely,
+    safe_next_steps: [
+      "Do not apply pesticide until the pest or disease is identified.",
+      "Check water/drainage first; many plant problems are site-condition problems.",
+      "Remove severely damaged foliage only if it will not strip the plant bare.",
+      "Use local Extension or a nursery pro for persistent or high-value plants."
+    ],
+    user_safe_summary: "This is triage, not a confirmed diagnosis. Good photos and local confirmation improve accuracy.",
+    provenance: provenance("JarDIYn symptom triage rules", "curated-fallback", "medium")
   };
 }
 
-// ─── Master dispatcher ────────────────────────────────────────────────────────
-/**
- * Routes a tool_use block (name + input) to the correct handler.
- * Called by the agentic loop in agentLoop.js.
- *
- * Requirement 6: This is the execution layer. The model picks the name;
- * this function runs the real code and returns the result.
- */
-// ─── Handler: get_pollen_forecast ────────────────────────────────────────────
-export async function handleGetPollenForecast(input) {
-  console.log(`[tool] get_pollen_forecast called`);
-  const coords = await resolveCoords(input);
-  const live = await livePollenForecast(coords.latitude, coords.longitude);
-  if (live) { console.log(`[tool:pollen] → LIVE (${live.dominant_level} ${live.dominant_allergen})`); return live; }
-  const month = new Date().getMonth() + 1;
-  const level = (month >= 3 && month <= 6) ? "high" : (month >= 7 && month <= 9) ? "moderate" : "low";
+export async function handlePlanCheck(input = {}) {
+  const profile = input.garden_profile || {};
+  const plan = String(input.plan_text || "the current garden idea");
+  const plants = await handleLookupPlantDatabase({
+    hardiness_zone: profile.hardiness_zone || profile.zone || profile.usda_zone,
+    soil_type: profile.soil_type,
+    sun_exposure: profile.sun_exposure,
+    goals: profile.goals || []
+  });
+  const risks = [];
+  const soil = String(profile.soil_type || "").toLowerCase();
+  const sun = String(profile.sun_exposure || "").toLowerCase();
+  const maintenance = String(profile.maintenance_tolerance || "").toLowerCase();
+  if (soil.includes("clay")) risks.push("Heavy/clay soil can drown drainage-sensitive plants and punish rushed planting.");
+  if (sun.includes("shade")) risks.push("Shade limits vegetables and many high-bloom pollinator plants.");
+  if (maintenance.includes("low")) risks.push("Avoid high-maintenance annual-heavy designs unless the user wants recurring work.");
+  if (String(profile.deer_pressure || "").toLowerCase().includes("high")) risks.push("Deer pressure can wipe out attractive beginner plants without protection.");
+  if (!risks.length) risks.push("Main risk is buying before confirming mature size, water needs, and maintenance fit.");
+
   return {
-    tool: "get_pollen_forecast", mode: "sandbox",
-    dominant_allergen: month >= 3 && month <= 5 ? "birch" : "grass",
-    dominant_level: level,
-    gardening_advice: level === "high"
-      ? "High pollen season. Wear a mask while gardening and shower after outdoor work."
-      : "Pollen levels are manageable — enjoy your garden!",
-    provenance: provenance("pollen/sandbox")
+    tool: "plan_check",
+    label: TOOL_LABELS.plan_check,
+    plan_reviewed: plan.slice(0, 500),
+    what_looks_good: [
+      "Using the Garden Passport before buying plants is the right first move.",
+      "The plan can be improved by matching plants to soil, sun, water, and maintenance tolerance."
+    ],
+    what_may_fail: risks,
+    what_i_would_change: [
+      "Start with a smaller first bed or zone instead of the whole yard.",
+      "Use 3-5 reliable backbone plants before adding specialty plants.",
+      "Separate plants by water needs so one area is not overwatered to save another."
+    ],
+    next_3_actions: [
+      "Mark the sun pattern for one day: morning, midday, afternoon.",
+      "Check soil drainage after rain or watering before planting.",
+      "Take this short plant list to a local nursery and ask for local substitutions."
+    ],
+    suggested_plants: plants.matching_plants.slice(0, 5),
+    user_safe_summary: "Plan Check flags likely failure points before money is spent.",
+    provenance: provenance("Garden Passport + curated plan-check rubric", "curated-fallback", "medium-high")
   };
 }
 
-// ─── Handler: get_historical_weather ─────────────────────────────────────────
-export async function handleGetHistoricalWeather(input) {
-  console.log(`[tool] get_historical_weather called`);
-  const coords = await resolveCoords(input);
-  const days = input.days || 14;
-  const live = await liveHistoricalWeather(coords.latitude, coords.longitude, days);
-  if (live) { console.log(`[tool:history] → LIVE`); return live; }
+export async function handleGenerateGardenPlan(input = {}) {
+  const profile = input.garden_profile || {};
+  const soil = await handleGetSoilProfile({ zip_code: profile.zip_code, user_soil: profile.soil_type, drainage: profile.drainage });
+  const zone = await handleGetGardenZone({ zip_code: profile.zip_code, latitude: profile.latitude, longitude: profile.longitude });
+  const plants = await handleLookupPlantDatabase({
+    hardiness_zone: profile.hardiness_zone || zone.hardiness_zone,
+    soil_type: profile.soil_type || soil.texture,
+    sun_exposure: profile.sun_exposure,
+    goals: profile.goals || [],
+    maintenance_tolerance: profile.maintenance_tolerance
+  });
   return {
-    tool: "get_historical_weather", mode: "sandbox", period_days: days,
-    total_rainfall_mm: 28, avg_high_f: 72, rainy_days: 4,
-    soil_moisture_context: "Normal moisture — standard watering schedule appropriate",
-    provenance: provenance("historical-weather/sandbox")
+    tool: "generate_garden_plan",
+    label: TOOL_LABELS.generate_garden_plan,
+    site_summary: {
+      name: profile.site_name || "My Garden",
+      zip_code: profile.zip_code || "not provided",
+      zone: profile.hardiness_zone || zone.hardiness_zone,
+      soil: profile.soil_type || soil.texture,
+      sun: profile.sun_exposure || "not specified",
+      goals: profile.goals || [],
+      maintenance_tolerance: profile.maintenance_tolerance || "not specified"
+    },
+    recommended_plants: plants.matching_plants.slice(0, 6),
+    avoid_list: plants.avoid_notes,
+    soil_prep: soil.amendment_suggestions || [],
+    watering_guidance: [
+      "Water deeply and less often after establishment unless seedlings/transplants need closer care.",
+      "Check soil moisture 2 inches down before watering.",
+      "Mulch exposed soil to reduce heat and moisture swings."
+    ],
+    weekend_tasks: [
+      "Walk the site and mark sun/shade zones.",
+      "Choose one starter bed or zone instead of redesigning everything.",
+      "Buy compost/mulch before buying specialty plants.",
+      "Start with 3-5 backbone plants from the recommended list."
+    ],
+    shopping_list: [
+      "Compost",
+      "Mulch",
+      "Plant labels or stakes",
+      "Soil test kit or Extension soil test",
+      ...plants.matching_plants.slice(0, 4).map(p => p.common_name)
+    ],
+    questions_for_local_nursery: [
+      "Which of these plants are locally reliable in my ZIP/zone?",
+      "Are any on this list invasive or overused locally?",
+      "What substitutions do you recommend for my soil and sun?"
+    ],
+    when_to_call_a_professional: [
+      "Standing water, grading, drainage toward the house, retaining walls, large trees, utilities, or permits.",
+      "Tree risk, storm damage, pesticide uncertainty, or structural hardscape work."
+    ],
+    safety_notes: [
+      "Do not eat unknown plants or berries based on AI output.",
+      "Use pesticides only after identifying the issue and reading the label.",
+      "GIS, slope, drainage, and tree-risk features are future roadmap and do not replace professional review."
+    ],
+    sources_used: [zone.provenance.source, soil.provenance.source, plants.provenance.source, "Garden Passport"],
+    user_safe_summary: "Garden Plan generated from Garden Passport plus zone/soil/plant context.",
+    provenance: provenance("JarDIYn Garden Plan Builder", "curated-fallback", "medium-high")
   };
 }
 
-export async function dispatchTool(toolName, input) {
-  const start = Date.now();
+export async function handlePropertyGisPreview(input = {}) {
+  return {
+    tool: "property_gis_preview",
+    label: TOOL_LABELS.property_gis_preview,
+    live_status: "roadmap-only",
+    summary: "Future Property Passport can support municipal GIS upload, parcel context, public OSINT layers, satellite imagery, drone partner assessments, and professional handoff reports.",
+    guardrail: "This is not live. Future property intelligence must be consent-based, privacy-safe, and must not replace surveys, permits, engineering, arborist review, or legal property analysis.",
+    add_on_ladder: ["municipal GIS import", "soil test", "satellite report", "drone partner flyover", "arborist/irrigation/design review"],
+    provenance: provenance("JarDIYn roadmap", "future-roadmap", "concept")
+  };
+}
+
+export async function dispatchTool(toolName, input = {}) {
+  const started = Date.now();
   let result;
-
-  try {
-    switch (toolName) {
-      case "identify_plant":        result = await handleIdentifyPlant(input);       break;
-      case "get_garden_zone":       result = await handleGetGardenZone(input);       break;
-      case "get_soil_data":         result = await handleGetSoilData(input);         break;
-      case "get_weather_forecast":  result = await handleGetWeatherForecast(input);  break;
-      case "generate_diy_report":   result = await handleGenerateDiyReport(input);   break;
-      case "lookup_plant_database": result = await handleLookupPlantDatabase(input); break;
-      case "get_frost_alerts":      result = await handleGetFrostAlerts(input);      break;
-      case "get_pollen_forecast":   result = await handleGetPollenForecast(input);   break;
-      case "get_historical_weather":result = await handleGetHistoricalWeather(input);break;
-      default:
-        result = { error: `Unknown tool: ${toolName}`, known_tools: Object.keys(TOOL_LABELS) };
-    }
-  } catch (err) {
-    result = { error: `Tool execution failed: ${err.message}`, tool: toolName };
-    console.error(`[tool:error] ${toolName}:`, err);
+  switch (toolName) {
+    case "get_garden_zone": result = await handleGetGardenZone(input); break;
+    case "get_soil_profile": result = await handleGetSoilProfile(input); break;
+    case "get_weather_context": result = await handleGetWeatherContext(input); break;
+    case "lookup_plant_database": result = await handleLookupPlantDatabase(input); break;
+    case "diagnose_plant_issue": result = await handleDiagnosePlantIssue(input); break;
+    case "plan_check": result = await handlePlanCheck(input); break;
+    case "generate_garden_plan": result = await handleGenerateGardenPlan(input); break;
+    case "property_gis_preview": result = await handlePropertyGisPreview(input); break;
+    default:
+      result = { tool: toolName, error: `Unknown tool: ${toolName}`, provenance: provenance("unknown", "error", "low") };
   }
-
-  const ms = Date.now() - start;
-  console.log(`[tool:done] ${toolName} completed in ${ms}ms`);
-  return result;
+  return { ...result, duration_ms: Date.now() - started };
 }

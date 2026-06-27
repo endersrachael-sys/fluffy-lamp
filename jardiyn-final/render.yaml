@@ -1,18 +1,21 @@
 services:
   - type: web
-    name: jardiyn
-    env: node
-    rootDir: jardiyn-final          # package.json lives here, not at repo root
+    name: jardiyn-final
+    runtime: node
+    plan: free
     buildCommand: npm install
     startCommand: npm start
+    autoDeploy: true
     envVars:
-      - key: ANTHROPIC_API_KEY
-        sync: false                 # Set this manually in Render dashboard
       - key: NODE_ENV
         value: production
       - key: LIVE_APIS
-        value: "true"              # Enable real USDA/NOAA/SoilGrids calls (all free, no keys)
-      - key: NODE_VERSION
-        value: "22"                # node:sqlite persistence requires Node 22+
-    healthCheckPath: /health
-    autoDeploy: true
+        value: true
+      - key: ENABLE_DEBUG_ROUTES
+        value: true
+      - key: FORCE_FALLBACK_AGENT
+        value: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: ANTHROPIC_MODEL
+        sync: false
