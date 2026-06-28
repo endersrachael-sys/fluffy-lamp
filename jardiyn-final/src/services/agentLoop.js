@@ -1,299 +1,176 @@
-/**
- * JarDIYn — Agentic Loop
- * =======================
- * Requirements 6 + 7: The model autonomously decides which tool to call
- * (or whether to call any tool at all). This file contains ZERO routing
- * logic — no if/switch that pre-selects a tool based on user input.
- *
- * Decision flow:
- *   1. We call Claude with the garden profile + JARDIYN_TOOLS definitions
- *   2. Claude reads the user message and tool descriptions
- *   3. Claude decides autonomously:
- *        a. Call one or more tools  → we execute them, loop back
- *        b. Call no tools           → we return the response directly
- *        c. Call tools, get results, stop → we return the final answer
- *   4. We never tell Claude which tool to call. It decides.
- *
- * The only application-level decision this file makes is WHEN TO STOP
- * looping — and even that is driven by Claude's stop_reason ("end_turn"
- * vs "tool_use"), not by our code reading the user's message.
- */
+import { getTools, toAnthropicTool } from "./tools.js";
+import { executeTool, normalizeGardenProfile } from "./toolHandlers.js";
+import { logAgentRun, addMemory, addTask } from "./store.js";
 
-import Anthropic from "@anthropic-ai/sdk";
-import { JARDIYN_TOOLS } from "./tools.js";
-import { dispatchTool } from "./toolHandlers.js";
-
-const anthropic = new Anthropic();
-// Note: API key is read from ANTHROPIC_API_KEY env variable automatically.
-// Never hardcode keys. See .env.example.
-
-const MAX_TOOL_ROUNDS = 5; // Safety ceiling — prevents infinite loops
-
-/**
- * buildSystemPrompt
- * -----------------
- * Gives Claude the garden context it needs to make good autonomous
- * tool-call decisions. The prompt intentionally does NOT say "call
- * tool X for Y questions" — that would move the decision into our
- * code. Instead, the tool descriptions themselves carry that logic.
- */
-function buildSystemPrompt(gardenProfile) {
-  const profileBlock = gardenProfile
-    ? `
-## Active Garden Profile
-- Site: ${gardenProfile.site_name || "unnamed garden"}
-- Zone: ${gardenProfile.hardiness_zone || "unknown"}
-- ZIP Code: ${gardenProfile.zip_code || "not set — ask the user for their ZIP so you can look up their zone"}
-- Soil: ${gardenProfile.soil_type || "unknown — use get_soil_data to look up"}
-- Sun: ${gardenProfile.sun_exposure || "not specified"}
-- Goals: ${(gardenProfile.goals || []).join(", ") || "not specified"}
-- Plants: ${(gardenProfile.plant_inventory || []).map(p => p.common_name).join(", ") || "none recorded"}
-- Experience: ${gardenProfile.experience_level || "unspecified"}
-- Budget: ${gardenProfile.budget || "unspecified"}
-- Maintenance tolerance: ${gardenProfile.maintenance_tolerance || "unspecified"}
-- Water access: ${gardenProfile.water_access || "garden hose assumed"}
-- Drainage: ${gardenProfile.drainage || "unknown — ask if relevant"}
-- Pest pressure: ${gardenProfile.pest_pressure || "unspecified"}
-- Known problems: ${gardenProfile.known_problems || "none reported"}
-- Past failures: ${gardenProfile.past_failures || "none reported"}
-`
-    : "\n## Active Garden Profile\nNo profile loaded. Ask the user for their zip code or location to look up zone and soil data.\n";
-
-  return `You are JarDIYn, a knowledgeable and trustworthy garden intelligence assistant by GardenHub.
-You help homeowners and garden enthusiasts plan, diagnose, and care for their outdoor spaces.
-
-${profileBlock}
-
-## How to use your tools
-You have access to tools that fetch real garden data. Use them when they would give the user
-a better, more grounded answer than you could provide from general knowledge alone.
-
-You decide whether to call a tool, which tool to call, and whether to call multiple tools
-in sequence. The tool descriptions explain when each is appropriate.
-
-Do not call a tool if you already have the information needed to answer well.
-Do not call a tool just because one exists — only when it adds value.
-
-## Trust and safety rules
-- Always label depth or spatial estimates as "estimated — not a measured value"
-- Never make autonomous irrigation control decisions — only recommendations
-- Flag any plant identification below 0.6 confidence for human review
-- Do not share GPS coordinates or EXIF data in your responses
-- Cite data sources when providing specific soil, zone, or plant information
-
-## Response style — JarDIYn voice
-Claude is the reasoning engine. JarDIYn is the brand.
-
-DO: Lead with garden context (location · zone · conditions). Use structured next
-actions. Be calm, specific, local, direct. Concise by default, detailed when asked.
-
-DO NOT: Open with "Great news", "Hi friend", "I'd love to help", "Of course!",
-"Happy to help", or any mascot/lifestyle-app language. No emoji clutter. No apologies.
-Personalize around the garden profile — zone, soil, sun, plants — not the user's identity.
-
-PREFERRED SHAPE for planning and diagnostic questions:
-[City] · Zone [X] · [Sun condition]
-
-This week / Today / Right now:
-- [specific action]
-- [specific action]
-
-Why now: [one line]
-Next: [one watch item or follow-up]`;
+export function isFallbackMode() {
+  if (process.env.FORCE_FALLBACK_AGENT === "1" || process.env.FORCE_FALLBACK_AGENT === "true") return true;
+  if (process.env.FORCE_FALLBACK_AGENT === "false" && process.env.ANTHROPIC_API_KEY) return false;
+  return !process.env.ANTHROPIC_API_KEY;
 }
 
-/**
- * runGardenAgent
- * --------------
- * The core agentic loop. Sends a message to Claude, handles any tool
- * calls the model decides to make, and returns the final response.
- *
- * @param {string|Array} userMessage - The user's message (string or content array for images)
- * @param {object} gardenProfile     - The user's GardenProfile (may be partial or null)
- * @param {Array}  conversationHistory - Prior messages for multi-turn context
- * @param {object} options           - { traceLog: boolean, sessionId: string }
- * @returns {object} { response: string, toolsUsed: string[], trace: Array, rounds: number }
- */
-export async function runGardenAgent(
-  userMessage,
-  gardenProfile = null,
-  conversationHistory = [],
-  options = {}
-) {
-  const { traceLog = false, sessionId = crypto.randomUUID() } = options;
-  const trace = [];                  // Full execution trace (for evaluation)
-  const toolsUsed = [];              // Which tools the model chose to call
-  let rounds = 0;
+function has(msg, words) {
+  const m = String(msg || "").toLowerCase();
+  return words.some(w => m.includes(w));
+}
 
-  // Build the message thread: history + new user message
-  const messages = [
-    ...conversationHistory,
-    { role: "user", content: userMessage }
-  ];
+export function planTools(message = "", profile = {}) {
+  const tools = new Set();
+  const msg = String(message || "").toLowerCase();
+  if (has(msg, ["what should i do","this week","today","garden","yard","plan","report","weekend","plant","water","soil","weather"])) tools.add("get_garden_zone");
+  if (has(msg, ["weather","today","this week","wind","rain","hot","cold","forecast"])) tools.add("get_weather_forecast");
+  if (has(msg, ["noaa","alert","warning","watch","advisory","storm","freeze","severe"])) tools.add("get_noaa_alerts");
+  if (has(msg, ["frost","freeze","cold","cover","protect","seedling","tender"])) tools.add("get_frost_alerts");
+  if (has(msg, ["pollen","allergy","pollinator","bloom","ragweed"])) tools.add("get_pollen_forecast");
+  if (has(msg, ["water","watering","rain","rainfall","dry","drought","irrigat"])) tools.add("get_recent_rainfall");
+  if (has(msg, ["soil","clay","sand","loam","drain","compost","ph","amend"]) || profile.soil) tools.add("get_soil_profile");
+  if (has(msg, ["recommend","lookup","perennial","annual","native","vegetable","flower","herb","tomato"])) tools.add("lookup_plant_database");
+  if (has(msg, ["diagnose","yellow","spots","bugs","aphid","disease","mildew","dying","wilting","photo"])) tools.add("diagnose_plant_issue");
+  if (has(msg, ["plan","design","bed","season","month","garden plan","what should i plant"])) tools.add("generate_garden_plan");
+  if (has(msg, ["report","monthly","weekly","summary","priorities"])) tools.add("generate_diy_report");
+  if (has(msg, ["gis","property","slope","map","site","spatial"])) tools.add("property_gis_preview");
+  if (tools.size === 0) ["get_garden_zone","get_weather_forecast","get_soil_profile"].forEach(t => tools.add(t));
+  if (has(msg, ["what should i do","this week","today"]))
+    ["get_weather_forecast","get_noaa_alerts","get_frost_alerts","get_pollen_forecast","get_recent_rainfall"].forEach(t => tools.add(t));
+  return [...tools].slice(0, 8);
+}
 
-  if (traceLog) {
-    console.log(`\n[agent:start] session=${sessionId}`);
-    console.log(`[agent] user message: "${typeof userMessage === "string" ? userMessage.slice(0, 100) : "[content array]"}"`);
+function toolInput(tool, message, profile) {
+  if (tool === "lookup_plant_database") {
+    const m = String(message).toLowerCase();
+    const plant = ["tomato","lavender","hydrangea","coneflower","pepper","basil","hosta","rose"].find(p => m.includes(p)) || "low maintenance plants";
+    return { ...profile, query: plant };
   }
+  if (tool === "diagnose_plant_issue") return { ...profile, symptoms: message };
+  if (tool === "generate_garden_plan")  return { profile, horizon: has(message,["weekend"]) ? "weekend" : has(message,["season"]) ? "season" : "week" };
+  if (tool === "generate_diy_report")   return { profile, timeframe: has(message,["month"]) ? "month" : "week" };
+  return { ...profile, message };
+}
 
-  // ── Agentic loop ──────────────────────────────────────────────────────────
-  while (rounds < MAX_TOOL_ROUNDS) {
-    rounds++;
+function collectSources(results) {
+  const seen = new Set();
+  return results.map(t => ({ tool:t.tool, provider:t.provider||t.source, mode:t.mode, confidence:t.confidence, checked_at:t.checked_at, summary:t.summary }))
+    .filter(s => { const k=`${s.tool}:${s.provider}`; if(seen.has(k)) return false; seen.add(k); return true; });
+}
 
-    if (traceLog) console.log(`\n[agent:round ${rounds}] calling Claude...`);
+function label(name) { return name.replace(/^get_/,"").replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase()); }
 
-    // ── Step 1: Call Claude with tool definitions ─────────────────────────
-    // This is where Requirement 5 is satisfied: JARDIYN_TOOLS passed in `tools`
-    const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-6",
-      max_tokens: 2048,               // Headroom for full reports without truncation
-      system: buildSystemPrompt(gardenProfile),
-      tools: JARDIYN_TOOLS,           // REQ 5: formal tool definitions exposed to model
-      messages
+function deriveSuggestedTasks(results) {
+  const tasks = [];
+  for (const r of results) {
+    if (r.tool==="get_frost_alerts" && r.data?.level!=="low") tasks.push({ title:"Prepare frost protection", priority:"high", due:"before next cold night" });
+    if (r.tool==="get_recent_rainfall") tasks.push({ title:"Check soil moisture before watering", priority:"medium", due:"today" });
+    if (r.tool==="get_soil_profile") tasks.push({ title:"Add compost or mulch where soil is bare", priority:"medium", due:"this week" });
+  }
+  return tasks.slice(0,5);
+}
+
+function synthesize(message, profile, results) {
+  const checked = results.map(t => `- ${label(t.tool)}: ${t.summary}`).join("\n");
+  const next = []; for (const r of results) for (const a of r.next_actions||[]) if (!next.includes(a)) next.push(a);
+  const noaa=results.find(t=>t.tool==="get_noaa_alerts"), frost=results.find(t=>t.tool==="get_frost_alerts"),
+        rain=results.find(t=>t.tool==="get_recent_rainfall"), pollen=results.find(t=>t.tool==="get_pollen_forecast"),
+        soil=results.find(t=>t.tool==="get_soil_profile");
+  const risks=[
+    noaa?.data?.count ? "NOAA/NWS has active alerts — check before outdoor work." : null,
+    frost?.data?.level && frost.data.level!=="low" ? "Frost protection needed for tender plants." : null,
+    rain?.data?.guidance||null,
+    pollen?.data?.level==="High" ? "High pollen — plan outdoor work timing." : null,
+    soil?.data?.drainage==="slow" ? "Avoid working wet soil to prevent compaction." : null,
+  ].filter(Boolean);
+  return `### Read on your garden\nJarDIYn checked what matters before advising: zone, weather, NOAA/NWS, frost, pollen, rainfall, and soil for **${profile.site_name||"your garden"}**.\n\n### What JarDIYn checked\n${checked}\n\n### Recommendation\nFocus on condition-led work. Use the next calm, dry weather window for planting, cleanup, or inspection. Adjust watering from recent rainfall. Do not push into frost-risk, saturated, windy, or high-stress conditions.\n\n### Next actions\n${next.slice(0,4).length ? next.slice(0,4).map((a,i)=>`${i+1}. ${a}`).join("\n") : "1. Confirm soil moisture.\n2. Check the forecast window.\n3. Match plants to sun, soil, and maintenance level."}\n\n### Watch / do not do yet\n${risks.length ? risks.map(a=>`- ${a}`).join("\n") : "- Do not fertilize stressed plants until water and pest pressure are understood.\n- Do not spray during wind, heat, or active pollinator bloom."}\n\n### Confidence\n${results.some(t=>t.mode==="live") ? "High where live sources responded; medium where JarDIYn used fallback adapters." : "Medium: fallback intelligence active. Set LIVE_APIS=true for live weather, NOAA, pollen, and rainfall."}`;
+}
+
+async function runFallback({ message, profile, session_id, save_suggestions }) {
+  const planned = planTools(message, profile);
+  const trace = [{ type:"plan", mode:"fallback", tools:planned }];
+  const results = [];
+  for (const tool of planned) {
+    const result = await executeTool(tool, toolInput(tool, message, profile), { profile, session_id });
+    results.push(result);
+    trace.push({ type:"tool", tool, mode:result.mode, summary:result.summary, confidence:result.confidence });
+  }
+  const answer = synthesize(message, profile, results);
+  const suggested_tasks = deriveSuggestedTasks(results);
+  if (save_suggestions && session_id) {
+    addMemory(session_id, { type:"agent_summary", title:"JarDIYn recommendation", body:answer.slice(0,1200), source:"agent" });
+    suggested_tasks.forEach(task => addTask(session_id, { ...task, source:"agent_suggestion" }));
+  }
+  return { mode:"fallback-agentic", answer, tools_used:results.map(t=>t.tool), sources:collectSources(results), trace, tool_results:results, suggested_tasks };
+}
+
+async function runLive({ message, profile, session_id, save_suggestions }) {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const model  = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6";
+
+  const system = `You are JarDIYn by GardenHub — a professional spatial garden intelligence platform.
+
+ROLE: Use tools before advising whenever weather, NOAA/NWS, frost, pollen, rainfall, soil, zone, plant fit, or diagnosis may be relevant. Always call relevant tools first. The model decides which tools.
+
+VOICE RULES:
+DO: Lead with garden-specific intelligence. Be grounded, specific, direct. Personalize around zone, soil, sun, goals — not the person. Concise unless asked for detail.
+DO NOT: Open with "Great news", "Happy to help", "Of course!", "Hi friend", "I'd be glad to", "As an AI", or any mascot/lifestyle-app phrasing. No apologies. No performative warmth. No emoji in headers.
+
+RESPONSE FORMAT — always these exact headers in this order:
+### Read on your garden
+### What JarDIYn checked
+### Recommendation
+### Next actions
+### Watch / do not do yet
+### Confidence
+
+Garden profile: ${JSON.stringify(profile)}`;
+
+  let messages = [{ role:"user", content:message }];
+  const trace = [], results = [];
+
+  for (let round = 0; round < 5; round++) {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method:"POST",
+      headers:{ "content-type":"application/json", "x-api-key":apiKey, "anthropic-version":"2023-06-01" },
+      body:JSON.stringify({ model, max_tokens:2000, system, tools:getTools().map(toAnthropicTool), messages })
     });
-
-    trace.push({
-      round: rounds,
-      stop_reason: response.stop_reason,
-      model:       response.model,
-      message_id:  response.id,
-      usage:       response.usage,   // { input_tokens, output_tokens, cache_read_input_tokens }
-      content_blocks: response.content.map(b => ({
-        type: b.type,
-        ...(b.type === "text"     ? { text: b.text.slice(0, 200) } : {}),
-        ...(b.type === "tool_use" ? { name: b.name, input: b.input } : {})
-      }))
-    });
-
-    if (traceLog) {
-      console.log(`[agent:round ${rounds}] stop_reason="${response.stop_reason}"`);
-      response.content.forEach(b => {
-        if (b.type === "tool_use") console.log(`  → model chose tool: ${b.name}`, b.input);
-        if (b.type === "text")     console.log(`  → model text: "${b.text.slice(0, 120)}"`);
-      });
-    }
-
-    // ── Step 2: REQ 7 — Model decides to stop ────────────────────────────
-    // If stop_reason is "end_turn", the model chose NOT to call any more
-    // tools. We extract the text response and exit.
-    if (response.stop_reason === "end_turn") {
-      const finalText = response.content
-        .filter(b => b.type === "text")
-        .map(b => b.text)
-        .join("\n");
-
-      if (traceLog) console.log(`[agent:done] finished in ${rounds} round(s). Tools used: [${toolsUsed.join(", ")}]`);
-
-      return {
-        response: finalText,
-        toolsUsed,
-        trace,
-        rounds,
-        sessionId
-      };
-    }
-
-    // ── Step 3: REQ 6 + 7 — Model decided to call tool(s) ────────────────
-    // We execute whatever tool(s) the model chose — our code does NOT pick
-    // the tool. We only dispatch what the model's response specifies.
-    if (response.stop_reason === "tool_use") {
-      // Append the assistant's turn (which includes tool_use blocks)
-      messages.push({ role: "assistant", content: response.content });
-
-      // Execute each tool the model requested (may be multiple in one round)
-      const toolResults = [];
-      for (const block of response.content) {
-        if (block.type !== "tool_use") continue;
-
-        if (traceLog) console.log(`[agent] executing tool: ${block.name}`);
-
-        // REQ 6: Dispatch to handler — model's choice, our execution
-        const result = await dispatchTool(block.name, block.input);
-        toolsUsed.push(block.name);
-
-        // Capture provenance for frontend trace display
-        const mode   = result?.mode || result?.provenance?.mode || "unknown";
-        const source = result?.source || result?.provenance?.source || null;
-
-        // Subatomic: strip large arrays/text but keep key scalar fields
-        const subatomic = {};
-        if (result && typeof result === "object") {
-          for (const [k, v] of Object.entries(result)) {
-            if (k === "mode" || k === "source" || k === "tool") continue;
-            if (typeof v === "string"  && v.length  > 120) { subatomic[k] = v.slice(0, 120) + "…"; continue; }
-            if (Array.isArray(v))                           { subatomic[k] = `[${v.length} items]`;  continue; }
-            if (typeof v === "object" && v !== null)        { subatomic[k] = JSON.stringify(v).slice(0, 120); continue; }
-            subatomic[k] = v;
-          }
-        }
-
-        trace.push({
-          step: "tool_execution",
-          tool: block.name,
-          mode,
-          source,
-          ok: !result?.error,
-          subatomic   // the actual data Claude read from this tool
-        });
-
-        // REQ 6: Return tool_result back to the model
-        toolResults.push({
-          type: "tool_result",
-          tool_use_id: block.id,            // Must match the tool_use block's id
-          content: JSON.stringify(result)    // Serialized result the model will read
-        });
+    if (!res.ok) throw new Error(`Anthropic ${res.status}: ${await res.text()}`);
+    const data = await res.json();
+    const uses = (data.content||[]).filter(b=>b.type==="tool_use");
+    trace.push({ type:"anthropic_round", round, stop_reason:data.stop_reason, model:data.model, message_id:data.id, usage:data.usage, tool_uses:uses.map(t=>t.name) });
+    if (!uses.length) {
+      const text = (data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("\n");
+      const suggested_tasks = deriveSuggestedTasks(results);
+      if (save_suggestions && session_id) {
+        addMemory(session_id, { type:"agent_summary", title:"JarDIYn recommendation", body:text.slice(0,1200), source:"anthropic" });
+        suggested_tasks.forEach(task => addTask(session_id, { ...task, source:"agent_suggestion" }));
       }
-
-      // Append tool results — model will read these in the next round
-      // and again decide autonomously: call more tools, or stop (REQ 7)
-      messages.push({ role: "user", content: toolResults });
-
-      // Loop continues — back to Step 1
-      continue;
+      return { mode:"anthropic-live", answer:text, tools_used:results.map(t=>t.tool), sources:collectSources(results), trace, tool_results:results, suggested_tasks };
     }
-
-    // ── Step 4: Any other stop_reason (max_tokens, pause_turn, etc.) ──────
-    // The response was truncated or stopped for a non-tool reason. Return
-    // whatever text we have rather than silently looping and burning rounds.
-    {
-      const partialText = response.content
-        .filter(b => b.type === "text")
-        .map(b => b.text)
-        .join("\n");
-
-      if (traceLog) console.log(`[agent:done] stopped on "${response.stop_reason}" after ${rounds} round(s).`);
-
-      return {
-        response: partialText || "I wasn't able to complete that response. Please try rephrasing your question.",
-        toolsUsed,
-        trace,
-        rounds,
-        sessionId,
-        stop_reason: response.stop_reason
-      };
+    messages.push({ role:"assistant", content:data.content });
+    const toolContent = [];
+    for (const use of uses) {
+      const result = await executeTool(use.name, use.input||{}, { profile, session_id });
+      results.push({ ...result, tool_use_id:use.id });
+      toolContent.push({ type:"tool_result", tool_use_id:use.id, content:JSON.stringify(result) });
     }
+    messages.push({ role:"user", content:toolContent });
   }
-
-  // Safety: if we hit MAX_TOOL_ROUNDS, return what we have
-  console.warn(`[agent:warn] hit MAX_TOOL_ROUNDS (${MAX_TOOL_ROUNDS}) — returning partial response`);
-  return {
-    response: "I reached my tool call limit for this request. Please try a more specific question.",
-    toolsUsed,
-    trace,
-    rounds,
-    sessionId,
-    warning: "max_rounds_exceeded"
-  };
+  return runFallback({ message, profile, session_id, save_suggestions });
 }
 
-/**
- * runChatTurn
- * -----------
- * Convenience wrapper for the /api/chat endpoint.
- * Maintains conversation history across turns.
- */
-export async function runChatTurn(userMessage, gardenProfile, history = []) {
-  const result = await runGardenAgent(userMessage, gardenProfile, history, { traceLog: true });
-  // Caller appends user + assistant messages to history for next turn
-  return result;
+export async function runAgent({ message="", profile={}, session_id="default", save_suggestions=false }) {
+  const normalized = normalizeGardenProfile(profile);
+  const started = Date.now();
+  try {
+    const result = isFallbackMode()
+      ? await runFallback({ message, profile:normalized, session_id, save_suggestions })
+      : await runLive({ message, profile:normalized, session_id, save_suggestions });
+    const duration_ms = Date.now() - started;
+    logAgentRun({ session_id, message:String(message).slice(0,500), mode:result.mode, tools_used:result.tools_used, duration_ms, ok:true });
+    return { ...result, duration_ms };
+  } catch (error) {
+    const fallback = await runFallback({ message, profile:normalized, session_id, save_suggestions });
+    const duration_ms = Date.now() - started;
+    fallback.trace.unshift({ type:"live_error_fallback", error:error.message });
+    fallback.mode = "fallback-after-live-error";
+    fallback.duration_ms = duration_ms;
+    logAgentRun({ session_id, message:String(message).slice(0,500), mode:fallback.mode, tools_used:fallback.tools_used, duration_ms, ok:true, live_error:error.message });
+    return fallback;
+  }
 }

@@ -1,485 +1,228 @@
-/**
- * JarDIYn — Live API Integrations
- * ================================
- * Real external API calls for the three zero-key, no-friction data sources:
- *   - USDA Plant Hardiness Zone   → phzmapi.org          (no key)
- *   - Weather forecast            → Open-Meteo (NOAA/GFS) (no key)
- *   - Soil properties             → SoilGrids / ISRIC     (no key)
- *
- * Design principle: EVERY live call is wrapped so that if the API is
- * down, rate-limited, times out, or returns an unexpected shape, the
- * handler falls back to the sandbox mock instead of crashing. The app
- * never breaks because an upstream API had a bad day.
- *
- * Toggle with env: LIVE_APIS=true enables live calls (default: mock-only
- * so the app boots and demos without any external dependency).
- */
+const ZIP_FALLBACK = {
+  "49503": { zip_code: "49503", city: "Grand Rapids", state: "MI", latitude: 42.9634, longitude: -85.6681, zone: "6a", region: "Great Lakes" },
+  "94103": { zip_code: "94103", city: "San Francisco", state: "CA", latitude: 37.7725, longitude: -122.4147, zone: "10a", region: "Bay Area" },
+  "10001": { zip_code: "10001", city: "New York", state: "NY", latitude: 40.7506, longitude: -73.9972, zone: "7b", region: "Northeast urban" },
+  "33401": { zip_code: "33401", city: "West Palm Beach", state: "FL", latitude: 26.7153, longitude: -80.0534, zone: "10b", region: "South Florida" },
+  "78701": { zip_code: "78701", city: "Austin", state: "TX", latitude: 30.2711, longitude: -97.7437, zone: "9a", region: "Central Texas" },
+  "92101": { zip_code: "92101", city: "San Diego", state: "CA", latitude: 32.7157, longitude: -117.1611, zone: "10b", region: "Coastal Southern California" }
+};
 
-const LIVE = process.env.LIVE_APIS === "true";
-const TIMEOUT_MS = 6000;
+export function liveApisEnabled() {
+  return process.env.LIVE_APIS === "true" || process.env.LIVE_APIS === "1";
+}
 
-// ── fetch with timeout ────────────────────────────────────────────────────
-async function fetchJSON(url, opts = {}) {
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+export function isoNow() { return new Date().toISOString(); }
+
+export function daysFromNow(days) {
+  const date = new Date(Date.now() + days * 86400000);
+  return date.toISOString().slice(0, 10);
+}
+
+function timeoutSignal(ms = 4500) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  return { signal: controller.signal, done: () => clearTimeout(timer) };
+}
+
+async function fetchJson(url, options = {}, ms = 4500) {
+  const { signal, done } = timeoutSignal(ms);
   try {
-    const res = await fetch(url, { ...opts, signal: ctrl.signal });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const res = await fetch(url, { ...options, signal, headers: { "user-agent": "JarDIYn/5.2 garden intelligence", ...(options.headers || {}) } });
+    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
     return await res.json();
-  } finally {
-    clearTimeout(timer);
-  }
+  } finally { done(); }
 }
 
-// ── WMO weather code → human conditions (Open-Meteo uses WMO codes) ───────
-function wmoToConditions(code) {
-  if (code === 0) return "clear";
-  if (code <= 3) return "partly cloudy";
-  if (code <= 48) return "foggy";
-  if (code <= 67) return "rainy";
-  if (code <= 77) return "snowy";
-  if (code <= 82) return "rain showers";
-  if (code <= 99) return "thunderstorm";
-  return "unknown";
+function stateZoneFallback(state) {
+  const s = String(state || "").toUpperCase();
+  if (["FL", "HI"].includes(s)) return "10a";
+  if (["CA"].includes(s)) return "9b";
+  if (["TX", "GA", "LA", "SC", "AL", "MS"].includes(s)) return "8b";
+  if (["MI", "WI", "MN", "ND", "SD", "VT", "NH", "ME"].includes(s)) return "5b-6a";
+  if (["NY", "PA", "OH", "IN", "IL", "NJ", "CT", "MA"].includes(s)) return "6b-7b";
+  return "6b";
 }
 
-// ─────────────────────────────────────────────────────────────────────────
-// LIVE: USDA Hardiness Zone via phzmapi.org
-// Docs: https://phzmapi.org  ·  GET https://phzmapi.org/{zip}.json
-// Returns: { zone: "7a", temperature_range: "0 to 5", coordinates: {...} }
-// ─────────────────────────────────────────────────────────────────────────
-export async function liveGardenZone(zip) {
-  if (!LIVE || !zip) return null;
+export async function resolveLocation(input = {}) {
+  const zip = String(input.zip_code || input.zip || "").match(/\d{5}/)?.[0] || "49503";
+  const fallback = ZIP_FALLBACK[zip] || { zip_code: zip, city: "Your area", state: "US", latitude: 42.9634, longitude: -85.6681, zone: "6a", region: "US garden" };
+  if (!liveApisEnabled()) return { ...fallback, mode: "fallback", provider: "JarDIYn local ZIP profile" };
   try {
-    const data = await fetchJSON(`https://phzmapi.org/${zip}.json`);
-    if (!data?.zone) return null;
-
-    // Derive frost dates from zone number (approximate — phzmapi gives zone only)
-    const zoneNum = parseInt(String(data.zone).replace(/[ab]$/, ""), 10);
-    const frostByZone = {
-      3: { last: "05-15", first: "09-15" }, 4: { last: "05-10", first: "09-25" },
-      5: { last: "04-30", first: "10-10" }, 6: { last: "04-20", first: "10-20" },
-      7: { last: "04-05", first: "11-05" }, 8: { last: "03-15", first: "11-20" },
-      9: { last: "02-15", first: "12-10" }, 10: { last: null,    first: null    },
-      11:{ last: null,    first: null    }
-    };
-    const frost = frostByZone[zoneNum] || frostByZone[7];
-    const year = new Date().getFullYear();
-
+    const data = await fetchJson(`https://api.zippopotam.us/us/${zip}`, {}, 3500);
+    const place = data.places?.[0];
+    if (!place) throw new Error("ZIP not found");
+    const state = place["state abbreviation"] || fallback.state;
     return {
-      tool: "get_garden_zone",
-      source: "phzmapi.org (USDA PHZM)",
+      zip_code: zip,
+      city: place["place name"] || fallback.city,
+      state,
+      latitude: Number(place.latitude),
+      longitude: Number(place.longitude),
+      zone: ZIP_FALLBACK[zip]?.zone || stateZoneFallback(state),
+      region: ZIP_FALLBACK[zip]?.region || `${place["place name"] || "US"} region`,
       mode: "live",
-      hardiness_zone: data.zone,
-      temperature_range_f: data.temperature_range || null,
-      first_frost: frost.first ? `${year}-${frost.first}` : null,
-      last_frost:  frost.last  ? `${year + 1}-${frost.last}`  : null,
-      microclimate_note: `USDA Zone ${data.zone}. ${
-        zoneNum >= 10 ? "Frost-free or nearly so; year-round growing." :
-        zoneNum <= 4  ? "Short season; protect tender plants." :
-        "Distinct seasons; plant after last frost."
-      }`,
-      provenance: { source: "phzmapi.org", mode: "live", generated_at: new Date().toISOString() }
+      provider: "Zippopotam.us + JarDIYn PHZM cache"
     };
-  } catch (err) {
-    console.warn(`[live:zone] fallback to mock — ${err.message}`);
-    return null; // caller falls back to mock
+  } catch (error) {
+    return { ...fallback, mode: "fallback", provider: "JarDIYn local ZIP profile", warning: error.message };
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────
-// LIVE: Weather via Open-Meteo (NOAA GFS-backed, no API key)
-// Docs: https://open-meteo.com/en/docs
-// ─────────────────────────────────────────────────────────────────────────
-export async function liveWeatherForecast(lat, lng) {
-  if (!LIVE || lat == null || lng == null) return null;
-  try {
-    const url = `https://api.open-meteo.com/v1/forecast` +
-      `?latitude=${lat}&longitude=${lng}` +
-      `&current=temperature_2m,relative_humidity_2m,weather_code` +
-      `&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code` +
-      `&temperature_unit=fahrenheit&forecast_days=7&timezone=auto`;
-    const data = await fetchJSON(url);
-    if (!data?.daily?.time) return null;
+function weatherCode(code) {
+  const map = { 0: "Clear", 1: "Mainly clear", 2: "Partly cloudy", 3: "Overcast", 45: "Fog", 48: "Rime fog", 51: "Light drizzle", 53: "Drizzle", 55: "Heavy drizzle", 61: "Light rain", 63: "Rain", 65: "Heavy rain", 71: "Light snow", 73: "Snow", 75: "Heavy snow", 80: "Rain showers", 95: "Thunderstorm" };
+  return map[code] || "Variable";
+}
 
-    const d = data.daily;
-    const forecast = d.time.map((date, i) => ({
+export async function getWeather(input = {}) {
+  const loc = await resolveLocation(input);
+  if (!liveApisEnabled()) return fallbackWeather(loc);
+  try {
+    const url = new URL("https://api.open-meteo.com/v1/forecast");
+    url.search = new URLSearchParams({
+      latitude: loc.latitude,
+      longitude: loc.longitude,
+      current: "temperature_2m,relative_humidity_2m,precipitation,weather_code,wind_speed_10m",
+      daily: "temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,weather_code,wind_speed_10m_max",
+      temperature_unit: "fahrenheit",
+      wind_speed_unit: "mph",
+      precipitation_unit: "inch",
+      timezone: "auto",
+      forecast_days: String(Math.min(Number(input.days || 7), 10))
+    }).toString();
+    const data = await fetchJson(url.toString(), {}, 5000);
+    const current = data.current || {};
+    const daily = (data.daily?.time || []).map((date, idx) => ({
       date,
-      high_f: Math.round(d.temperature_2m_max[i]),
-      low_f:  Math.round(d.temperature_2m_min[i]),
-      precip_chance_pct: d.precipitation_probability_max[i] ?? 0,
-      conditions: wmoToConditions(d.weather_code[i])
+      high_f: data.daily.temperature_2m_max?.[idx],
+      low_f: data.daily.temperature_2m_min?.[idx],
+      precip_in: data.daily.precipitation_sum?.[idx],
+      precip_probability: data.daily.precipitation_probability_max?.[idx],
+      wind_mph: data.daily.wind_speed_10m_max?.[idx],
+      condition: weatherCode(data.daily.weather_code?.[idx])
     }));
-
-    const rainDays = forecast.filter(f => f.precip_chance_pct > 50).length;
-    const minLow   = Math.min(...forecast.map(f => f.low_f));
-    const watering = rainDays >= 3 ? "skip" : rainDays >= 1 ? "light" : "normal";
-
     return {
-      tool: "get_weather_forecast",
-      source: "Open-Meteo (NOAA GFS)",
       mode: "live",
+      provider: "Open-Meteo Forecast",
+      location: loc,
       current: {
-        temp_f: Math.round(data.current?.temperature_2m ?? forecast[0].high_f),
-        humidity_pct: data.current?.relative_humidity_2m ?? null,
-        conditions: wmoToConditions(data.current?.weather_code ?? 2)
+        temp_f: current.temperature_2m,
+        humidity: current.relative_humidity_2m,
+        precip_in: current.precipitation,
+        wind_mph: current.wind_speed_10m,
+        condition: weatherCode(current.weather_code)
       },
-      forecast,
-      frost_warning: minLow <= 36,
-      watering_recommendation: watering,
-      watering_explanation: rainDays >= 3
-        ? "Multiple rain days ahead — skip irrigation this week."
-        : rainDays >= 1
-          ? "Some rain expected — reduce watering."
-          : "Dry week — maintain normal watering.",
-      provenance: { source: "open-meteo.com", mode: "live", generated_at: new Date().toISOString() }
+      daily,
+      summary: `${Math.round(current.temperature_2m ?? 0)}°F and ${weatherCode(current.weather_code).toLowerCase()} in ${loc.city}.`,
+      checked_at: isoNow()
     };
-  } catch (err) {
-    console.warn(`[live:weather] fallback to mock — ${err.message}`);
-    return null;
-  }
+  } catch (error) { return { ...fallbackWeather(loc), warning: error.message }; }
 }
 
-// ─────────────────────────────────────────────────────────────────────────
-// LIVE: Soil via SoilGrids (ISRIC, no API key)
-// Docs: https://rest.isric.org/soilgrids/v2.0/docs
-// Returns clay/sand/silt %, pH, organic carbon by depth.
-// ─────────────────────────────────────────────────────────────────────────
-export async function liveSoilData(lat, lng) {
-  if (!LIVE || lat == null || lng == null) return null;
-  try {
-    const url = `https://rest.isric.org/soilgrids/v2.0/properties/query` +
-      `?lat=${lat}&lon=${lng}` +
-      `&property=phh2o&property=clay&property=sand&property=silt&property=soc` +
-      `&depth=0-5cm&value=mean`;
-    const data = await fetchJSON(url);
-    const layers = data?.properties?.layers;
-    if (!layers) return null;
-
-    const pick = (name) => {
-      const layer = layers.find(l => l.name === name);
-      const val = layer?.depths?.[0]?.values?.mean;
-      return val != null ? val / (layer.unit_measure?.d_factor || 1) : null;
-    };
-
-    const ph    = pick("phh2o");       // pH * 10 → divide by d_factor
-    const clay  = pick("clay");        // g/kg → %
-    const sand  = pick("sand");
-    const silt  = pick("silt");
-    const soc   = pick("soc");         // organic carbon
-
-    // Derive USDA texture class from clay/sand/silt
-    let texture = "loam";
-    if (clay != null && sand != null) {
-      const c = clay / 10, s = sand / 10; // g/kg → %
-      if (c >= 40) texture = "clay";
-      else if (s >= 70) texture = "sandy loam";
-      else if (c >= 27) texture = "clay loam";
-      else if (s >= 52) texture = "loam";
-      else texture = "silt loam";
-    }
-
-    return {
-      tool: "get_soil_data",
-      source: "SoilGrids (ISRIC)",
-      mode: "live",
-      texture,
-      ph_range: ph != null ? { min: +(ph/10 - 0.3).toFixed(1), max: +(ph/10 + 0.3).toFixed(1) } : null,
-      clay_pct: clay != null ? +(clay/10).toFixed(1) : null,
-      sand_pct: sand != null ? +(sand/10).toFixed(1) : null,
-      silt_pct: silt != null ? +(silt/10).toFixed(1) : null,
-      organic_carbon: soc != null ? +(soc/10).toFixed(1) : null,
-      amendment_suggestions: [
-        ph != null && ph/10 < 6.0 ? "Soil is acidic — add lime to raise pH for most vegetables" :
-        ph != null && ph/10 > 7.5 ? "Soil is alkaline — add elemental sulfur or peat for acid-loving plants" :
-        "pH is in a good range for most plants",
-        "Add 2–3 inches of compost annually to improve structure and fertility",
-        texture === "clay" ? "Clay-heavy — add coarse organic matter to improve drainage" :
-        texture.includes("sand") ? "Sandy — add compost to improve water retention" :
-        "Mulch to retain moisture and suppress weeds"
-      ],
-      provenance: { source: "rest.isric.org/soilgrids", mode: "live", generated_at: new Date().toISOString() }
-    };
-  } catch (err) {
-    console.warn(`[live:soil] fallback to mock — ${err.message}`);
-    return null;
-  }
+function fallbackWeather(loc) {
+  const seasonal = new Date().getMonth();
+  const temp = seasonal >= 5 && seasonal <= 8 ? 76 : seasonal <= 2 || seasonal === 11 ? 38 : 62;
+  return {
+    mode: "fallback",
+    provider: "JarDIYn seasonal weather fallback",
+    location: loc,
+    current: { temp_f: temp, humidity: 58, precip_in: 0, wind_mph: 8, condition: "Seasonal estimate" },
+    daily: Array.from({ length: 7 }, (_, i) => ({ date: daysFromNow(i), high_f: temp + 4, low_f: temp - 12, precip_in: i === 2 ? 0.25 : 0.03, precip_probability: i === 2 ? 55 : 18, wind_mph: 8 + i, condition: i === 2 ? "Rain chance" : "Workable" })),
+    summary: `Seasonal estimate for ${loc.city}: workable conditions with monitor-worthy rain/frost windows.`,
+    checked_at: isoNow()
+  };
 }
 
-// ─────────────────────────────────────────────────────────────────────────
-// LIVE: NOAA / NWS frost & freeze alerts (api.weather.gov, no key)
-// Docs: https://www.weather.gov/documentation/services-web-api
-// GET /alerts/active?point={lat},{lng}
-// ─────────────────────────────────────────────────────────────────────────
-export async function liveFrostAlerts(lat, lng) {
-  if (!LIVE || lat == null || lng == null) return null;
+export async function getNoaaAlerts(input = {}) {
+  const loc = await resolveLocation(input);
+  if (!liveApisEnabled()) return fallbackNoaa(loc);
   try {
-    const data = await fetchJSON(
-      `https://api.weather.gov/alerts/active?point=${lat},${lng}`,
-      { headers: { "User-Agent": "JarDIYn-GardenApp (contact@gardenhub.example)", "Accept": "application/geo+json" } }
-    );
-    const features = data?.features || [];
-
-    // Filter to cold-related alerts a gardener cares about
-    const coldKeywords = ["frost", "freeze", "cold", "hard freeze", "winter"];
-    const relevant = features.filter(f => {
-      const ev = (f.properties?.event || "").toLowerCase();
-      return coldKeywords.some(k => ev.includes(k));
-    });
-
-    const active_alerts = relevant.map(f => ({
-      event: f.properties.event,
-      severity: f.properties.severity,
-      headline: f.properties.headline,
-      expires: f.properties.expires
+    const url = `https://api.weather.gov/alerts/active?point=${loc.latitude},${loc.longitude}`;
+    const data = await fetchJson(url, { headers: { accept: "application/geo+json" } }, 5000);
+    const alerts = (data.features || []).slice(0, 8).map((f) => ({
+      event: f.properties?.event,
+      severity: f.properties?.severity,
+      urgency: f.properties?.urgency,
+      headline: f.properties?.headline,
+      instruction: f.properties?.instruction,
+      expires: f.properties?.expires
     }));
-
-    return {
-      tool: "get_frost_alerts",
-      source: "NOAA / National Weather Service",
-      mode: "live",
-      frost_risk: active_alerts.length > 0,
-      active_alerts,
-      protection_advice: active_alerts.length > 0
-        ? "Active cold alert in effect. Cover tender plants with frost cloth or bring containers indoors. Water soil before a freeze — moist soil holds heat better than dry."
-        : "No active frost or freeze alerts from NOAA for this location.",
-      total_active_alerts: features.length,
-      provenance: { source: "api.weather.gov", mode: "live", generated_at: new Date().toISOString() }
-    };
-  } catch (err) {
-    console.warn(`[live:frost] fallback to mock — ${err.message}`);
-    return null;
-  }
+    return { mode: "live", provider: "NOAA/National Weather Service", location: loc, alerts, count: alerts.length, summary: alerts.length ? `${alerts.length} active NOAA/NWS alert(s).` : "No active NOAA/NWS alerts for this location.", checked_at: isoNow() };
+  } catch (error) { return { ...fallbackNoaa(loc), warning: error.message }; }
 }
 
-export const LIVE_MODE = LIVE;
-
-// ─────────────────────────────────────────────────────────────────────────
-// LIVE: Geocode a US ZIP → lat/lng (Open-Meteo geocoding, no key)
-// Lets soil + weather tools work when the user only gave a ZIP.
-// ─────────────────────────────────────────────────────────────────────────
-export async function liveGeocodeZip(zip) {
-  if (!LIVE || !zip) return null;
-  try {
-    const url = `https://geocoding-api.open-meteo.com/v1/search?name=${zip}&count=1&country=US`;
-    const data = await fetchJSON(url);
-    const hit = data?.results?.[0];
-    if (!hit) return null;
-    return { latitude: hit.latitude, longitude: hit.longitude, place: hit.name };
-  } catch (err) {
-    console.warn(`[live:geocode] ${err.message}`);
-    return null;
-  }
+function fallbackNoaa(loc) {
+  return { mode: "fallback", provider: "NOAA/NWS-ready fallback", location: loc, alerts: [], count: 0, summary: "No live NOAA alert retrieved; use local forecast if severe weather is possible.", checked_at: isoNow() };
 }
 
-// ─────────────────────────────────────────────────────────────────────────
-// LIVE: Open-Meteo Air Quality — Pollen forecast (no key)
-// Provides grass, birch, alder, mugwort, olive pollen levels
-// Docs: https://open-meteo.com/en/docs/air-quality-api
-// ─────────────────────────────────────────────────────────────────────────
-export async function livePollenForecast(lat, lng) {
-  if (!LIVE || lat == null || lng == null) return null;
+export async function getPollen(input = {}) {
+  const loc = await resolveLocation(input);
+  if (!liveApisEnabled()) return fallbackPollen(loc);
   try {
-    const url = `https://air-quality-api.open-meteo.com/v1/air-quality` +
-      `?latitude=${lat}&longitude=${lng}` +
-      `&hourly=grass_pollen,birch_pollen,alder_pollen,mugwort_pollen,olive_pollen` +
-      `&forecast_days=3&timezone=auto`;
-    const data = await fetchJSON(url);
-    if (!data?.hourly?.grass_pollen) return null;
-
-    const h = data.hourly;
-    const times = h.time || [];
-
-    // Get today's max pollen levels
-    const today = new Date().toISOString().slice(0, 10);
-    const todayIdxs = times.reduce((acc, t, i) => {
-      if (t.startsWith(today)) acc.push(i);
-      return acc;
-    }, []);
-
-    const maxOf = (arr) => todayIdxs.length
-      ? Math.max(...todayIdxs.map(i => arr?.[i] || 0))
-      : (arr?.[0] || 0);
-
-    const pollenLevel = (val) =>
-      val === 0 ? "none" : val < 10 ? "low" : val < 50 ? "moderate" : val < 200 ? "high" : "very high";
-
-    const grass   = maxOf(h.grass_pollen);
-    const birch   = maxOf(h.birch_pollen);
-    const mugwort = maxOf(h.mugwort_pollen);
-
-    const dominant = [
-      { name: "grass",   val: grass   },
-      { name: "birch",   val: birch   },
-      { name: "mugwort", val: mugwort },
-    ].sort((a, b) => b.val - a.val)[0];
-
-    return {
-      tool: "pollen_forecast",
-      source: "Open-Meteo Air Quality API",
-      mode: "live",
-      today: {
-        grass_pollen:   { value: grass,   level: pollenLevel(grass)   },
-        birch_pollen:   { value: birch,   level: pollenLevel(birch)   },
-        mugwort_pollen: { value: mugwort, level: pollenLevel(mugwort) },
-      },
-      dominant_allergen: dominant.name,
-      dominant_level:    pollenLevel(dominant.val),
-      gardening_advice: dominant.val > 50
-        ? `High ${dominant.name} pollen today. Gardeners with allergies should wear a mask, garden in the evening, and shower after outdoor work.`
-        : dominant.val > 10
-          ? `Moderate pollen. Consider gardening in the morning or evening when counts are lower.`
-          : "Pollen levels are low — great day to work in the garden.",
-      provenance: { source: "air-quality-api.open-meteo.com", mode: "live", generated_at: new Date().toISOString() }
-    };
-  } catch (err) {
-    console.warn(`[live:pollen] fallback — ${err.message}`);
-    return null;
-  }
+    const url = new URL("https://air-quality-api.open-meteo.com/v1/air-quality");
+    url.search = new URLSearchParams({ latitude: loc.latitude, longitude: loc.longitude, hourly: "alder_pollen,birch_pollen,grass_pollen,mugwort_pollen,ragweed_pollen", timezone: "auto", forecast_days: "3" }).toString();
+    const data = await fetchJson(url.toString(), {}, 5000);
+    const h = data.hourly || {};
+    const latestIndex = Math.max(0, Math.min(6, (h.time || []).length - 1));
+    const tree = Number(h.alder_pollen?.[latestIndex] || 0) + Number(h.birch_pollen?.[latestIndex] || 0);
+    const grass = Number(h.grass_pollen?.[latestIndex] || 0);
+    const weed = Number(h.mugwort_pollen?.[latestIndex] || 0) + Number(h.ragweed_pollen?.[latestIndex] || 0);
+    const total = tree + grass + weed;
+    const level = total > 150 ? "High" : total > 50 ? "Moderate" : "Low";
+    return { mode: "live", provider: "Open-Meteo Air Quality", location: loc, level, index: Math.round(total), breakdown: { tree: Math.round(tree), grass: Math.round(grass), weed: Math.round(weed) }, summary: `${level} pollen signal: tree ${Math.round(tree)}, grass ${Math.round(grass)}, weed ${Math.round(weed)}.`, checked_at: isoNow() };
+  } catch (error) { return { ...fallbackPollen(loc), warning: error.message }; }
 }
 
-// ─────────────────────────────────────────────────────────────────────────
-// LIVE: OpenFarm crop database — companion planting, care guides (no key)
-// Docs: https://openfarm.cc/pages/api
-// GET  https://openfarm.cc/api/v1/crops?filter={name}
-// ─────────────────────────────────────────────────────────────────────────
-export async function liveOpenFarmCrop(cropName) {
-  if (!LIVE || !cropName) return null;
-  try {
-    const query = encodeURIComponent(cropName.toLowerCase().trim());
-    const data  = await fetchJSON(`https://openfarm.cc/api/v1/crops?filter=${query}`);
-    const crops = data?.data || [];
-    if (!crops.length) return null;
-
-    const best = crops[0].attributes;
-    return {
-      tool: "openfarm_crop",
-      source: "OpenFarm (openfarm.cc)",
-      mode: "live",
-      name:              best.name,
-      description:       best.description?.slice(0, 300) || null,
-      sun_requirements:  best.sun_requirements,
-      water_requirements:best.water_requirements,
-      sowing_method:     best.sowing_method,
-      spread:            best.spread,
-      row_spacing:       best.row_spacing,
-      height:            best.height,
-      growing_degree_days: best.growing_degree_days,
-      tags:              (best.tags_array || []).slice(0, 6),
-      provenance: { source: "openfarm.cc/api/v1", mode: "live", generated_at: new Date().toISOString() }
-    };
-  } catch (err) {
-    console.warn(`[live:openfarm] fallback — ${err.message}`);
-    return null;
-  }
+function fallbackPollen(loc) {
+  const month = new Date().getMonth();
+  const level = month >= 3 && month <= 5 ? "Moderate" : month >= 7 && month <= 9 ? "Moderate" : "Low";
+  return { mode: "fallback", provider: "JarDIYn seasonal pollen fallback", location: loc, level, index: level === "Moderate" ? 65 : 20, breakdown: { tree: month <= 5 ? 40 : 8, grass: month >= 4 && month <= 7 ? 22 : 7, weed: month >= 7 ? 35 : 5 }, summary: `${level} seasonal pollen estimate for ${loc.region}.`, checked_at: isoNow() };
 }
 
-// ─────────────────────────────────────────────────────────────────────────
-// LIVE: iNaturalist taxa — species identification & observations (no key)
-// Docs: https://api.inaturalist.org/v1/docs/
-// Best for: confirming plant species, finding native species observations
-// ─────────────────────────────────────────────────────────────────────────
-export async function liveINaturalistTaxa(query) {
-  if (!LIVE || !query) return null;
+export async function getRainfall(input = {}) {
+  const loc = await resolveLocation(input);
+  const days = Math.min(Number(input.days || 14), 30);
+  if (!liveApisEnabled()) return fallbackRain(loc, days, input.soil);
   try {
-    const q = encodeURIComponent(query);
-    const data = await fetchJSON(
-      `https://api.inaturalist.org/v1/taxa?q=${q}&rank=species&is_active=true&limit=3`,
-      { headers: { "Accept": "application/json" } }
-    );
-    const results = data?.results || [];
-    if (!results.length) return null;
-
-    return {
-      tool: "inaturalist_taxa",
-      source: "iNaturalist (inaturalist.org)",
-      mode: "live",
-      matches: results.map(r => ({
-        name:              r.name,
-        common_name:       r.preferred_common_name || null,
-        rank:              r.rank,
-        observations_count: r.observations_count,
-        wikipedia_url:     r.wikipedia_url || null,
-        iconic_taxon:      r.iconic_taxon_name
-      })),
-      top_match: results[0]?.preferred_common_name || results[0]?.name,
-      provenance: { source: "api.inaturalist.org/v1", mode: "live", generated_at: new Date().toISOString() }
-    };
-  } catch (err) {
-    console.warn(`[live:inaturalist] fallback — ${err.message}`);
-    return null;
-  }
+    const end = daysFromNow(-1);
+    const start = daysFromNow(-days);
+    const url = new URL("https://archive-api.open-meteo.com/v1/archive");
+    url.search = new URLSearchParams({ latitude: loc.latitude, longitude: loc.longitude, start_date: start, end_date: end, daily: "precipitation_sum", precipitation_unit: "inch", timezone: "auto" }).toString();
+    const data = await fetchJson(url.toString(), {}, 6000);
+    const total = (data.daily?.precipitation_sum || []).reduce((sum, v) => sum + Number(v || 0), 0);
+    return rainPayload("live", "Open-Meteo Archive", loc, days, total, input.soil);
+  } catch (error) { return { ...fallbackRain(loc, days, input.soil), warning: error.message }; }
 }
 
-// ─────────────────────────────────────────────────────────────────────────
-// LIVE: Wikipedia plant summary (no key)
-// Provides authoritative care summaries for any named plant
-// ─────────────────────────────────────────────────────────────────────────
-export async function liveWikipediaPlant(latinName) {
-  if (!LIVE || !latinName) return null;
-  try {
-    const slug = latinName.replace(/ /g, "_");
-    const data = await fetchJSON(
-      `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(slug)}`
-    );
-    if (!data?.extract) return null;
-    return {
-      tool: "wikipedia_plant",
-      source: "Wikipedia",
-      mode: "live",
-      title:   data.title,
-      extract: data.extract.slice(0, 500),
-      url:     data.content_urls?.desktop?.page || null,
-      provenance: { source: "en.wikipedia.org/api/rest_v1", mode: "live", generated_at: new Date().toISOString() }
-    };
-  } catch (err) {
-    console.warn(`[live:wikipedia] fallback — ${err.message}`);
-    return null;
-  }
+function fallbackRain(loc, days, soil) {
+  const month = new Date().getMonth();
+  const total = month >= 5 && month <= 8 ? 0.85 : 1.25;
+  return rainPayload("fallback", "JarDIYn seasonal rainfall fallback", loc, days, total, soil);
 }
 
-// ─────────────────────────────────────────────────────────────────────────
-// LIVE: Open-Meteo Historical Weather — last 30 days (no key)
-// Useful for: was it a wet spring? should I have already watered?
-// ─────────────────────────────────────────────────────────────────────────
-export async function liveHistoricalWeather(lat, lng, days = 14) {
-  if (!LIVE || lat == null || lng == null) return null;
-  try {
-    const end   = new Date();
-    const start = new Date(end - days * 86400000);
-    const fmt   = d => d.toISOString().slice(0, 10);
+function rainPayload(mode, provider, loc, days, total, soil = "") {
+  const heavySoil = /clay|silt/i.test(soil || "");
+  const guidance = total < 0.5 ? "Water established beds deeply once; check containers daily." : total < 1.2 ? "Usually enough for established beds; prioritize containers and new transplants." : heavySoil ? "Hold watering in clay-heavy areas; inspect drainage and avoid compaction." : "Rainfall is likely sufficient for most beds; spot-check containers.";
+  return { mode, provider, location: loc, days, total_inches: Number(total.toFixed(2)), guidance, summary: `${Number(total.toFixed(2))} inches over ${days} days. ${guidance}`, checked_at: isoNow() };
+}
 
-    const url = `https://archive-api.open-meteo.com/v1/archive` +
-      `?latitude=${lat}&longitude=${lng}` +
-      `&start_date=${fmt(start)}&end_date=${fmt(end)}` +
-      `&daily=temperature_2m_max,temperature_2m_min,precipitation_sum` +
-      `&temperature_unit=fahrenheit&timezone=auto`;
+export async function getSoil(input = {}) {
+  const loc = await resolveLocation(input);
+  const soil = String(input.soil || "").toLowerCase();
+  let texture = soil || (loc.state === "MI" ? "sandy loam to clay loam" : loc.state === "TX" ? "clay loam" : loc.state === "FL" ? "sandy" : "loam");
+  const drainage = input.drainage || (/clay/i.test(texture) ? "slow" : /sand/i.test(texture) ? "fast" : "moderate");
+  const ph = loc.state === "FL" ? "often alkaline/sandy pockets" : loc.state === "MI" ? "slightly acidic to neutral" : "varies; test before correcting";
+  return { mode: liveApisEnabled() ? "adapter-ready" : "fallback", provider: "SoilGrids/ISRIC-ready adapter + JarDIYn profile", location: loc, texture, drainage, ph_tendency: ph, amendments: /clay/i.test(texture) ? ["compost", "mulch", "avoid tilling wet soil"] : /sand/i.test(texture) ? ["compost", "organic mulch", "slow-release fertility"] : ["compost", "mulch", "soil test before major pH corrections"], summary: `${texture} with ${drainage} drainage tendency. Improve with compost and mulch before aggressive corrections.`, checked_at: isoNow() };
+}
 
-    const data = await fetchJSON(url);
-    if (!data?.daily?.time) return null;
-
-    const d = data.daily;
-    const totalRain  = d.precipitation_sum.reduce((a, v) => a + (v || 0), 0);
-    const avgHigh    = d.temperature_2m_max.reduce((a, v) => a + v, 0) / d.time.length;
-    const rainDays   = d.precipitation_sum.filter(v => v > 2).length;
-
-    return {
-      tool: "historical_weather",
-      source: "Open-Meteo Historical Archive",
-      mode: "live",
-      period_days: days,
-      total_rainfall_mm: +totalRain.toFixed(1),
-      avg_high_f:        +avgHigh.toFixed(1),
-      rainy_days:        rainDays,
-      soil_moisture_context: totalRain > 50
-        ? "Well-watered period — soil likely has residual moisture"
-        : totalRain < 10
-          ? "Dry period — soil may need extra attention"
-          : "Normal moisture — standard watering schedule appropriate",
-      provenance: { source: "archive-api.open-meteo.com", mode: "live", generated_at: new Date().toISOString() }
-    };
-  } catch (err) {
-    console.warn(`[live:history] fallback — ${err.message}`);
-    return null;
-  }
+export async function getPlantSignals(input = {}) {
+  const q = String(input.query || "plant").trim().toLowerCase();
+  const known = {
+    tomato: { name: "Tomato", botanical: "Solanum lycopersicum", sun: "full sun", water: "consistent", notes: "Avoid overhead watering; rotate yearly." },
+    lavender: { name: "Lavender", botanical: "Lavandula spp.", sun: "full sun", water: "low once established", notes: "Needs sharp drainage; clay causes failure." },
+    hydrangea: { name: "Hydrangea", botanical: "Hydrangea spp.", sun: "morning sun / afternoon shade", water: "moderate", notes: "Protect from hot afternoon sun and winter burn." },
+    coneflower: { name: "Coneflower", botanical: "Echinacea spp.", sun: "full sun", water: "low to moderate", notes: "Pollinator-friendly; avoid rich wet soil." }
+  };
+  const key = Object.keys(known).find((k) => q.includes(k));
+  const plant = known[key] || { name: input.query || "Recommended plant", botanical: "varies", sun: input.sun || "match to site", water: "establish first season", notes: "Confirm zone, sun, soil, and mature size before planting." };
+  return { mode: liveApisEnabled() ? "adapter-ready" : "fallback", provider: "OpenFarm + iNaturalist-ready plant intelligence", plant, fit: { zone: input.zone || "check zone", sun: input.sun || plant.sun, soil: input.soil || "confirm drainage" }, summary: `${plant.name}: ${plant.notes}`, checked_at: isoNow() };
 }

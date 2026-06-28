@@ -1,0 +1,16 @@
+{
+  "name": "jardiyn-fable5-mythos-enterprise-complete",
+  "version": "5.2.0",
+  "description": "JarDIYn by GardenHub — enterprise-grade spatial garden intelligence platform with FABLE5 + MYTHOS architecture",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node tests/evaluation.mjs",
+    "verify": "node verify.mjs",
+    "smoke": "node tests/smoke.mjs",
+    "syntax": "node --check server.mjs && node --check src/services/agentLoop.js && node --check src/services/tools.js && node --check src/services/toolHandlers.js && node --check src/services/liveApis.js && node --check src/services/store.js && node --check src/mcp/server.js && node --check public/app.js"
+  },
+  "engines": { "node": ">=20" },
+  "dependencies": {}
+}

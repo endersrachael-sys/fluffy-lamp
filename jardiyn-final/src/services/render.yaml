@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: jardiyn-fable5-mythos-enterprise
+    env: node
+    rootDir: jardiyn-final
+    buildCommand: npm install
+    startCommand: npm start
+    plan: starter
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: LIVE_APIS
+        value: true
+      - key: FORCE_FALLBACK_AGENT
+        value: false
+      - key: ANTHROPIC_API_KEY
+        sync: false

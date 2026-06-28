@@ -1,139 +1,230 @@
-export const TOOL_STATUS = {
-  LIVE_OR_FALLBACK: "live-or-fallback",
-  CURATED_FALLBACK: "curated-fallback",
-  USER_PROVIDED: "user-provided",
-  FUTURE_ROADMAP: "future-roadmap"
+export const TOOL_VERSION = "fable5-mythos-enterprise-complete-v5.2";
+
+export const toolCategories = {
+  profile: {
+    label: "Garden Passport",
+    description: "Location, hardiness zone, garden constraints, and site identity."
+  },
+  conditions: {
+    label: "Live Conditions",
+    description: "Weather, NOAA/NWS alerts, frost, pollen, rainfall, and watering signals."
+  },
+  soil: {
+    label: "Soil Intelligence",
+    description: "Soil texture, drainage, pH tendency, amendments, compaction, and watering behavior."
+  },
+  plants: {
+    label: "Plant Intelligence",
+    description: "Plant fit, lookup, local observations, diagnosis, and care guidance."
+  },
+  planning: {
+    label: "Plans & Workflows",
+    description: "Garden plans, DIY reports, schedules, and property-scale previews."
+  }
 };
 
-export const JARDIYN_TOOLS = [
+export const tools = [
   {
     name: "get_garden_zone",
-    description: `Looks up or estimates USDA hardiness zone, frost timing, and regional climate context from ZIP code or coordinates. Use when the user's zone is unknown or frost/season timing matters. Do not call if the profile already includes a confirmed zone and the question does not need fresh climate context.`,
+    category: "profile",
+    risk: "low",
+    live_provider: "ZIP centroid + USDA/PHZM-ready adapter",
+    description: "Resolve garden location, hardiness zone, regional timing, and local context from ZIP or saved garden profile.",
     input_schema: {
       type: "object",
+      additionalProperties: true,
       properties: {
-        zip_code: { type: "string", description: "US ZIP code for the garden." },
-        latitude: { type: "number", description: "Latitude if available." },
-        longitude: { type: "number", description: "Longitude if available." }
-      },
-      required: []
+        zip_code: { type: "string", pattern: "^[0-9]{5}$" },
+        location: { type: "string", maxLength: 120 }
+      }
+    }
+  },
+  {
+    name: "get_weather_forecast",
+    category: "conditions",
+    risk: "low",
+    live_provider: "Open-Meteo + NOAA-ready adapter",
+    description: "Fetch garden-relevant current and 7-day weather: temperature, rain, wind, humidity, and outdoor work windows.",
+    input_schema: {
+      type: "object",
+      additionalProperties: true,
+      properties: {
+        zip_code: { type: "string", pattern: "^[0-9]{5}$" },
+        days: { type: "integer", minimum: 1, maximum: 10, default: 7 }
+      }
+    }
+  },
+  {
+    name: "get_noaa_alerts",
+    category: "conditions",
+    risk: "medium",
+    live_provider: "NOAA/National Weather Service alerts API",
+    description: "Check NOAA/NWS watches, warnings, advisories, frost/freeze alerts, wind, heat, storm, and severe weather risks.",
+    input_schema: {
+      type: "object",
+      additionalProperties: true,
+      properties: {
+        zip_code: { type: "string", pattern: "^[0-9]{5}$" },
+        point: { type: "object" }
+      }
+    }
+  },
+  {
+    name: "get_frost_alerts",
+    category: "conditions",
+    risk: "medium",
+    live_provider: "NOAA/NWS alerts + Open-Meteo minimum temperature",
+    description: "Check frost/freeze risk and generate protection actions for tender plants, seedlings, containers, and new transplants.",
+    input_schema: {
+      type: "object",
+      additionalProperties: true,
+      properties: {
+        zip_code: { type: "string", pattern: "^[0-9]{5}$" },
+        crop_sensitivity: { type: "string", enum: ["tender", "moderate", "hardy", "unknown"], default: "unknown" }
+      }
+    }
+  },
+  {
+    name: "get_pollen_forecast",
+    category: "conditions",
+    risk: "low",
+    live_provider: "Open-Meteo Air Quality pollen adapter",
+    description: "Check tree, grass, and weed pollen signals and translate them into garden work timing and pollinator context.",
+    input_schema: {
+      type: "object",
+      additionalProperties: true,
+      properties: {
+        zip_code: { type: "string", pattern: "^[0-9]{5}$" },
+        focus: { type: "string", enum: ["tree", "grass", "weed", "general"], default: "general" }
+      }
+    }
+  },
+  {
+    name: "get_recent_rainfall",
+    category: "conditions",
+    risk: "low",
+    live_provider: "Open-Meteo Archive rainfall adapter",
+    description: "Estimate recent rainfall and convert it into practical watering guidance by bed type, soil, containers, and plant maturity.",
+    input_schema: {
+      type: "object",
+      additionalProperties: true,
+      properties: {
+        zip_code: { type: "string", pattern: "^[0-9]{5}$" },
+        days: { type: "integer", minimum: 1, maximum: 30, default: 14 },
+        soil: { type: "string", maxLength: 80 }
+      }
     }
   },
   {
     name: "get_soil_profile",
-    description: `Gets soil texture, drainage, clay/sand/silt context, pH context, and soil-prep advice. Use when the user asks about soil, drainage, clay/sand, amendments, or when recommendations depend on soil conditions. Do not call if the profile already has a confirmed soil type and the question is unrelated to soil.`,
+    category: "soil",
+    risk: "low",
+    live_provider: "SoilGrids/ISRIC-ready adapter + user soil profile",
+    description: "Estimate soil texture, drainage, pH tendency, organic matter needs, compaction risk, and practical amendments.",
     input_schema: {
       type: "object",
+      additionalProperties: true,
       properties: {
-        zip_code: { type: "string" },
-        latitude: { type: "number" },
-        longitude: { type: "number" },
-        user_soil: { type: "string", description: "User-provided soil description from the Garden Passport." },
-        drainage: { type: "string", description: "User-reported drainage condition." }
-      },
-      required: []
-    }
-  },
-  {
-    name: "get_weather_context",
-    description: `Gets current weather, 7-day forecast, rain signal, heat/frost flags, and watering guidance. Use for watering, planting timing, heat stress, frost concerns, or weekly care schedules. Do not call for timeless design questions unless weather affects the answer.`,
-    input_schema: {
-      type: "object",
-      properties: {
-        zip_code: { type: "string" },
-        latitude: { type: "number" },
-        longitude: { type: "number" }
-      },
-      required: []
+        zip_code: { type: "string", pattern: "^[0-9]{5}$" },
+        soil: { type: "string", maxLength: 80 },
+        known_problems: { type: "string", maxLength: 800 },
+        drainage: { type: "string", enum: ["unknown", "good", "slow", "poor"] }
+      }
     }
   },
   {
     name: "lookup_plant_database",
-    description: `Searches JarDIYn's curated plant intelligence cache for plants matched to zone, soil, sun, water, maintenance, and goals. Use for plant recommendations, nursery lists, substitutions, pollinator palettes, native alternatives, and avoid lists. Do not use for disease diagnosis; use diagnose_plant_issue instead.`,
+    category: "plants",
+    risk: "low",
+    live_provider: "OpenFarm + iNaturalist-ready adapter",
+    description: "Look up plant fit, care profile, zone match, sun/soil fit, maintenance level, and known risks.",
     input_schema: {
       type: "object",
+      required: ["query"],
+      additionalProperties: true,
       properties: {
-        hardiness_zone: { type: "string" },
-        soil_type: { type: "string" },
-        sun_exposure: { type: "string" },
-        water_needs: { type: "string", enum: ["low", "medium", "high", "unknown"] },
-        maintenance_tolerance: { type: "string" },
-        goals: { type: "array", items: { type: "string" } },
-        search_query: { type: "string" }
-      },
-      required: []
+        query: { type: "string", maxLength: 120 },
+        zone: { type: "string", maxLength: 20 },
+        sun: { type: "string", maxLength: 80 },
+        soil: { type: "string", maxLength: 80 }
+      }
     }
   },
   {
     name: "diagnose_plant_issue",
-    description: `Provides cautious plant problem triage from symptoms, context, and Garden Passport data. Use when the user describes yellowing, spots, wilting, bugs, disease, poor growth, plant death, or asks what went wrong. It is triage, not a guaranteed diagnosis.`,
+    category: "plants",
+    risk: "medium",
+    live_provider: "symptom triage + vision-ready adapter",
+    description: "Diagnose likely plant issues from symptoms, site context, and optional photo metadata. Produces safe first actions, not overconfident diagnosis.",
     input_schema: {
       type: "object",
+      additionalProperties: true,
       properties: {
-        symptom_description: { type: "string" },
-        plant_name: { type: "string" },
-        soil_type: { type: "string" },
-        sun_exposure: { type: "string" },
-        watering_pattern: { type: "string" },
-        drainage: { type: "string" }
-      },
-      required: ["symptom_description"]
-    }
-  },
-  {
-    name: "plan_check",
-    description: `Checks a user's garden idea or plan for likely failure points, safety risks, mismatches with the Garden Passport, missing context, and better next steps. Use when the user asks if a plan is good, realistic, risky, or what will fail.`,
-    input_schema: {
-      type: "object",
-      properties: {
-        plan_text: { type: "string" },
-        garden_profile: { type: "object" }
-      },
-      required: ["plan_text"]
+        symptoms: { type: "string", maxLength: 1200 },
+        plant: { type: "string", maxLength: 120 },
+        photo_context: { type: "string", maxLength: 400 },
+        zip_code: { type: "string", pattern: "^[0-9]{5}$" }
+      }
     }
   },
   {
     name: "generate_garden_plan",
-    description: `Generates a complete practical Garden Plan with Site Summary, Recommended Plants, Avoid List, Soil Prep, Watering Guidance, Weekend Tasks, Shopping List, Safety Notes, Sources Used, Questions for Local Nursery, and When to Call a Professional. Use when the user explicitly wants a plan, report, shopping list, or full next-step package.`,
+    category: "planning",
+    risk: "medium",
+    live_provider: "JarDIYn planning engine + condition dependencies",
+    description: "Generate a practical garden plan using zone, soil, weather, NOAA/frost risk, pollen, rainfall, goals, budget, and known constraints.",
     input_schema: {
       type: "object",
+      additionalProperties: true,
       properties: {
-        garden_profile: { type: "object" },
-        plan_goal: { type: "string" }
-      },
-      required: ["garden_profile"]
+        profile: { type: "object" },
+        horizon: { type: "string", enum: ["weekend", "week", "month", "season"], default: "month" }
+      }
+    }
+  },
+  {
+    name: "generate_diy_report",
+    category: "planning",
+    risk: "medium",
+    live_provider: "JarDIYn reporting engine",
+    description: "Create a weekly, monthly, or seasonal DIY garden report with priorities, risks, timing windows, and follow-up tasks.",
+    input_schema: {
+      type: "object",
+      additionalProperties: true,
+      properties: {
+        profile: { type: "object" },
+        timeframe: { type: "string", enum: ["week", "month", "season"], default: "week" }
+      }
     }
   },
   {
     name: "property_gis_preview",
-    description: `Roadmap-only preview of future Property Passport / municipal GIS import. Use only to explain future GIS, parcel, satellite, drone, or OSINT add-ons. Do not imply GIS upload is live.`,
+    category: "planning",
+    risk: "medium",
+    live_provider: "GIS/photo-ready preview adapter",
+    description: "Generate property-scale site notes: sun assumptions, slope/drainage risk, access, utility caution, and spatial planning hooks.",
     input_schema: {
       type: "object",
+      additionalProperties: true,
       properties: {
-        property_context: { type: "string" }
-      },
-      required: []
+        zip_code: { type: "string", pattern: "^[0-9]{5}$" },
+        site_notes: { type: "string", maxLength: 1000 },
+        goals: { type: "array", items: { type: "string" } }
+      }
     }
   }
 ];
 
-export const TOOL_LABELS = Object.freeze({
-  get_garden_zone: "Zone & Season Context",
-  get_soil_profile: "Soil Profile",
-  get_weather_context: "Weather & Watering Context",
-  lookup_plant_database: "Plant Match",
-  diagnose_plant_issue: "Plant Problem Triage",
-  plan_check: "Plan Check",
-  generate_garden_plan: "Garden Plan Builder",
-  property_gis_preview: "Property Intelligence Roadmap"
-});
-
+export function getTools() { return tools.map((tool) => ({ ...tool })); }
+export function getTool(name) { return tools.find((tool) => tool.name === name) || null; }
+export function getToolNames() { return tools.map((tool) => tool.name); }
+export function toAnthropicTool(tool) { return { name: tool.name, description: tool.description, input_schema: tool.input_schema }; }
+export function getToolsByCategory() {
+  const grouped = {};
+  for (const [key, meta] of Object.entries(toolCategories)) grouped[key] = { ...meta, tools: [] };
+  for (const tool of tools) grouped[tool.category]?.tools.push(tool);
+  return grouped;
+}
 export function publicToolRegistry() {
-  return JARDIYN_TOOLS.map(tool => ({
-    name: tool.name,
-    label: TOOL_LABELS[tool.name] || tool.name,
-    description: tool.description.replace(/\s+/g, " ").trim(),
-    status: tool.name === "property_gis_preview" ? TOOL_STATUS.FUTURE_ROADMAP : TOOL_STATUS.LIVE_OR_FALLBACK,
-    inputFields: Object.keys(tool.input_schema?.properties || {})
-  }));
+  return { version: TOOL_VERSION, count: tools.length, categories: getToolsByCategory(), tools: getTools() };
 }
