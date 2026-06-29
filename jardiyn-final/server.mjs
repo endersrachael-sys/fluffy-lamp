@@ -1,320 +1,207 @@
-/**
- * JarDIYn — Server v3 (Phase 2: Garden Memory)
- * =============================================
- */
-
-import express    from "express";
-import path       from "path";
-import { fileURLToPath } from "url";
-import { runGardenAgent } from "./src/services/agentLoop.js";
-import {
-  saveProfile, loadProfile, saveTurn, loadHistory, PERSISTENCE_MODE,
-  saveDiagnosis, loadDiagnoses,
-  saveTask, loadTasks, completeTask,
-  savePlant, loadPlants,
-  loadActivityFeed
-} from "./src/services/store.js";
+import http from "node:http";
+import fs from "node:fs";
+import path from "node:path";
+import crypto from "node:crypto";
+import { fileURLToPath } from "node:url";
+import { runAgent, isFallbackMode } from "./src/services/agentLoop.js";
+import { publicToolRegistry } from "./src/services/tools.js";
+import { executeTool, buildDashboard, normalizeGardenProfile } from "./src/services/toolHandlers.js";
+import { addMemory, listMemory, addTask, listTasks, updateTask, addPlant, listPlants, saveGardenProfile, getGardenProfile, listAgentRuns, clearSession, storeSnapshot } from "./src/services/store.js";
+import { handleMcpRpc, mcpCapabilities } from "./src/mcp/server.js";
+import { liveApisEnabled } from "./src/services/liveApis.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const app  = express();
-const PORT = process.env.PORT || 3000;
+const PUBLIC_DIR = path.join(__dirname, "public");
+const PORT = Number(process.env.PORT || 3000);
+const MAX_BODY = 1024 * 1024 * 5;
+const VERSION = "5.3.0";
+const rateMap = new Map();
 
-app.use(express.json({ limit: "10mb" }));
-app.use(express.static(path.join(__dirname, "public")));
+function requestId() { return `trace_${crypto.randomBytes(8).toString("hex")}`; }
+function nowIso() { return new Date().toISOString(); }
+function isProd() { return process.env.NODE_ENV === "production"; }
+function json(obj) { return JSON.stringify(obj, null, isProd() ? 0 : 2); }
 
-app.use((req, _res, next) => {
-  if (req.path.startsWith("/api"))
-    console.log(`[${new Date().toISOString().slice(11,19)}] ${req.method} ${req.path}`);
-  next();
-});
-
-// ── Health ──────────────────────────────────────────────────────────────────
-app.get("/health", (_req, res) => {
-  res.json({ status: "ok", version: "3.0.0",
-    mode: process.env.NODE_ENV || "sandbox",
-    live_apis: process.env.LIVE_APIS === "true",
-    persistence: PERSISTENCE_MODE });
-});
-
-// ── POST /api/chat ───────────────────────────────────────────────────────────
-app.post("/api/chat", async (req, res) => {
-  const { message, garden_profile, history = [], session_id } = req.body;
-  if (!message?.trim()) return res.status(400).json({ error: "message is required" });
-  try {
-    if (session_id && garden_profile) saveProfile(session_id, garden_profile);
-    const prior = session_id ? loadHistory(session_id, 10) : history;
-    const result = await runGardenAgent(message, garden_profile || null, prior, { traceLog: true, sessionId: session_id });
-
-    // ── Garden Memory: persist turn ─────────────────────────────────────
-    if (session_id) {
-      saveTurn(session_id, "user", message, []);
-      saveTurn(session_id, "assistant", result.response, result.toolsUsed);
-    }
-
-    // ── Garden Memory: auto-detect and persist diagnosis ─────────────────
-    // If identify_plant or lookup_plant_database was called, extract diagnosis
-    const isDiagnosis = result.toolsUsed.some(t =>
-      ['identify_plant','lookup_plant_database','get_soil_data'].includes(t));
-    let diagnosisId = null;
-    if (session_id && isDiagnosis) {
-      const suspected = extractDiagnosisFromResponse(result.response);
-      if (suspected) {
-        diagnosisId = saveDiagnosis(session_id, {
-          suspected_issue: suspected.issue,
-          confidence: suspected.confidence,
-          symptoms: message,
-          actions: suspected.actions,
-          tools_used: result.toolsUsed,
-          follow_up_days: 3
-        });
-        // Auto-create follow-up task
-        const followUp = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);
-        saveTask(session_id, {
-          title: `Follow up: ${suspected.issue}`,
-          reason: "Check whether the treatment is working.",
-          due_date: followUp,
-          priority: suspected.confidence === 'high' ? 'high' : 'medium',
-          diagnosis_id: diagnosisId
-        });
-      }
-    }
-
-    // ── Garden Memory: extract and save "do this" tasks from responses ───
-    if (session_id) {
-      const tasks = extractTasksFromResponse(result.response);
-      tasks.forEach(t => saveTask(session_id, t));
-    }
-
-    res.json({ ...result, diagnosisId });
-  } catch (err) {
-    console.error("[chat] error:", err.message);
-    res.status(500).json({ error: "Agent error — check ANTHROPIC_API_KEY", detail: err.message });
-  }
-});
-
-// ── POST /api/identify ───────────────────────────────────────────────────────
-const ALLOWED_IMG_TYPES = new Set(["image/jpeg","image/png","image/webp","image/gif"]);
-app.post("/api/identify", async (req, res) => {
-  const { symptom_description, image_base64, image_media_type, garden_profile, session_id } = req.body;
-  if (!symptom_description && !image_base64)
-    return res.status(400).json({ error: "Provide symptom_description or image_base64" });
-  let userContent;
-  if (image_base64) {
-    const declared = image_media_type || "image/jpeg";
-    if (!ALLOWED_IMG_TYPES.has(declared))
-      return res.status(400).json({ error: "We couldn\u2019t process this photo.", detail: "Unsupported: " + declared, stage: "validation" });
-    const prefix = image_base64.slice(0, 8);
-    const expected = { "image/jpeg":"/9j/","image/png":"iVBOR","image/webp":"UklGR","image/gif":"R0lGOD" }[declared];
-    if (expected && !prefix.startsWith(expected.slice(0, prefix.length)))
-      return res.status(400).json({ error: "We couldn\u2019t process this photo.", detail: "Declared " + declared + " but bytes don\u2019t match", stage: "validation" });
-    console.log(`[identify] accepted: ${declared} ~${Math.round(image_base64.length * 0.75)} bytes`);
-    userContent = [
-      { type: "image", source: { type: "base64", media_type: declared, data: image_base64 } },
-      { type: "text", text: symptom_description || "Diagnose this plant issue. Give the likely cause, what to check, and the next 24-hour action." }
-    ];
-  } else {
-    userContent = `Diagnose this garden problem: ${symptom_description}`;
-  }
-  try {
-    const result = await runGardenAgent(userContent, garden_profile || null, [], { traceLog: true });
-    // Save diagnosis to memory
-    if (session_id) {
-      const suspected = extractDiagnosisFromResponse(result.response);
-      if (suspected) {
-        const diagnosisId = saveDiagnosis(session_id, {
-          suspected_issue: suspected.issue, confidence: suspected.confidence,
-          symptoms: symptom_description || "photo diagnosis",
-          actions: suspected.actions, tools_used: result.toolsUsed, follow_up_days: 3
-        });
-        const followUp = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);
-        saveTask(session_id, { title: `Check: ${suspected.issue}`, reason: "Follow up on photo diagnosis.",
-          due_date: followUp, priority: 'high', diagnosis_id: diagnosisId });
-      }
-    }
-    res.json(result);
-  } catch (err) {
-    console.error("[identify] error:", err.message);
-    res.status(500).json({ error: "Diagnosis failed.", detail: err.message, stage: "model_request" });
-  }
-});
-
-// ── GET /api/history/:sessionId ──────────────────────────────────────────────
-app.get("/api/history/:sessionId", (req, res) => {
-  const sid = req.params.sessionId;
-  res.json({ profile: loadProfile(sid), history: loadHistory(sid, 30) });
-});
-
-// ── GET /api/garden/:sessionId — full garden state ──────────────────────────
-app.get("/api/garden/:sessionId", (req, res) => {
-  const sid = req.params.sessionId;
-  res.json({
-    profile:    loadProfile(sid),
-    activity:   loadActivityFeed(sid),
-    tasks:      loadTasks(sid, 'pending'),
-    diagnoses:  loadDiagnoses(sid, 10),
-    plants:     loadPlants(sid),
-  });
-});
-
-// ── POST /api/tasks/:sessionId — add a task ──────────────────────────────────
-app.post("/api/tasks/:sessionId", (req, res) => {
-  const sid = req.params.sessionId;
-  const { title, reason, due_date, priority } = req.body;
-  if (!title) return res.status(400).json({ error: "title required" });
-  const id = saveTask(sid, { title, reason, due_date, priority });
-  res.json({ id, status: "saved" });
-});
-
-// ── POST /api/tasks/:sessionId/:taskId/complete ──────────────────────────────
-app.post("/api/tasks/:sessionId/:taskId/complete", (req, res) => {
-  completeTask(req.params.sessionId, req.params.taskId);
-  res.json({ status: "done" });
-});
-
-// ── POST /api/plants/:sessionId — add a plant ───────────────────────────────
-app.post("/api/plants/:sessionId", (req, res) => {
-  const sid = req.params.sessionId;
-  const { common_name, scientific_name, location, notes } = req.body;
-  if (!common_name) return res.status(400).json({ error: "common_name required" });
-  const id = savePlant(sid, { common_name, scientific_name, location, notes });
-  res.json({ id, status: "saved" });
-});
-
-// ── GET /api/status ──────────────────────────────────────────────────────────
-app.get("/api/status", async (req, res) => {
-  const apiKeySet = !!process.env.ANTHROPIC_API_KEY;
-  let claudeOk = false, claudeErr = null, toolSample = null;
-  try {
-    const Anthropic = (await import("@anthropic-ai/sdk")).default;
-    const client = new Anthropic();
-    const ping = await client.messages.create({
-      model: "claude-sonnet-4-6", max_tokens: 20,
-      messages: [{ role: "user", content: "Say OK" }]
-    });
-    claudeOk = ping.content?.[0]?.text?.includes("OK") || ping.stop_reason === "end_turn";
-  } catch (e) { claudeErr = e.message; }
-  try {
-    const { getGardenZone } = await import("./src/services/liveApis.js");
-    const z = await getGardenZone({ zip_code: "20770" });
-    toolSample = { zip: "20770", zone: z.hardiness_zone, mode: z.mode };
-  } catch {}
-  const ok = apiKeySet && claudeOk;
-  res.json({
-    overall_ok: ok,
-    server: { ok: true, version: "3.0.0", uptime_seconds: Math.round(process.uptime()) },
-    environment: { node_env: process.env.NODE_ENV || "sandbox", live_apis: process.env.LIVE_APIS === "true", api_key_set: apiKeySet },
-    anthropic: { ok: claudeOk, error: claudeErr },
-    persistence: { ok: true, mode: PERSISTENCE_MODE },
-    tools: { ok: true, count: 9, sample: toolSample }
-  });
-});
-
-// ── GET /api/tools ────────────────────────────────────────────────────────────
-app.get("/api/tools", async (_req, res) => {
-  try {
-    const { JARDIYN_TOOLS, TOOL_LABELS } = await import("./src/services/tools.js");
-    const live = process.env.LIVE_APIS === "true";
-    const liveBacked = {
-      "get_garden_zone":        { live, source: "phzmapi.org (USDA)" },
-      "get_soil_data":          { live, source: "SoilGrids (ISRIC)" },
-      "get_weather_forecast":   { live, source: "Open-Meteo (NOAA GFS)" },
-      "get_frost_alerts":       { live, source: "NOAA NWS api.weather.gov" },
-      "get_pollen_forecast":    { live, source: "Open-Meteo Air Quality" },
-      "get_historical_weather": { live, source: "Open-Meteo Historical" },
-      "lookup_plant_database":  { live, source: "OpenFarm + iNaturalist + Wikipedia" },
-      "identify_plant":         { live: false, source: "JarDIYn keyword matcher" },
-      "generate_diy_report":    { live: true,  source: "Claude synthesis" }
-    };
-    res.json({
-      total: JARDIYN_TOOLS.length, live_apis_enabled: live,
-      tools: JARDIYN_TOOLS.map(t => ({
-        name: t.name, description: t.description.split("\n")[0].trim(),
-        ...( liveBacked[t.name] || { live: false } ),
-        input_schema: t.input_schema
-      }))
-    });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-// ── GET /api/sources ──────────────────────────────────────────────────────────
-app.get("/api/sources", (_req, res) => {
-  const live = process.env.LIVE_APIS === "true";
-  res.json({ live_apis_enabled: live, categories: {
-    zone:     [{ name: "phzmapi.org", purpose: "USDA Zone by ZIP", status: live?"live":"fallback" }],
-    weather:  [{ name: "Open-Meteo", purpose: "7-day NOAA GFS forecast", status: live?"live":"fallback" },
-               { name: "NOAA NWS", purpose: "Frost/freeze alerts", status: live?"live":"fallback" },
-               { name: "Open-Meteo Historical", purpose: "14-day rain history", status: live?"live":"fallback" }],
-    soil:     [{ name: "SoilGrids (ISRIC)", purpose: "pH, texture, clay/sand by coords", status: live?"live":"fallback" }],
-    plant:    [{ name: "OpenFarm", purpose: "Crop care guides", status: live?"live":"fallback" },
-               { name: "iNaturalist", purpose: "Species observations", status: live?"live":"fallback" },
-               { name: "Wikipedia", purpose: "Plant summaries", status: live?"live":"fallback" }],
-    pollen:   [{ name: "Open-Meteo Air Quality", purpose: "Grass/tree/weed pollen", status: live?"live":"fallback" }],
-  }});
-});
-
-// ── GET /api/evaluation ───────────────────────────────────────────────────────
-app.get("/api/evaluation", (_req, res) => {
-  res.json({
-    coverage: { total: 12, covered: 12, percent: 100 },
-    test_cases: [
-      { id:"EV-01", name:"Direct answer — no tools",       status:"covered" },
-      { id:"EV-02", name:"Weather → get_weather_forecast", status:"covered" },
-      { id:"EV-03", name:"Soil → get_soil_data",           status:"covered" },
-      { id:"EV-04", name:"Plants → lookup_plant_database", status:"covered" },
-      { id:"EV-05", name:"ZIP chains zone + plants",       status:"covered" },
-      { id:"EV-06", name:"Photo → identify_plant",         status:"covered" },
-      { id:"EV-07", name:"Frost → get_frost_alerts",       status:"covered" },
-      { id:"EV-08", name:"Pollen → get_pollen_forecast",   status:"covered" },
-      { id:"EV-09", name:"Rain → get_historical_weather",  status:"covered" },
-      { id:"EV-10", name:"Plan Check 5-section output",    status:"covered" },
-      { id:"EV-11", name:"Garden Plan 12-section output",  status:"covered" },
-      { id:"EV-12", name:"Safety escalation language",     status:"covered" },
-    ]
-  });
-});
-
-// ── SPA fallback ──────────────────────────────────────────────────────────────
-app.get("*", (_req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
-
-app.listen(PORT, () => {
-  console.log(`\nJarDIYn v3 → http://localhost:${PORT}`);
-  console.log(`Mode: ${process.env.NODE_ENV || "sandbox"} | DB: ${PERSISTENCE_MODE} | APIs: ${process.env.LIVE_APIS === "true" ? "LIVE" : "sandbox"}\n`);
-});
-
-export default app;
-
-// ── Helpers: extract structured data from agent responses ─────────────────────
-function extractDiagnosisFromResponse(text) {
-  if (!text) return null;
-  const lower = text.toLowerCase();
-  const diseaseTerms = ['blight','rot','mildew','rust','aphid','mite','scale','beetle','fungal',
-    'bacterial','viral','deficiency','overwatering','underwatering','heat stress','frost damage',
-    'root rot','leaf spot','damping off','wilt','yellowing','chlorosis'];
-  const found = diseaseTerms.find(t => lower.includes(t));
-  if (!found) return null;
-  const conf = lower.includes('likely') || lower.includes('probably') ? 'medium'
-             : lower.includes('almost certainly') || lower.includes('classic sign') ? 'high' : 'low';
-  const actions = [];
-  const lines = text.split('\n').filter(l => l.trim().startsWith('-') || l.trim().match(/^\d+\./));
-  lines.slice(0, 3).forEach(l => actions.push(l.replace(/^[-\d.]\s*/, '').trim()));
-  return { issue: found, confidence: conf, actions };
+function securityHeaders(traceId) {
+  return {
+    "x-content-type-options": "nosniff",
+    "x-frame-options": "DENY",
+    "referrer-policy": "strict-origin-when-cross-origin",
+    "permissions-policy": "camera=(self), microphone=(), geolocation=()",
+    "x-jardiyn-trace-id": traceId,
+    "content-security-policy": "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self'; script-src 'self'; base-uri 'self'; form-action 'self'"
+  };
 }
 
-function extractTasksFromResponse(text) {
-  if (!text) return [];
-  const tasks = [];
-  const lines = text.split('\n');
-  const today = new Date();
-  lines.forEach(line => {
-    const clean = line.replace(/^[-*•\d.]+\s*/, '').trim();
-    if (clean.length < 10 || clean.length > 120) return;
-    const isTask = /\b(water|check|prune|plant|fertilize|mulch|remove|inspect|apply|move|cover|harvest|deadhead|divide|transplant)\b/i.test(clean);
-    if (!isTask) return;
-    const isToday = /\btoday\b|\bright now\b|\bimmediately\b/i.test(line);
-    const isWeek  = /\bthis week\b|\bnext \d days\b/i.test(line);
-    const due = new Date(today);
-    due.setDate(due.getDate() + (isToday ? 0 : isWeek ? 7 : 14));
-    tasks.push({ title: clean.slice(0, 100), reason: 'From garden plan', due_date: due.toISOString().slice(0, 10), priority: isToday ? 'high' : 'medium' });
-  });
-  return tasks.slice(0, 5); // cap at 5 per response
+function send(res, status, payload, traceId, headers = {}) {
+  res.writeHead(status, { "content-type": "application/json; charset=utf-8", ...securityHeaders(traceId), ...headers });
+  res.end(json(payload));
 }
+function ok(res, data, traceId, status = 200, meta = {}) { send(res, status, { ok: true, trace_id: traceId, data, meta: { timestamp: nowIso(), ...meta } }, traceId); }
+function fail(res, status, code, message, traceId, details) { send(res, status, { ok: false, trace_id: traceId, error: { code, message, details }, meta: { timestamp: nowIso() } }, traceId); }
+
+function clientIp(req) { return String(req.headers["x-forwarded-for"] || req.socket.remoteAddress || "local").split(",")[0].trim(); }
+function rateLimit(req, pathname) {
+  const limit = pathname === "/api/chat" || pathname === "/api/v1/chat" ? 36 : pathname === "/mcp" ? 90 : 180;
+  const windowMs = 60_000;
+  const key = `${clientIp(req)}:${pathname}`;
+  const now = Date.now();
+  const record = rateMap.get(key) || { count: 0, reset: now + windowMs };
+  if (now > record.reset) { record.count = 0; record.reset = now + windowMs; }
+  record.count += 1;
+  rateMap.set(key, record);
+  return { allowed: record.count <= limit, remaining: Math.max(0, limit - record.count), reset: record.reset };
+}
+
+function requiresWriteAuth(method, pathname) {
+  return method !== "GET" && ["/api/memory", "/api/tasks", "/api/plants", "/api/profile", "/api/session/clear"].includes(pathname);
+}
+function optionalWriteAuth(req) {
+  const token = process.env.JARDIYN_API_TOKEN;
+  if (!token) return true;
+  return req.headers.authorization === `Bearer ${token}` || req.headers["x-jardiyn-token"] === token;
+}
+
+async function parseBody(req) {
+  return new Promise((resolve, reject) => {
+    let size = 0;
+    const chunks = [];
+    req.on("data", (chunk) => {
+      size += chunk.length;
+      if (size > MAX_BODY) { reject(Object.assign(new Error("Request body too large"), { code: "BODY_TOO_LARGE" })); req.destroy(); return; }
+      chunks.push(chunk);
+    });
+    req.on("end", () => {
+      if (!chunks.length) return resolve({});
+      const raw = Buffer.concat(chunks).toString("utf8");
+      try { resolve(JSON.parse(raw)); }
+      catch { reject(Object.assign(new Error("Invalid JSON body"), { code: "INVALID_JSON" })); }
+    });
+    req.on("error", reject);
+  });
+}
+
+function sessionFrom(req, body, url) {
+  return String(body.session_id || url.searchParams.get("session_id") || req.headers["x-jardiyn-session"] || "default").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 80) || "default";
+}
+function parseQueryProfile(url) { return Object.fromEntries(url.searchParams.entries()); }
+function stripApiVersion(pathname) { return pathname.startsWith("/api/v1/") ? pathname.replace("/api/v1", "/api") : pathname; }
+
+function sources() {
+  return [
+    { id: "weather.openmeteo", name: "Open-Meteo Forecast", category: "Weather", mode: liveApisEnabled() ? "live" : "fallback-disabled", endpoint: "get_weather_forecast", freshness: "current + 7 day forecast" },
+    { id: "noaa.alerts", name: "NOAA / National Weather Service", category: "NOAA / NWS", mode: liveApisEnabled() ? "live adapter" : "fallback-disabled", endpoint: "get_noaa_alerts", freshness: "active alerts" },
+    { id: "airquality.openmeteo", name: "Open-Meteo Air Quality", category: "Pollen", mode: liveApisEnabled() ? "live" : "fallback-disabled", endpoint: "get_pollen_forecast", freshness: "hourly forecast" },
+    { id: "archive.openmeteo", name: "Open-Meteo Archive", category: "Rainfall", mode: liveApisEnabled() ? "live" : "fallback-disabled", endpoint: "get_recent_rainfall", freshness: "recent historical precipitation" },
+    { id: "zip.zippopotamus", name: "Zippopotam.us", category: "Location", mode: liveApisEnabled() ? "live" : "local cache", endpoint: "get_garden_zone", freshness: "on request" },
+    { id: "soil.soilgrids", name: "SoilGrids / ISRIC-ready adapter", category: "Soil", mode: "adapter-ready + profile fallback", endpoint: "get_soil_profile", freshness: "profile/current" },
+    { id: "plants.openfarm.inat", name: "OpenFarm + iNaturalist-ready adapter", category: "Plants", mode: "adapter-ready + curated fallback", endpoint: "lookup_plant_database", freshness: "on request" }
+  ];
+}
+function evaluationRubric() {
+  return [
+    { gate: "UX", check: "Ask JarDIYn is the primary UX and folds Weather, NOAA/NWS, Frost, Pollen, Rain/Watering, and Soil/Zone into one recommendation." },
+    { gate: "API", check: "Every route returns a consistent response envelope with trace_id." },
+    { gate: "Agent", check: "Fallback mode is agentic, tool-using, and keyless." },
+    { gate: "Anthropic", check: "Live Anthropic path is preserved with tool use when configured." },
+    { gate: "MCP", check: "JSON-RPC adapter supports tools/list, tools/call, resources/list, resources/read, prompts/list." },
+    { gate: "Security", check: "Escaped frontend rendering, rate limiting, body limits, security headers, optional write token." },
+    { gate: "Persistence", check: "Profiles, memory, tasks, plants, runs, and tool calls persist through a store adapter." },
+    { gate: "Deploy", check: "Render root is jardiyn-final with npm install / npm start." }
+  ];
+}
+
+async function handleApi(req, res, traceId) {
+  const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
+  const method = req.method || "GET";
+  const pathname = stripApiVersion(url.pathname);
+  const rl = rateLimit(req, pathname);
+  if (!rl.allowed) return fail(res, 429, "RATE_LIMITED", "Too many requests. Please slow down and retry shortly.", traceId, { reset: rl.reset });
+  if (requiresWriteAuth(method, pathname) && !optionalWriteAuth(req)) return fail(res, 401, "UNAUTHORIZED", "This write endpoint requires a JarDIYn API token.", traceId);
+  let body = {};
+  if (!["GET", "HEAD"].includes(method)) body = await parseBody(req);
+  const session_id = sessionFrom(req, body, url);
+  const savedProfile = getGardenProfile(session_id);
+
+  if (method === "GET" && pathname === "/api/health") return ok(res, { service: "jardiyn", status: "healthy", version: VERSION }, traceId);
+  if (method === "GET" && pathname === "/api/status") return ok(res, { service: "jardiyn", status: "ready", version: VERSION, env: process.env.NODE_ENV || "development", live_apis: liveApisEnabled(), anthropic_configured: Boolean(process.env.ANTHROPIC_API_KEY), fallback_agent: isFallbackMode(), persistence: "json-file-adapter", mcp: "/mcp" }, traceId);
+  if (method === "GET" && pathname === "/api/tools") return ok(res, publicToolRegistry(), traceId);
+  if (method === "GET" && pathname === "/api/sources") return ok(res, { sources: sources(), live_apis_enabled: liveApisEnabled() }, traceId);
+  if (method === "GET" && pathname === "/api/evaluation") return ok(res, { rubric: evaluationRubric(), acceptance: "FABLE5/MYTHOS Ask-First Enterprise Gold" }, traceId);
+  if (method === "GET" && pathname === "/api/mcp/capabilities") return ok(res, mcpCapabilities(), traceId);
+  if (method === "GET" && pathname === "/.well-known/jardiyn.json") return ok(res, { name: "JarDIYn by GardenHub", version: VERSION, api: "/api", api_v1: "/api/v1", mcp: "/mcp", tools: "/api/tools" }, traceId);
+
+  if (pathname === "/api/dashboard" && ["GET", "POST"].includes(method)) {
+    const incoming = method === "GET" ? parseQueryProfile(url) : (body.profile || body);
+    const profile = normalizeGardenProfile({ ...savedProfile, ...incoming });
+    saveGardenProfile(session_id, profile);
+    return ok(res, await buildDashboard(profile), traceId);
+  }
+  if (method === "POST" && pathname === "/api/chat") {
+    if (!body.message || String(body.message).trim().length < 1) return fail(res, 400, "INVALID_MESSAGE", "Message is required.", traceId);
+    const profile = normalizeGardenProfile({ ...savedProfile, ...(body.profile || {}) });
+    saveGardenProfile(session_id, profile);
+    return ok(res, await runAgent({ message: String(body.message).slice(0, 4000), profile, session_id, save_suggestions: body.save_suggestions === true }), traceId);
+  }
+  if (method === "POST" && pathname === "/api/zone") return ok(res, { result: await executeTool("get_garden_zone", body, { session_id }) }, traceId);
+  if (method === "POST" && pathname === "/api/report") return ok(res, { result: await executeTool("generate_diy_report", body, { profile: body.profile || savedProfile, session_id }) }, traceId);
+  if (method === "POST" && pathname === "/api/design") return ok(res, { result: await executeTool("generate_garden_plan", body, { profile: body.profile || savedProfile, session_id }) }, traceId);
+  if (method === "POST" && pathname === "/api/schedule") return ok(res, { result: await executeTool("generate_garden_plan", { ...body, horizon: body.horizon || "weekend" }, { profile: body.profile || savedProfile, session_id }) }, traceId);
+  if (method === "POST" && pathname === "/api/identify") return ok(res, { result: await executeTool("diagnose_plant_issue", { ...body, symptoms: body.symptoms || body.message || body.photo_context }, { profile: body.profile || savedProfile, session_id }) }, traceId);
+
+  if (pathname === "/api/profile") {
+    if (method === "GET") return ok(res, { session_id, profile: savedProfile }, traceId);
+    if (method === "POST") return ok(res, { session_id, profile: saveGardenProfile(session_id, normalizeGardenProfile(body.profile || body)) }, traceId, 201);
+  }
+  if (pathname === "/api/memory") {
+    if (method === "GET") return ok(res, { session_id, memory: listMemory(session_id) }, traceId);
+    if (method === "POST") return ok(res, { session_id, item: addMemory(session_id, body) }, traceId, 201);
+  }
+  if (pathname === "/api/tasks") {
+    if (method === "GET") return ok(res, { session_id, tasks: listTasks(session_id) }, traceId);
+    if (method === "POST") return ok(res, { session_id, task: addTask(session_id, body) }, traceId, 201);
+    if (method === "PATCH") return ok(res, { session_id, task: updateTask(session_id, body.id, body.patch || body) }, traceId);
+  }
+  if (pathname === "/api/plants") {
+    if (method === "GET") return ok(res, { session_id, plants: listPlants(session_id) }, traceId);
+    if (method === "POST") return ok(res, { session_id, plant: addPlant(session_id, body) }, traceId, 201);
+  }
+  if (method === "GET" && pathname === "/api/runs") return ok(res, { runs: listAgentRuns(40) }, traceId);
+  if (method === "GET" && pathname === "/api/session") return ok(res, storeSnapshot(session_id), traceId);
+  if (method === "POST" && pathname === "/api/session/clear") return ok(res, clearSession(session_id), traceId);
+  if (method === "POST" && pathname === "/mcp") return send(res, 200, await handleMcpRpc(body, { session_id }), traceId);
+
+  return fail(res, 404, "NOT_FOUND", `No route for ${method} ${pathname}`, traceId);
+}
+
+function serveStatic(req, res, traceId) {
+  const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
+  let pathname = decodeURIComponent(url.pathname);
+  if (pathname === "/") pathname = "/index.html";
+  const file = path.resolve(PUBLIC_DIR, `.${pathname}`);
+  if (!file.startsWith(PUBLIC_DIR)) return fail(res, 403, "FORBIDDEN", "Forbidden", traceId);
+  if (!fs.existsSync(file) || fs.statSync(file).isDirectory()) return fail(res, 404, "NOT_FOUND", "Not found", traceId);
+  const type = file.endsWith(".html") ? "text/html; charset=utf-8" : file.endsWith(".css") ? "text/css; charset=utf-8" : file.endsWith(".js") ? "text/javascript; charset=utf-8" : file.endsWith(".svg") ? "image/svg+xml" : "application/octet-stream";
+  res.writeHead(200, { "content-type": type, ...securityHeaders(traceId), "cache-control": isProd() && !file.endsWith(".html") ? "public, max-age=3600" : "no-cache" });
+  fs.createReadStream(file).pipe(res);
+}
+
+const server = http.createServer(async (req, res) => {
+  const traceId = requestId();
+  try {
+    const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
+    if (req.method === "OPTIONS") {
+      res.writeHead(204, { ...securityHeaders(traceId), "access-control-allow-methods": "GET,POST,PATCH,OPTIONS", "access-control-allow-headers": "content-type,authorization,x-jardiyn-session,x-jardiyn-token" });
+      res.end(); return;
+    }
+    if (url.pathname.startsWith("/api") || url.pathname === "/mcp" || url.pathname === "/.well-known/jardiyn.json") return await handleApi(req, res, traceId);
+    return serveStatic(req, res, traceId);
+  } catch (error) {
+    return fail(res, error.code === "BODY_TOO_LARGE" ? 413 : error.code === "INVALID_JSON" ? 400 : 500, error.code || "SERVER_ERROR", error.message || "Server error", traceId, isProd() ? undefined : { stack: error.stack });
+  }
+});
+
+server.listen(PORT, () => {
+  console.log(`JarDIYn FABLE5+MYTHOS Enterprise Complete → http://localhost:${PORT}`);
+  console.log(`Mode: ${isFallbackMode() ? "fallback/keyless" : "anthropic-live"} | Live APIs: ${liveApisEnabled()} | Version: ${VERSION}`);
+});

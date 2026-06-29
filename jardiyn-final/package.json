@@ -1,30 +1,16 @@
 {
-  "name": "jardiyn-final",
-  "version": "3.0.0",
-  "description": "JarDIYn by GardenHub — outdoor confidence platform with Garden Passport, agentic tools, Plan Check, Garden Plans, and safe debug status.",
+  "name": "jardiyn-ask-first-fused-enterprise-gold",
+  "version": "5.3.0",
+  "description": "JarDIYn by GardenHub — ask-first fused garden intelligence platform with FABLE5 + MYTHOS architecture",
   "type": "module",
-  "main": "server.mjs",
+  "private": true,
   "scripts": {
     "start": "node server.mjs",
-    "dev": "node --watch server.mjs",
     "test": "node tests/evaluation.mjs",
-    "evaluate": "node tests/evaluation.mjs",
-    "smoke": "bash scripts/smoke-test.sh"
+    "verify": "node verify.mjs",
+    "smoke": "node tests/smoke.mjs",
+    "syntax": "node --check server.mjs && node --check src/services/agentLoop.js && node --check src/services/tools.js && node --check src/services/toolHandlers.js && node --check src/services/liveApis.js && node --check src/services/store.js && node --check src/mcp/server.js && node --check public/app.js"
   },
-  "engines": {
-    "node": ">=20"
-  },
-  "dependencies": {
-    "@anthropic-ai/sdk": "^0.39.0",
-    "express": "^4.18.2"
-  },
-  "keywords": [
-    "gardening",
-    "ai",
-    "agentic",
-    "mcp",
-    "garden-passport",
-    "property-intelligence"
-  ],
-  "license": "MIT"
+  "engines": { "node": ">=20" },
+  "dependencies": {}
 }
