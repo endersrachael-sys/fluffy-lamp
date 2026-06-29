@@ -1,249 +1,334 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>JarDIYn by GardenHub — Ask-first garden intelligence</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>JarDIYn by GardenHub — Spatial Garden Intelligence</title>
+  <meta name="description" content="Know your land before you dig in. Live weather, NOAA/NWS, frost, pollen, rainfall, soil, and zone folded into every answer."/>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="/styles.css"/>
 </head>
 <body>
 
-  <!-- ═══ WELCOME SCREEN (first visit) ═══ -->
-  <div id="welcomeScreen" class="welcome" role="dialog" aria-modal="true" aria-label="Welcome to JarDIYn">
-    <div class="welcome-inner">
-      <div class="welcome-brand"><span>J</span>arDIYn <span style="color:#9a8a6a;font-weight:500;font-size:12px;letter-spacing:.05em">by GardenHub</span></div>
-      <h1 class="welcome-hl">Know your land<br>before you <em>dig in.</em></h1>
-      <p class="welcome-sub">Enter your ZIP and JarDIYn pulls live weather, frost, pollen, and NOAA alerts for your exact spot — real data, verifiable sources, folded into every answer.</p>
+<!-- ══ TOPBAR ══════════════════════════════════════════════════ -->
+<header class="topbar">
+  <button id="mobileMenu" class="mobile-menu" aria-label="Open sidebar">☰</button>
+  <div class="brand"><span>J</span>arDIYn</div>
+  <div class="brand-sub">by GardenHub</div>
+  <div class="product-line">Spatial garden intelligence</div>
+  <div class="top-spacer"></div>
+  <div id="statusStrip" class="status-strip" aria-label="System status">
+    <span data-status="server">Server</span>
+    <span data-status="claude">Claude</span>
+    <span data-status="apis">Sources</span>
+    <span data-status="tools">Tools</span>
+    <span data-status="store">Memory</span>
+  </div>
+  <button id="traceToggle" class="trace-toggle" aria-label="Intelligence trace">Intelligence Trace</button>
+  <button id="devToggle" class="trace-toggle" style="margin-right:6px;margin-left:-8px" aria-label="Developer panel">⚙</button>
+</header>
 
-      <div class="welcome-zip-wrap">
-        <label class="welcome-zip-label" for="welcomeZip">Enter your ZIP code to load live conditions</label>
-        <div class="welcome-zip-row">
-          <input id="welcomeZip" placeholder="e.g. 49503" maxlength="10" autocomplete="postal-code" inputmode="numeric" />
-          <button id="welcomeZipGo">Load my garden →</button>
+<!-- ══ DEV PANEL (collapsed by default) ══════════════════════ -->
+<div id="devPanel" class="dev-panel" aria-label="Developer panel">
+  <div id="devGrid" class="dev-grid"></div>
+  <div id="devLog" class="dev-log"></div>
+</div>
+
+<!-- ══ SITUATIONAL ALERTS ════════════════════════════════════ -->
+<div id="notifStack" class="notif-stack" aria-live="polite"></div>
+
+<div id="overlay" class="overlay"></div>
+
+<div class="app-shell" id="appShell">
+
+  <!-- ══ SIDEBAR ════════════════════════════════════════════ -->
+  <aside id="sidebar" class="sidebar" aria-label="Garden Passport">
+
+    <section class="panel">
+      <div class="eyebrow">Garden Passport</div>
+      <label>Site name<input id="siteName" value="My Garden" autocomplete="off"/></label>
+      <label>ZIP code
+        <div class="inline-field">
+          <input id="zip" value="49503" maxlength="5" inputmode="numeric" autocomplete="postal-code"/>
+          <button id="zoneBtn">Refresh</button>
         </div>
-        <div class="welcome-hint">No account needed · your location stays in your browser</div>
-        <div id="welcomeTrace" class="welcome-trace" aria-live="polite"></div>
+      </label>
+      <div class="field-grid two">
+        <label>Soil<select id="soil"><option value="unknown">Unknown</option><option>clay loam</option><option>silt loam</option><option>sandy loam</option><option>loam</option><option>sandy</option><option>clay</option></select></label>
+        <label>Sun<select id="sun"><option value="full_sun">Full sun</option><option value="partial_shade">Partial shade</option><option value="full_shade">Full shade</option></select></label>
+      </div>
+      <div class="eyebrow small">Goals</div>
+      <div id="goalTags" class="tag-grid">
+        <button data-goal="vegetables">Vegetables</button>
+        <button data-goal="pollinators">Pollinators</button>
+        <button data-goal="low maintenance">Low maintenance</button>
+        <button data-goal="native plants">Natives</button>
+        <button data-goal="cut flowers">Cut flowers</button>
+        <button data-goal="herbs">Herbs</button>
+      </div>
+      <details class="profile-more">
+        <summary>More site detail</summary>
+        <div class="field-grid two" style="margin-top:8px">
+          <label>Experience<select id="experience"><option>beginner</option><option selected>some</option><option>experienced</option></select></label>
+          <label>Budget<select id="budget"><option>tight</option><option selected>moderate</option><option>generous</option></select></label>
+          <label>Maintenance<select id="maintenance"><option selected>low</option><option>medium</option><option>high</option></select></label>
+          <label>Water<select id="waterAccess"><option selected>hose</option><option>drip</option><option>sprinkler</option><option>hand</option></select></label>
+          <label>Drainage<select id="drainage"><option>unknown</option><option>good</option><option>slow</option><option>poor</option></select></label>
+        </div>
+        <label>Known problems<textarea id="knownProblems" placeholder="heavy clay, deer, drainage issues"></textarea></label>
+        <label>Past failures<textarea id="pastFailures" placeholder="lavender rotted, tomatoes wilted"></textarea></label>
+      </details>
+    </section>
+
+    <section class="panel">
+      <div class="eyebrow">Active Profile</div>
+      <div id="activeProfile" class="profile-card">Profile loading…</div>
+      <div class="memory-counters" id="memCounters" style="margin-top:10px">
+        <div class="mem-cell"><span class="k">Tasks</span><span class="v" id="cntTasks">0</span></div>
+        <div class="mem-cell"><span class="k">Plants</span><span class="v" id="cntPlants">0</span></div>
+        <div class="mem-cell"><span class="k">Memory</span><span class="v" id="cntMemory">0</span></div>
+        <div class="mem-cell"><span class="k">Turns</span><span class="v" id="cntTurns">0</span></div>
+      </div>
+      <div class="mini-list" id="memoryMini" style="margin-top:4px">No pending tasks yet.</div>
+    </section>
+
+    <section class="panel">
+      <div class="eyebrow">Intelligence</div>
+      <div class="intel-primary-row">
+        <button class="btn-plan-check" onclick="fireChip('Run a professional Plan Check for my garden. Check zone, soil, weather, NOAA/NWS, frost, pollen, rainfall, goals, known problems, and past failures. Give me specific pass/fail risks and next actions.')">🎯 Plan Check</button>
+        <button class="btn-garden-plan" onclick="fireChip('Generate a practical Garden Plan for my profile with phased actions, plant fit for my zone and soil, and what to avoid this season.')">📑 Garden Plan</button>
+      </div>
+      <div class="intel-group">
+        <div class="intel-group-label">Conditions</div>
+        <button class="chip" onclick="fireChip('Should I water today? Check recent rainfall, the forecast, my soil type, sun exposure, and any plant stress signals.')"><span class="chip-icon">💧</span>Watering decision</button>
+        <button class="chip" onclick="fireChip('Check NOAA/NWS alerts and frost or freeze risk for my garden. What should I protect and when?')"><span class="chip-icon">🌡️</span>NOAA + frost check</button>
+        <button class="chip" onclick="fireChip('Check pollen levels for my area today. What does it mean for outdoor work timing and my pollinator plants?')"><span class="chip-icon">🌸</span>Pollen timing</button>
+        <button class="chip" onclick="fireChip('How much rain has my area had in the last 2 weeks? Should I adjust my watering schedule?')"><span class="chip-icon">🌧️</span>Rainfall check</button>
+      </div>
+      <div class="intel-group">
+        <div class="intel-group-label">Plants</div>
+        <button class="chip" onclick="fireChip('What should I plant right now for my zone, soil, sun exposure, and goals? Give me a specific list with timing.')">What to plant now</button>
+        <button class="chip" onclick="fireChip('My plant has yellowing leaves with spots and small bugs on the undersides. Diagnose the likely cause and give me safe first actions.')">Diagnose a problem</button>
+        <button class="chip" onclick="fireChip('Recommend low-maintenance plants that fit my zone, soil type, sun exposure, and goals. Avoid plants that have failed in similar conditions.')">Plant recommendations</button>
+      </div>
+      <div class="intel-group">
+        <div class="intel-group-label">Reports</div>
+        <button class="chip" onclick="fireChip('Generate my monthly DIY garden report with priorities, weather context, risk items, and what to watch this month.')">📋 Monthly report</button>
+        <button class="chip" onclick="fireChip('Build a weekend work plan that respects weather windows, NOAA alerts, frost risk, pollen, and my maintenance level.')">Weekend plan</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="eyebrow">Garden Profiles</div>
+      <button class="profiles-btn" id="profilesBtn">
+        <strong class="pb-title">✦ Load a garden profile</strong>
+        <span class="pb-sub">10 scenarios · real data · live agent</span>
+      </button>
+    </section>
+
+    <section class="panel">
+      <div class="eyebrow">Live Tools</div>
+      <div id="toolList" class="tool-list">Loading tool registry…</div>
+    </section>
+
+  </aside>
+
+  <!-- ══ WORKSPACE ═══════════════════════════════════════════ -->
+  <main class="workspace">
+    <nav class="tabs" role="tablist" aria-label="Workspace">
+      <button role="tab" aria-selected="true"  class="active" data-tab="ask">Ask JarDIYn</button>
+      <button role="tab" aria-selected="false" data-tab="plan">Plan</button>
+      <button role="tab" aria-selected="false" data-tab="tasks">Tasks</button>
+      <button role="tab" aria-selected="false" data-tab="plants">Plants</button>
+      <button role="tab" aria-selected="false" data-tab="sources">Sources</button>
+    </nav>
+
+    <!-- ASK tab -->
+    <section id="ask" class="tab-panel active" role="tabpanel">
+
+      <!-- Welcome hero — disappears on first message -->
+      <div id="welcomeHero" class="welcome-hero">
+        <div class="welcome-wordmark"><span class="wj">J</span>arDIYn</div>
+        <div class="welcome-tagline">Spatial Garden Intelligence</div>
+        <p class="welcome-desc">Real soil data, USDA zones, live weather — so you know<br><strong>exactly what to do next in your yard.</strong></p>
+        <div class="proof-row">
+          <span class="proof-pill"><strong>12</strong> live tools</span>
+          <span class="proof-pill"><strong>Anthropic</strong> agent loop</span>
+          <span class="proof-pill"><strong>NOAA / NWS</strong> alerts</span>
+          <span class="proof-pill"><strong>Open-Meteo</strong> weather</span>
+          <span class="proof-pill"><strong>Trace</strong> visible</span>
+        </div>
+        <!-- Live signal strip -->
+        <div id="intelStrip" class="intel-strip" aria-label="Live garden signals">
+          <div class="intel-card weather"><div class="intel-kicker">Weather</div><div class="intel-value" id="iw-weather">—</div><div class="intel-detail" id="id-weather">Forecast ready.</div><div class="intel-mode" id="im-weather">checking</div></div>
+          <div class="intel-card noaa"><div class="intel-kicker">NOAA / NWS</div><div class="intel-value" id="iw-noaa">—</div><div class="intel-detail" id="id-noaa">Alert check ready.</div><div class="intel-mode" id="im-noaa">checking</div></div>
+          <div class="intel-card frost"><div class="intel-kicker">Frost</div><div class="intel-value" id="iw-frost">—</div><div class="intel-detail" id="id-frost">Frost risk check ready.</div><div class="intel-mode" id="im-frost">checking</div></div>
+          <div class="intel-card pollen"><div class="intel-kicker">Pollen</div><div class="intel-value" id="iw-pollen">—</div><div class="intel-detail" id="id-pollen">Pollen signal ready.</div><div class="intel-mode" id="im-pollen">checking</div></div>
+          <div class="intel-card rain"><div class="intel-kicker">Rain</div><div class="intel-value" id="iw-rain">—</div><div class="intel-detail" id="id-rain">Rainfall history ready.</div><div class="intel-mode" id="im-rain">checking</div></div>
+          <div class="intel-card soil"><div class="intel-kicker">Soil / Zone</div><div class="intel-value" id="iw-soil">—</div><div class="intel-detail" id="id-soil">Soil profile ready.</div><div class="intel-mode" id="im-soil">checking</div></div>
+        </div>
+        <!-- Prompt cards -->
+        <div class="welcome-prompts">
+          <button class="welcome-prompt" data-prompt="What should I do in my garden this week? Check weather, NOAA/NWS, frost, pollen, rain, soil, and zone before answering.">
+            <span class="wp-icon">📍</span>
+            <span class="wp-title">This week in my garden</span>
+            <span class="wp-text">Zone + live weather + soil → specific next actions</span>
+          </button>
+          <button class="welcome-prompt" data-prompt="Should I water today? Use rainfall history, the forecast, soil type, sun exposure, and any plant stress signals.">
+            <span class="wp-icon">💧</span>
+            <span class="wp-title">Watering decision</span>
+            <span class="wp-text">Rain + soil + forecast → water or skip</span>
+          </button>
+          <button class="welcome-prompt" data-prompt="Can I plant this weekend? Check weather windows, NOAA/NWS alerts, frost risk, soil moisture, and pollen timing.">
+            <span class="wp-icon">🌱</span>
+            <span class="wp-title">Planting window</span>
+            <span class="wp-text">NOAA + frost + soil → go or wait</span>
+          </button>
+          <button class="welcome-prompt" data-prompt="Run a Plan Check before I buy plants. Use zone, soil, sun, weather, rain, pollen, and past failures.">
+            <span class="wp-icon">🎯</span>
+            <span class="wp-title">Plan Check</span>
+            <span class="wp-text">Full signal stack → pass / fail / risk</span>
+          </button>
+        </div>
       </div>
 
-      <div class="welcome-divider">or pick a way in</div>
-
-      <div class="welcome-paths">
-        <button class="welcome-path gold" id="welcomeProfilesBtn">
-          <span class="welcome-path-icon">✦</span>
-          <h3>Load a garden context</h3>
-          <p>Load a real garden profile and run live questions against it — clay soil, heat waves, deer pressure, native conversion. Pick a prompt and watch the agent work.</p>
-          <span class="welcome-path-cta">Load garden profiles →</span>
-        </button>
-        <button class="welcome-path" id="welcomeExploreBtn">
-          <span class="welcome-path-icon">🧭</span>
-          <h3>Explore freely</h3>
-          <p>Jump straight into the app, browse every tab, try the chat, and build your passport when you're ready.</p>
-          <span class="welcome-path-cta">Explore the app →</span>
-        </button>
+      <!-- Composer -->
+      <div class="ask-composer">
+        <label class="composer-label" for="messageInput">What are you trying to decide?</label>
+        <textarea id="messageInput" placeholder="Should I water today, plant this weekend, protect seedlings tonight, or fix this bed before spending more money?"></textarea>
+        <div id="photoPreview" class="photo-preview">
+          <img id="photoPreviewImg" alt="Plant photo"/>
+          <span id="photoPreviewLabel"></span>
+          <button onclick="clearPhoto()">×</button>
+        </div>
+        <div class="composer-actions">
+          <button id="sendBtn" class="primary">Ask JarDIYn</button>
+          <button id="refreshDashboard" class="secondary">Refresh signals</button>
+          <label for="photoUpload" class="photo-label">📷 Photo</label>
+          <input id="photoUpload" type="file" accept="image/*" style="display:none"/>
+        </div>
       </div>
 
-      <button id="welcomeSkip" class="welcome-skip">Skip — I'll set things up myself</button>
+      <!-- Intent row -->
+      <div class="intent-row">
+        <button data-prompt="What should I do in my garden today? Check weather, NOAA/NWS, frost, pollen, rain, soil, and zone before answering.">Today's call</button>
+        <button data-prompt="Should I water today? Use rainfall, forecast, soil, sun, and plant stress context.">Watering decision</button>
+        <button data-prompt="Can I plant this weekend? Use weather windows, NOAA/NWS alerts, frost, soil, and pollen timing.">Planting window</button>
+        <button data-prompt="Run a Plan Check before I buy plants. Use zone, soil, sun, weather, rain, pollen, and past failures.">Plan Check</button>
+      </div>
+
+      <!-- Signal ribbon -->
+      <section class="signal-ribbon" aria-label="Signal stack">
+        <div class="ribbon-head">
+          <div><div class="eyebrow">Signal stack</div><h2>Folded into every answer</h2></div>
+          <span id="checkedAt" class="freshness">Not checked yet</span>
+        </div>
+        <div id="signalStack" class="signal-stack"></div>
+      </section>
+
+      <div id="messages" class="messages" role="log" aria-live="polite"></div>
+
+      <!-- Decision board -->
+      <section class="decision-board" aria-label="Action guidance">
+        <article><div class="eyebrow">Recommended</div><h3>Do</h3><ul id="doList"></ul></article>
+        <article><div class="eyebrow">Risk</div><h3>Watch</h3><ul id="watchList"></ul></article>
+        <article><div class="eyebrow">Restraint</div><h3>Do not do yet</h3><ul id="avoidList"></ul></article>
+      </section>
+    </section>
+
+    <!-- PLAN tab -->
+    <section id="plan" class="tab-panel" role="tabpanel">
+      <div class="workspace-header">
+        <div class="eyebrow">Planning Studio</div>
+        <h2>Plans from the signal stack</h2>
+        <p>Plan Check, weekly plans, and weekend work orders use the same live signal stack as Ask JarDIYn.</p>
+      </div>
+      <div class="plan-layout">
+        <article class="plan-card primary-plan">
+          <div class="eyebrow">Plan Check</div>
+          <h3>Check a decision before you act</h3>
+          <p>Zone, soil, sun, weather, NOAA/NWS, frost, pollen, rain, goals, known problems, and past failures in one recommendation.</p>
+          <button class="primary" data-plan-action="check">Ask for Plan Check</button>
+        </article>
+        <article class="plan-card">
+          <div class="eyebrow">Garden Plan</div>
+          <h3>This week's plan</h3>
+          <p>Converts current conditions into priorities, tasks, watch items, and what to avoid.</p>
+          <button class="secondary" data-plan-action="weekly">Ask for Garden Plan</button>
+        </article>
+        <article class="plan-card">
+          <div class="eyebrow">Weekend</div>
+          <h3>Weekend task list</h3>
+          <p>A work order that respects weather windows, pollen, rainfall, soil moisture, and your maintenance level.</p>
+          <button class="secondary" data-plan-action="weekend">Ask for Weekend Plan</button>
+        </article>
+      </div>
+      <div class="decision-board">
+        <article><div class="eyebrow">Do</div><h3>Next actions</h3><ul id="doList2"></ul></article>
+        <article><div class="eyebrow">Watch</div><h3>Risk items</h3><ul id="watchList2"></ul></article>
+        <article><div class="eyebrow">Hold</div><h3>Do not do yet</h3><ul id="avoidList2"></ul></article>
+      </div>
+    </section>
+
+    <!-- TASKS tab -->
+    <section id="tasks" class="tab-panel" role="tabpanel">
+      <div class="workspace-header single">
+        <div><div class="eyebrow">Execution</div><h2>Tasks</h2><p>Recommended work from JarDIYn answers and saved plans.</p></div>
+        <button id="addTaskBtn" class="secondary">+ Add task</button>
+      </div>
+      <div id="tasksList" class="cards-list" aria-live="polite"></div>
+    </section>
+
+    <!-- PLANTS tab -->
+    <section id="plants" class="tab-panel" role="tabpanel">
+      <div class="workspace-header single">
+        <div><div class="eyebrow">Plant Memory</div><h2>Plants</h2><p>Tracked plants, diagnosis history, and fit decisions.</p></div>
+        <button id="addPlantBtn" class="secondary">+ Track plant</button>
+      </div>
+      <div id="plantsList" class="plant-grid" aria-live="polite"></div>
+    </section>
+
+    <!-- SOURCES tab -->
+    <section id="sources" class="tab-panel" role="tabpanel">
+      <div class="workspace-header single">
+        <div><div class="eyebrow">Trust Layer</div><h2>Sources &amp; MCP tool registry</h2><p>Source proof lives here so the main UX stays clean.</p></div>
+        <button id="reloadSources" class="secondary">Reload</button>
+      </div>
+      <div id="sourcesList" class="sources-grid" aria-live="polite"></div>
+    </section>
+  </main>
+
+  <!-- Intelligence Trace drawer -->
+  <aside id="traceDrawer" class="trace-drawer" aria-label="Intelligence trace">
+    <div class="trace-head">
+      <div><div class="eyebrow">Intelligence Trace</div><h3>Tools, sources, and reasoning path</h3></div>
+      <button id="closeTrace" aria-label="Close trace">×</button>
+    </div>
+    <div id="traceLog" class="trace-log">No trace yet. Ask a question to see the reasoning path.</div>
+  </aside>
+
+</div><!-- /.app-shell -->
+
+<!-- ══ GARDEN PROFILES OVERLAY ════════════════════════════ -->
+<div id="profilesOverlay" class="profiles-overlay" role="dialog" aria-modal="true" aria-label="Garden Profiles">
+  <div class="profiles-panel">
+    <div class="profiles-hdr">
+      <div>
+        <h3>✦ Garden Profiles</h3>
+        <p>Select a garden type · choose a question · JarDIYn answers with live data</p>
+      </div>
+      <button id="profilesClose" class="profiles-close" aria-label="Close">✕</button>
+    </div>
+    <div id="scenarioCatList"></div>
+    <div id="scenarioPrompts" class="scenario-prompts">
+      <div id="scenarioPromptsLabel" class="sp-label"></div>
+      <div id="scenarioPromptList"></div>
     </div>
   </div>
+</div>
 
-  <!-- ═══ SITUATIONAL ALERT STACK ═══ -->
-  <div id="notifStack" class="notif-stack" aria-live="polite"></div>
-
-  <!-- ═══ TOPBAR ═══ -->
-  <header class="topbar">
-    <button id="mobileMenu" class="mobile-menu" aria-label="Open Garden Passport">☰</button>
-    <div class="brand"><span>J</span>arDIYn</div>
-    <div class="brand-sub">by GardenHub</div>
-    <div class="topbar-divider"></div>
-    <div class="product-line">Ask-first garden intelligence</div>
-    <div class="top-spacer"></div>
-    <div id="statusStrip" class="status-strip" aria-label="System status">
-      <span data-status="server">Server</span>
-      <span data-status="claude">Claude</span>
-      <span data-status="apis">Sources</span>
-      <span data-status="tools">Tools</span>
-      <span data-status="store">Memory</span>
-    </div>
-    <button id="traceToggle" class="trace-toggle">Intelligence Trace</button>
-  </header>
-
-  <div id="overlay" class="overlay"></div>
-
-  <div class="app-shell">
-    <!-- ═══ SIDEBAR ═══ -->
-    <aside id="sidebar" class="sidebar" aria-label="Garden Passport">
-      <section class="panel passport-panel">
-        <div class="eyebrow">Garden Passport</div>
-        <h2>Site context</h2>
-        <p class="helper">JarDIYn uses this quietly behind every answer. No separate weather-app workflow.</p>
-        <label>Site name<input id="siteName" value="My Garden" autocomplete="off" /></label>
-        <label>ZIP code
-          <div class="inline-field"><input id="zip" value="49503" maxlength="5" inputmode="numeric" autocomplete="postal-code" /><button id="zoneBtn">Refresh</button></div>
-        </label>
-        <div class="field-grid two">
-          <label>Soil<select id="soil"><option value="unknown">Unknown</option><option>clay loam</option><option>silt loam</option><option>sandy loam</option><option>loam</option><option>sandy</option><option>clay</option></select></label>
-          <label>Sun<select id="sun"><option value="full_sun">Full sun</option><option value="partial_shade">Partial shade</option><option value="full_shade">Full shade</option></select></label>
-        </div>
-        <div class="eyebrow small">Goals</div>
-        <div id="goalTags" class="tag-grid">
-          <button data-goal="vegetables">Vegetables</button>
-          <button data-goal="pollinators">Pollinators</button>
-          <button data-goal="low maintenance">Low maintenance</button>
-          <button data-goal="native plants">Natives</button>
-          <button data-goal="cut flowers">Cut flowers</button>
-          <button data-goal="herbs">Herbs</button>
-        </div>
-        <details class="profile-more">
-          <summary>More site detail</summary>
-          <div class="field-grid two">
-            <label>Experience<select id="experience"><option>beginner</option><option selected>some</option><option>experienced</option></select></label>
-            <label>Budget<select id="budget"><option>tight</option><option selected>moderate</option><option>generous</option></select></label>
-            <label>Maintenance<select id="maintenance"><option selected>low</option><option>medium</option><option>high</option></select></label>
-            <label>Water<select id="waterAccess"><option selected>hose</option><option>drip</option><option>sprinkler</option><option>hand</option></select></label>
-            <label>Drainage<select id="drainage"><option>unknown</option><option>good</option><option>slow</option><option>poor</option></select></label>
-          </div>
-          <label>Known problems<textarea id="knownProblems" placeholder="heavy clay, deer, drainage issues"></textarea></label>
-          <label>Past failures<textarea id="pastFailures" placeholder="lavender rotted, tomatoes wilted"></textarea></label>
-        </details>
-      </section>
-
-      <section class="panel active-profile-panel">
-        <div class="eyebrow">Active Profile</div>
-        <div id="activeProfile" class="profile-card">Profile loading…</div>
-      </section>
-
-      <section class="panel memory-panel">
-        <div class="eyebrow">Garden Memory</div>
-        <div id="memoryMini" class="mini-list">No pending tasks yet.</div>
-      </section>
-
-      <section class="panel source-panel">
-        <div class="eyebrow">Scenario</div>
-        <button id="scenarioBtn" class="demo-button"><strong>Garden Profiles</strong><span>Load a real garden context</span></button>
-      </section>
-    </aside>
-
-    <!-- ═══ WORKSPACE ═══ -->
-    <main class="workspace">
-      <nav class="tabs" aria-label="Primary workspace">
-        <button class="active" data-tab="ask">Ask JarDIYn</button>
-        <button data-tab="plan">Plan</button>
-        <button data-tab="tasks">Tasks</button>
-        <button data-tab="plants">Plants</button>
-        <button data-tab="sources">Sources</button>
-      </nav>
-
-      <!-- ASK tab -->
-      <section id="ask" class="tab-panel active">
-        <div class="ask-hero">
-          <div class="ask-copy">
-            <div class="eyebrow">Core engagement</div>
-            <h1>Ask JarDIYn. It checks the garden signals before it answers.</h1>
-            <p>Weather, NOAA/NWS alerts, frost, pollen, rainfall, soil, zone, plants, and garden memory are folded into the response. They support the answer; they do not become the product.</p>
-          </div>
-          <aside class="ask-readout">
-            <div class="eyebrow">Current readout</div>
-            <h2 id="nextActionTitle">Checking your site…</h2>
-            <p id="nextActionReason">JarDIYn is aligning weather, NOAA/NWS, frost, pollen, rain, and soil behind the ask flow.</p>
-          </aside>
-        </div>
-
-        <div class="ask-composer primary-composer">
-          <label for="messageInput" class="composer-label">What are you trying to decide?</label>
-          <textarea id="messageInput" placeholder="Example: Should I water today, plant this weekend, protect seedlings tonight, or fix this bed before buying more plants?"></textarea>
-          <div id="photoPreview" class="photo-preview">
-            <img id="photoPreviewImg" alt="Plant photo" />
-            <span id="photoPreviewLabel"></span>
-            <button onclick="clearPhoto()">×</button>
-          </div>
-          <div class="composer-actions">
-            <button id="sendBtn" class="primary">Ask JarDIYn</button>
-            <button id="refreshDashboard" class="secondary">Refresh signals</button>
-            <label for="photoUpload" class="secondary" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">📷 Photo</label>
-            <input id="photoUpload" type="file" accept="image/*" style="display:none" />
-          </div>
-        </div>
-
-        <div class="intent-row" aria-label="Common garden decisions">
-          <button data-prompt="What should I do in my garden today? Check weather, NOAA/NWS, frost, pollen, rain, soil, and zone before answering.">Today's call</button>
-          <button data-prompt="Should I water today? Use rainfall, forecast, soil, sun, and plant stress context.">Watering decision</button>
-          <button data-prompt="Can I plant this weekend? Use weather windows, NOAA/NWS alerts, frost, soil, and pollen timing.">Planting window</button>
-          <button data-prompt="Run a Plan Check before I buy plants. Use zone, soil, sun, weather, rain, pollen, and past failures.">Plan Check</button>
-        </div>
-
-        <section class="signal-ribbon" aria-label="Signals folded into every JarDIYn answer">
-          <div class="ribbon-head">
-            <div><div class="eyebrow">Signal stack</div><h2>Folded into the answer</h2></div>
-            <span id="checkedAt" class="freshness">Not checked yet</span>
-          </div>
-          <div id="signalStack" class="signal-stack"></div>
-        </section>
-
-        <div id="messages" class="messages"></div>
-
-        <section class="decision-board compact-decision-board">
-          <article><div class="eyebrow">Answer output</div><h3>Do</h3><ul id="doList"></ul></article>
-          <article><div class="eyebrow">Risk</div><h3>Watch</h3><ul id="watchList"></ul></article>
-          <article><div class="eyebrow">Restraint</div><h3>Do not do yet</h3><ul id="avoidList"></ul></article>
-        </section>
-      </section>
-
-      <!-- PLAN tab -->
-      <section id="plan" class="tab-panel">
-        <div class="workspace-header single">
-          <div><div class="eyebrow">Planning Studio</div><h2>Plans are generated from the ask flow</h2><p>Plan Check, weekly plans, and weekend work orders use the same fused signal stack behind Ask JarDIYn.</p></div>
-        </div>
-        <div class="plan-layout">
-          <article class="plan-card primary-plan"><div class="eyebrow">Plan Check</div><h3>Check a decision before you act</h3><p>Ask-first flow using zone, soil, sun, weather, NOAA/NWS, frost, pollen, rain, goals, known problems, and past failures.</p><button data-plan-action="check" class="primary">Ask for Plan Check</button></article>
-          <article class="plan-card"><div class="eyebrow">Garden Plan</div><h3>Build this week's plan</h3><p>Converts current signals into priorities, tasks, watch items, and avoid guidance.</p><button data-plan-action="weekly" class="secondary">Ask for Garden Plan</button></article>
-          <article class="plan-card"><div class="eyebrow">Weekend</div><h3>Weekend task list</h3><p>Creates a concise work order that respects weather windows, pollen, rainfall, and soil moisture.</p><button data-plan-action="weekend" class="secondary">Ask for Weekend Plan</button></article>
-        </div>
-      </section>
-
-      <!-- TASKS tab -->
-      <section id="tasks" class="tab-panel">
-        <div class="workspace-header single"><div><div class="eyebrow">Execution</div><h2>Tasks</h2><p>Recommended work from JarDIYn answers and saved plans.</p></div><button id="addTaskBtn" class="secondary">Add task</button></div>
-        <div id="tasksList" class="cards-list"></div>
-      </section>
-
-      <!-- PLANTS tab -->
-      <section id="plants" class="tab-panel">
-        <div class="workspace-header single"><div><div class="eyebrow">Plant Memory</div><h2>Plants</h2><p>Tracked plants, diagnosis history, and fit decisions.</p></div><button id="addPlantBtn" class="secondary">Track plant</button></div>
-        <div id="plantsList" class="plant-grid"></div>
-      </section>
-
-      <!-- SOURCES tab -->
-      <section id="sources" class="tab-panel">
-        <div class="workspace-header single"><div><div class="eyebrow">Trust Layer</div><h2>Sources &amp; MCP tools</h2><p>Source proof stays here so the main UX remains Ask-first and clean.</p></div><button id="reloadSources" class="secondary">Reload</button></div>
-        <div id="sourcesList" class="sources-grid"></div>
-      </section>
-    </main>
-
-    <!-- Intelligence Trace drawer -->
-    <aside id="traceDrawer" class="trace-drawer">
-      <div class="trace-head"><div><div class="eyebrow">Intelligence Trace</div><h3>Tools, sources, and reasoning path</h3></div><button id="closeTrace">×</button></div>
-      <div id="traceLog" class="trace-log">No trace yet.</div>
-    </aside>
-  </div>
-
-  <!-- ═══ DEMO OVERLAY (10 scenarios) ═══ -->
-  <div id="scenarioOverlay" class="demo-overlay" role="dialog" aria-modal="true" aria-label="Garden Profiles">
-    <div class="demo-panel">
-      <div class="demo-panel-hdr">
-        <div><h3>✦ JarDIYn Garden Profiles</h3><p>Select a garden type · choose a question · JarDIYn answers with live data</p></div>
-        <button id="scenarioClose" class="demo-x">✕</button>
-      </div>
-      <div id="scenarioCatList"></div>
-      <div id="scenarioPrompts" class="demo-prompts">
-        <div id="scenarioPromptsLbl" class="demo-prompts-lbl"></div>
-        <div id="scenarioPromptList"></div>
-      </div>
-    </div>
-  </div>
-
-  <script src="/app.js"></script>
+<script src="/app.js"></script>
 </body>
 </html>

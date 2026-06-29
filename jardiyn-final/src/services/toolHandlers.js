@@ -1,6 +1,6 @@
 import { getTool, getToolNames } from "./tools.js";
 import { resolveLocation, getWeather, getNoaaAlerts, getPollen, getRainfall, getSoil, getPlantSignals, isoNow } from "./liveApis.js";
-import { addTask, addPlant, logToolCall } from "./store.js";
+import { addTask, addPlant, logToolCall } from "../../store.js";
 
 function clean(value, max = 1000) {
   return String(value ?? "").replace(/[\u0000-\u001f\u007f]/g, " ").trim().slice(0, max);
